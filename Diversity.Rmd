@@ -1,0 +1,386 @@
+---
+title: "Diversity of treeline epiphytes"
+author: "Edith"
+date: "2025-09-29"
+output:
+  pdf_document: default
+  html_document: default
+---
+Data= 8 plots in 4 elevations
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+str(data)      # Estructura de la base de datos
+data
+```
+
+TABLES species richness and abundance by plots - elevations 
+
+```{r}
+library(dplyr)
+RIQPLOT <- data %>%
+  group_by(plot, elevation) %>%              # Agrupa por árbol
+  summarise(RIQUEZA = n_distinct(morphospe)) # Cuenta especies únicas
+RIQPLOT
+ABUNDPLOT <- data %>%
+  group_by(plot, elevation) %>%
+  summarise(ABUNDANCIA = n())     #Cuenta numero de individuos
+ABUNDPLOT
+```
+
+TABLES species richness and abundance by forophytes
+```{r}
+DIVERFORO <- data %>%
+  group_by(forof) %>%
+  summarise(
+    RIQUEZA    = n_distinct(morphospe),  # especies únicas
+    ABUNDANCIA = n()                     # número de individuos (filas)
+  )
+DIVERFORO
+
+data_tree <- data %>%            #Tabla con datos del forofito 
+  group_by(forof) %>%
+  distinct(forof, dap, plot, genera_tree, elevation)
+data_tree
+
+DIVERFORO <- DIVERFORO %>%          #juntar
+  left_join(data_tree, by = "forof")
+DIVERFORO
+```
+
+GRAPHICS
+
+Graphic abundance by elevation
+```{r}
+library(ggplot2)
+counts <- DIVERFORO %>%
+  group_by(elevation) %>%
+  summarise(n = n_distinct(forof))
+
+ggplot(DIVERFORO, aes(x = factor(elevation), y = ABUNDANCIA, fill = factor(elevation))) +
+  geom_violin(trim = FALSE, alpha = 0.6) +
+  geom_boxplot(width = 0.1, outlier.colour = "red", outlier.shape = 16, outlier.size = 2) +
+  geom_text(
+    data = counts,
+    aes(x = factor(elevation), y = 0, label = paste0("n=", n)),
+    vjust = 1.5, color = "black"
+  ) +
+  labs(
+    title = "Distribución de la Abundancia por Elevación",
+    x = "Elevación (m)",
+    y = "Abundancia"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+```
+
+Graphic richness by elevation
+```{r}
+ggplot(DIVERFORO, aes(x = factor(elevation), y = RIQUEZA, fill = factor(elevation))) +
+  geom_violin(trim = FALSE, alpha = 0.6) +
+  geom_boxplot(width = 0.1, outlier.colour = "red", outlier.shape = 16, outlier.size = 2) +
+  geom_text(
+    data = counts,
+    aes(x = factor(elevation), y = 0, label = paste0("n=", n)),
+    vjust = 1.5, color = "black"
+  ) +
+  labs(
+    title = "Riqueza por Elevación",
+    x = "Elevación (m)",
+    y = "Riqueza"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Influence of DBH on epiphyte abundance
+```{r}
+ggplot(DIVERFORO, aes(x = dap, y = ABUNDANCIA, color = factor(elevation))) +
+  geom_point(size = 3, alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Relación entre DAP y Abundancia",
+    x = "DAP (cm)",
+    y = "Abundancia",
+    color = "Elevación (m)"
+  ) +
+  theme_minimal()
+```
+
+Influence of DBH on epiphyte richness
+```{r}
+ggplot(DIVERFORO, aes(x = dap, y = RIQUEZA, color = factor(elevation))) +
+  geom_point(size = 3, alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE) +  
+  labs(
+    title = "Relación entre DAP y RIQUEZA",
+    x = "DAP (cm)",
+    y = "Riqueza",
+    color = "Elevación (m)"
+  ) +
+  theme_minimal()
+```
+
+ALPHA DIVERSITY
+```{r}
+library(vegan)
+library(hillR)
+library(tidyverse)
+library(iNEXT)
+
+ABUND <- data %>%               #tabla de abundancias por plot/ELEVATION 
+  group_by(elevation, morphospe) %>%
+  summarise(ABUNDANCIA = n(), .groups = "drop") %>%
+  arrange(elevation, desc(ABUNDANCIA)) 
+ABUND
+
+matriz <- ABUND %>%              #matriz de abundancias
+  pivot_wider(
+    names_from = morphospe,
+    values_from = ABUNDANCIA,
+    values_fill = 0
+  )
+print(matriz)
+
+elevation <- matriz$elevation   # 1. Guardamos los nombres de los plots
+matriz_num <- matriz %>% select(-elevation)  # 2. Extraemos solo las abundancias (sin la columna plot)
+# 3. Calculamos los números de Hill
+hill_0 <- hill_taxa(matriz_num, q = 0)  # Riqueza (S)
+hill_1 <- hill_taxa(matriz_num, q = 1)  # Exponencial de Shannon
+hill_2 <- hill_taxa(matriz_num, q = 2)  # Inversa de Simpson
+matriz_num
+HILL_RESUMEN <- data.frame(    # 4. Juntamos todo en un solo data frame
+  elevation = elevation,
+  H0 = hill_0,
+  H1 = hill_1,
+  H2 = hill_2
+)
+print(HILL_RESUMEN)
+
+```
+Grafics
+```{r}
+
+HILL_perfil <- HILL_RESUMEN %>%  # Pasar a formato largo
+  pivot_longer(cols = c(H0, H1, H2),
+               names_to = "q",
+               values_to = "Valor") %>%
+  mutate(q = case_when(
+    q == "H0" ~ 0,
+    q == "H1" ~ 1,
+    q == "H2" ~ 2
+  ))
+HILL_perfil
+
+ggplot(HILL_perfil, aes(x = q, y = Valor, color = elevation, group = elevation)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  scale_x_continuous(breaks = c(0,1,2)) +
+  labs(title = "Perfil de Diversidad de Hill",
+       x = "q",
+       y = "Diversidad (Números de Hill)",
+       color = "Elevación") +
+  theme_minimal()
+```
+
+
+BETA DIVERSITY 
+Matrix of abundance
+```{r}
+matriz_num <- as.data.frame(matriz)
+rownames(matriz_num) <- matriz_num$elevation    # Poner la columna 'elevation' como rownames
+matriz_num$elevation <- NULL                    # Quitar columna 'elevation'
+dist_bray <- vegdist(matriz_num, method="bray")
+hc <- hclust(dist_bray, method="average")
+
+####DENDROGRAMA
+plot(hc, main="Dendrograma (UPGMA) - Bray-Curtis", 
+     xlab="Elevación (msnm)", sub="")
+
+####NMDS y PCoA
+# Paquetes necesarios
+library(vegan)
+library(ggplot2)
+install.packages("patchwork")
+library(patchwork)   # para combinar gráficos
+
+# -----------------------------
+# 1) NMDS
+# -----------------------------
+dist_bray <- vegdist(matriz_num, method = "bray")
+nmds <- metaMDS(dist_bray, k = 2, trymax = 100)
+
+nmds_points <- as.data.frame(nmds$points)
+colnames(nmds_points) <- c("NMDS1", "NMDS2")
+nmds_points$elevation <- rownames(nmds_points)
+
+plot_nmds <- ggplot(nmds_points, aes(x = NMDS1, y = NMDS2, color = elevation)) +
+  geom_point(size = 4, alpha = 0.8) +
+  geom_text(aes(label = elevation), vjust = -1, size = 3) +
+  stat_ellipse(type = "t", linetype = 2) +
+  labs(
+    title = paste0("NMDS (Bray-Curtis)\nStress = ", round(nmds$stress, 3)),
+    x = "NMDS1", y = "NMDS2",
+    color = "Elevación (m)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# -----------------------------
+# 2) PCoA
+# -----------------------------
+pcoa <- cmdscale(dist_bray, eig = TRUE, k = 2)
+
+pcoa_points <- as.data.frame(pcoa$points)
+colnames(pcoa_points) <- c("PCoA1", "PCoA2")
+pcoa_points$elevation <- rownames(pcoa_points)
+
+plot_pcoa <- ggplot(pcoa_points, aes(x = PCoA1, y = PCoA2, color = elevation)) +
+  geom_point(size = 4, alpha = 0.8) +
+  geom_text(aes(label = elevation), vjust = -1, size = 3) +
+  stat_ellipse(type = "t", linetype = 2) +
+  labs(
+    title = paste0(
+      "PCoA (Bray-Curtis)\nVar. Exp = ",
+      round(pcoa$eig[1] / sum(pcoa$eig) * 100, 1), "%, ",
+      round(pcoa$eig[2] / sum(pcoa$eig) * 100, 1), "%"
+    ),
+    x = paste0("PCoA1 (", round(pcoa$eig[1] / sum(pcoa$eig) * 100, 1), "%)"),
+    y = paste0("PCoA2 (", round(pcoa$eig[2] / sum(pcoa$eig) * 100, 1), "%)"),
+    color = "Elevación (m)"
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# -----------------------------
+# 3) Gráfico combinado
+# -----------------------------
+plot_nmds + plot_pcoa
+
+```
+
+Beta diversidad global (Whittaker 1960, 1972)
+
+1. Alpha promedio (alpha_mean)
+Calcula la riqueza promedio de especies por parcela.
+Es básicamente el promedio de cuántas especies tiene cada comunidad.
+2. Gamma (gamma_total)
+Es la riqueza total regional: el número total de especies considerando todas las parcelas juntas.
+Equivale al tamaño del pool de especies de la región.
+3. Beta multiplicativa (beta_mult)
+Interpreta cuántas veces más grande es la diversidad regional comparada con la local promedio.
+Ejemplo: si sale 4, significa que la diversidad regional es 4 veces la riqueza promedio de una parcela.
+4. Beta aditiva (beta_add)
+Representa la diferencia absoluta entre la riqueza regional y la local promedio.
+Ejemplo: si gamma = 120 especies y alpha promedio = 30, entonces beta aditiva = 90 → hay 90 especies que en promedio no se encuentran en cada comunidad.
+
+```{r}
+# Alpha promedio (riqueza por parcela)
+alpha_mean <- mean(specnumber(matriz_num))
+
+# Gamma (riqueza regional total)
+gamma_total <- specnumber(colSums(matriz_num > 0))
+
+# Beta multiplicativa y aditiva
+beta_mult  <- gamma_total / alpha_mean
+beta_add   <- gamma_total - alpha_mean
+
+list(alpha_mean = alpha_mean,
+     gamma = gamma_total,
+     beta_multiplicative = beta_mult,
+     beta_additive = beta_add)
+```
+Matrix of presence-absence
+```{r}
+matriz_pa <- (matriz_num > 0) * 1   # 1) Transformar a presencia/ausencia
+dist_bray_pa <- vegdist(matriz_pa, method = "bray") # 2) Distancia Bray-Curtis
+# -----------------------------
+# 3) NMDS con matriz PA
+# -----------------------------
+nmds_pa <- metaMDS(dist_bray_pa, k = 2, trymax = 100)
+
+nmds_points_pa <- as.data.frame(nmds_pa$points)
+colnames(nmds_points_pa) <- c("NMDS1", "NMDS2")
+nmds_points_pa$elevation <- rownames(nmds_points_pa)
+
+plot_nmds_pa <- ggplot(nmds_points_pa, aes(x = NMDS1, y = NMDS2, color = elevation)) +
+  geom_point(size = 4, alpha = 0.8) +
+  geom_text(aes(label = elevation), vjust = -1, size = 3) +
+  stat_ellipse(type = "t", linetype = 2) +
+  labs(
+    title = paste0("NMDS (Presencia/Ausencia, Bray-Curtis)\nStress = ", round(nmds_pa$stress, 3)),
+    x = "NMDS1", y = "NMDS2",
+    color = "Elevación (m)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        plot.title = element_text(hjust = 0.5, face = "bold"))
+# -----------------------------
+# 4) PCoA con matriz PA
+# -----------------------------
+pcoa_pa <- cmdscale(dist_bray_pa, eig = TRUE, k = 2)
+
+pcoa_points_pa <- as.data.frame(pcoa_pa$points)
+colnames(pcoa_points_pa) <- c("PCoA1", "PCoA2")
+pcoa_points_pa$elevation <- rownames(pcoa_points_pa)
+
+plot_pcoa_pa <- ggplot(pcoa_points_pa, aes(x = PCoA1, y = PCoA2, color = elevation)) +
+  geom_point(size = 4, alpha = 0.8) +
+  geom_text(aes(label = elevation), vjust = -1, size = 3) +
+  stat_ellipse(type = "t", linetype = 2) +
+  labs(
+    title = paste0(
+      "PCoA (Presencia/Ausencia, Bray-Curtis)\nVar. Exp = ",
+      round(pcoa_pa$eig[1] / sum(pcoa_pa$eig) * 100, 1), "%, ",
+      round(pcoa_pa$eig[2] / sum(pcoa_pa$eig) * 100, 1), "%"
+    ),
+    x = paste0("PCoA1 (", round(pcoa_pa$eig[1] / sum(pcoa_pa$eig) * 100, 1), "%)"),
+    y = paste0("PCoA2 (", round(pcoa_pa$eig[2] / sum(pcoa_pa$eig) * 100, 1), "%)"),
+    color = "Elevación (m)"
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+# -----------------------------
+# 5) Gráfico combinado
+# -----------------------------
+plot_nmds_pa + plot_pcoa_pa
+
+```
+Componentes de la Beta diversidad
+```{r}
+
+install.packages("betapart")   # si no está instalado
+library(betapart)
+
+## Para matriz de presencia ausencia
+matriz_pa <- (matriz_num > 0) * 1  # 1) Matriz de presencia/ausencia 
+beta_pa <- beta.pair(matriz_pa, index.family = "sorensen")# 2) Calcular componentes de beta diversidad
+# Esto devuelve tres matrices de disimilitud:
+# $beta.sim  = turnover (reemplazo)
+# $beta.sne  = nestedness (anidamiento)
+# $beta.sor  = beta total (Sorensen)
+beta_summary <- data.frame(      # 3) Calcular promedio de cada componente
+  Beta_total   = mean(beta_pa$beta.sor),
+  Turnover     = mean(beta_pa$beta.sim),
+  Nestedness   = mean(beta_pa$beta.sne)
+)
+print(beta_summary)
+
+#Para Matriz de abundancias 
+matriz_ab <- as.data.frame(matriz_num)
+beta_abund <- beta.pair.abund(matriz_ab, index.family = "bray")# 2) Calcular los componentes de la beta diversidad de abundancia
+# Esto devuelve tres matrices de disimilitud:
+# $beta.bray.bal = reemplazo (balanced variation in abundance)
+# $beta.bray.gra = gradiente (abundance gradients)
+# $beta.bray     = beta total (Bray-Curtis)
+
+beta_abund_summary <- data.frame( # 3) Promedio de cada componente
+  Beta_total   = mean(beta_abund$beta.bray),
+  Replacement  = mean(beta_abund$beta.bray.bal),
+  Gradient     = mean(beta_abund$beta.bray.gra)
+)
+print(beta_abund_summary)
+```
