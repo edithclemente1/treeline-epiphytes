@@ -1,14 +1,27 @@
 ---
 title: "Diversity of treeline epiphytes"
-author: "Edith"
+author: "EdithClemente"
 date: "2025-09-29"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
+
+Packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(dplyr)
+library(ggplot2)
+library(vegan)
+library(hillR)
+library(tidyverse)
+library(iNEXT)
+library(patchwork)   # para combinar gráficos
+library(betapart)
+```
+
 Data= 8 plots in 4 elevations
 ```{r}
-knitr::opts_chunk$set(echo = TRUE)
 setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
 data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
 str(data)      # Estructura de la base de datos
@@ -18,7 +31,6 @@ data
 TABLES species richness and abundance by plots - elevations 
 
 ```{r}
-library(dplyr)
 RIQPLOT <- data %>%
   group_by(plot, elevation) %>%              # Agrupa por árbol
   summarise(RIQUEZA = n_distinct(morphospe)) # Cuenta especies únicas
@@ -53,7 +65,6 @@ GRAPHICS
 
 Graphic abundance by elevation
 ```{r}
-library(ggplot2)
 counts <- DIVERFORO %>%
   group_by(elevation) %>%
   summarise(n = n_distinct(forof))
@@ -125,11 +136,6 @@ ggplot(DIVERFORO, aes(x = dap, y = RIQUEZA, color = factor(elevation))) +
 
 ALPHA DIVERSITY
 ```{r}
-library(vegan)
-library(hillR)
-library(tidyverse)
-library(iNEXT)
-
 ABUND <- data %>%               #tabla de abundancias por plot/ELEVATION 
   group_by(elevation, morphospe) %>%
   summarise(ABUNDANCIA = n(), .groups = "drop") %>%
@@ -200,12 +206,6 @@ plot(hc, main="Dendrograma (UPGMA) - Bray-Curtis",
      xlab="Elevación (msnm)", sub="")
 
 ####NMDS y PCoA
-# Paquetes necesarios
-library(vegan)
-library(ggplot2)
-install.packages("patchwork")
-library(patchwork)   # para combinar gráficos
-
 # -----------------------------
 # 1) NMDS
 # -----------------------------
@@ -351,10 +351,6 @@ plot_nmds_pa + plot_pcoa_pa
 ```
 Componentes de la Beta diversidad
 ```{r}
-
-install.packages("betapart")   # si no está instalado
-library(betapart)
-
 ## Para matriz de presencia ausencia
 matriz_pa <- (matriz_num > 0) * 1  # 1) Matriz de presencia/ausencia 
 beta_pa <- beta.pair(matriz_pa, index.family = "sorensen")# 2) Calcular componentes de beta diversidad
