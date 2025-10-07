@@ -25,7 +25,7 @@ Data= 8 plots in 4 elevations
 setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
 data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
 str(data)      # Estructura de la base de datos
-data
+head(data)
 ```
 
 TABLES species richness and abundance by plots - elevations 
@@ -194,7 +194,7 @@ ggplot(HILL_perfil, aes(x = q, y = Valor, color = elevation, group = elevation))
 
 BETA DIVERSITY 
 Matrix of abundance
-```{r}
+```{r,results='hide'}
 matriz_num <- as.data.frame(matriz)
 rownames(matriz_num) <- matriz_num$elevation    # Poner la columna 'elevation' como rownames
 matriz_num$elevation <- NULL                    # Quitar columna 'elevation'
@@ -294,7 +294,7 @@ list(alpha_mean = alpha_mean,
      beta_additive = beta_add)
 ```
 Matrix of presence-absence
-```{r}
+```{r, results='hide'}
 matriz_pa <- (matriz_num > 0) * 1   # 1) Transformar a presencia/ausencia
 dist_bray_pa <- vegdist(matriz_pa, method = "bray") # 2) Distancia Bray-Curtis
 # -----------------------------
