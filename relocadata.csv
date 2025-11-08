@@ -1,0 +1,115 @@
+branch_ID;time;date;relocation;dead_alive;epi_ID;family;genus;morphospecies;coverage_branch;reproductive_state;stem_length;no_shoots;no_pseudobulbs;no_leaves;length_longest_leaf;ramification_1;ramification_2;no_stems
+B01;T1;21.04.2025;true;alive;BE18;Ericaceae;Demosthenesia;Demosthenesia buxifolia;60;Vegetative ;17;0;;22;;0;0;37
+B01;T1;21.04.2026;true;alive;BE19;Polypodiaceae;Grammitis;Grammitis personata;1;Sterile;;0;;2;9,6;;;
+B01;T2;21.06.2025;true;alive;BE18;Ericaceae;Demosthenesia;Demosthenesia buxifolia;60;Vegetative ;17,2;0;;23;;0;0;30
+B01;T2;21.06.2026;true;alive;BE19;Polypodiaceae;Grammitis;Grammitis personata;1;Sterile;;0;;2;9,3;;;
+B01;T3;26.08.2025;true;dead;BE18;Ericaceae;Demosthenesia;Demosthenesia buxifolia;;;;;;;;;;
+B01;T3;26.08.2025;true;dead;BE19;Polypodiaceae;Grammitis;Grammitis personata;;;;;;;;;;
+B02;T1;21.04.2025;true;alive;BE22;Ericaceae;Demosthenesia;Demosthenesia buxifolia;10;Vegetative ;9,5;0;;11;;0;0;11
+B02;T1;21.04.2025;true;alive;BE20;Orchidaceae;Epidendrum;Epidendrum soratae;10;Flowering;20,6;0;0;21;;;;4
+B02;T1;21.04.2025;true;alive;BE23;Ericaceae;Erica;Erica  sp 2;3;Vegetative ;4,7;0;;3;;0;0;5
+B02;T1;21.04.2025;true;alive;BE21;Polypodiaceae;Grammitis ;Grammitis athyrioides ;2;Sporangia;;0;;3;17,9;;;
+B02;T1;21.04.2025;true;alive;BE24;Polypodiaceae;Grammitis;Grammitis personata;2;Sterile;;0;;3;10,8;;;
+B02;T2;21.06.2025;true;alive;BE22;Ericaceae;Demosthenesia;Demosthenesia buxifolia;10;Vegetative ;9,5;0;;3;;0;0;10
+B02;T2;21.06.2025;true;alive;BE20;Orchidaceae;Epidendrum;Epidendrum soratae;10;Flowering;20,6;0;0;18;;;;4
+B02;T2;21.06.2025;true;alive;BE23;Ericaceae;Erica;Erica  sp 2;3;Vegetative ;4,5;0;;3;;0;0;5
+B02;T2;21.06.2025;true;alive;BE21;Polypodiaceae;Grammitis ;Grammitis athyrioides ;2;Sporangia;;0;;2;18;;;
+B02;T2;21.06.2025;true;alive;BE24;Polypodiaceae;Grammitis;Grammitis personata;2;Non sterile;;0;;3;11;;;
+B02;T3;26.08.2025;true;dead;BE22;Ericaceae;Demosthenesia;Demosthenesia buxifolia;;;;;;;;;;
+B02;T3;26.08.2025;true;dead;BE20;Orchidaceae;Epidendrum;Epidendrum soratae;;;;;;;;;;
+B02;T3;26.08.2025;true;dead;BE23;Ericaceae;Erica;Erica  sp 2;;;;;;;;;;
+B02;T3;26.08.2025;true;dead;BE21;Polypodiaceae;Grammitis ;Grammitis athyrioides ;;;;;;;;;;
+B02;T3;26.08.2025;true;dead;BE24;Polypodiaceae;Grammitis;Grammitis personata;;;;;;;;;;
+B03;T1;21.04.2025;true;alive;BE26;Ericaceae;Demosthenesia;Demosthenesia buxifolia;5;Vegetative ;14,7;0;;19;;0;2;3
+B03;T1;21.04.2025;true;alive;BE25;Polypodiaceae;Grammitis ;Grammitis athyrioides ;5;Sterile;;2;;5;10,3;;;
+B03;T1;21.04.2025;true;alive;BE27;Polypodiaceae;Grammitis;Grammitis personata;2;Sporangia;;0;;3;12,4;;;
+B03;T2;21.06.2025;true;alive;BE26;Ericaceae;Demosthenesia;Demosthenesia buxifolia;5;Vegetative ;14,8;0;;13;;0;2;3
+B03;T2;21.06.2025;true;alive;BE25;Polypodiaceae;Grammitis ;Grammitis athyrioides ;5;Sterile;;2;;4;11;;;
+B03;T2;21.06.2025;true;alive;BE27;Polypodiaceae;Grammitis;Grammitis personata;2;Sporangia;;0;;2;11,9;;;
+B03;T3;26.08.2025;true;dead;BE26;Ericaceae;Demosthenesia;Demosthenesia buxifolia;;;;;;;;;;
+B03;T3;26.08.2025;true;dead;BE25;Polypodiaceae;Grammitis ;Grammitis athyrioides ;;;;;;;;;;
+B03;T3;26.08.2025;true;alive;BE27;Polypodiaceae;Grammitis;Grammitis personata;2;Sporangia;;0;;2;11,7;;;
+B04;T1;21.04.2025;true;alive;BE30;Ericaceae;Demosthenesia;Demosthenesia buxifolia;15;Fruiting;17;0;;21;;0;0;10
+B04;T1;21.04.2025;true;alive;BE29;Polypodiaceae;Grammitis;Grammitis personata;5;Sporangia;;0;;6;19,4;;;
+B04;T1;21.04.2025;true;alive;BE28;Polypodiaceae;Grammitis;Grammitis subsessilis;50;Sporangia;;10;;28;28,4;;;
+B04;T1;21.04.2025;true;alive;BE31;Ericaceae;Thibaudia ;Thibaudia sp 1;2;Vegetative ;30;0;;7;;0;0;
+B04;T2;21.06.2025;true;alive;BE30;Ericaceae;Demosthenesia;Demosthenesia buxifolia;15;Fruiting;17,3;0;;15;;0;0;
+B04;T2;21.06.2025;true;dead;BE29;Polypodiaceae;Grammitis;Grammitis personata;5;Sporangia;;;;;;;;
+B04;T2;21.06.2025;true;alive;BE28;Polypodiaceae;Grammitis;Grammitis subsessilis;50;Sporangia;;10;;15;28,4;;;
+B04;T2;21.06.2025;true;alive;BE31;Ericaceae;Thibaudia ;Thibaudia sp 1;2;Vegetative ;30;0;;5;;0;0;
+B04;T3;26.08.2025;true;dead;BE30;Ericaceae;Demosthenesia;Demosthenesia buxifolia;;;;;;;;;;
+B04;T3;26.08.2025;true;dead;BE29;Polypodiaceae;Grammitis;Grammitis personata;;;;;;;;;;
+B04;T3;26.08.2025;true;dead;BE28;Polypodiaceae;Grammitis;Grammitis subsessilis;;;;;;;;;;
+B04;T3;26.08.2025;true;dead;BE31;Ericaceae;Thibaudia ;Thibaudia sp 1;;;;;;;;;;
+B05;T1;21.04.2025;true;alive;BE34;Ericaceae;Demosthenesia;Demosthenesia buxifolia;15;Vegetative ;11,5;1;;33;;0;0;32
+B05;T1;21.04.2025;true;alive;BE33;Ericaceae;Demosthenesia;Demosthenesia spectabilis;5;Vegetative ;42,8;0;;89;;0;0;1
+B05;T1;21.04.2025;true;alive;BE38;Polypodiaceae;Elaphoglossum;Elaphoglossum metallicum ;2;Sterile;;1;;2;6;;;
+B05;T1;21.04.2025;true;alive;BE37;Orchidaceae;Epidendrum;Epidendrum ardens;5;Flowering;27,2;0;0;12;;;;3
+B05;T1;21.04.2025;true;alive;BE36;Polypodiaceae;Grammitis;Grammitis moniliformis;10;Sporangia;;0;;9;11,8;;;
+B05;T1;21.04.2025;true;alive;BE35;Polypodiaceae;Grammitis;Grammitis personata;20;Sporangia;;2;;12;25,2;;;
+B05;T1;21.04.2025;true;alive;BE32;Orchidaceae;Stelis;Stelis cassidis;40;Flowering;20,7;27;0;37;12,5;;;
+B05;T2;21.06.2025;true;alive;BE34;Ericaceae;Demosthenesia;Demosthenesia buxifolia;15;Vegetative ;12,5;1;;31;;0;0;
+B05;T2;21.06.2025;true;alive;BE33;Ericaceae;Demosthenesia;Demosthenesia spectabilis;5;Vegetative ;28,2;0;;74;;0;0;
+B05;T2;21.06.2025;true;alive;BE38;Polypodiaceae;Elaphoglossum;Elaphoglossum metallicum ;2;Sterile;;1;;2;8,8;;;
+B05;T2;21.06.2025;true;alive;BE37;Orchidaceae;Epidendrum;Epidendrum ardens;5;Flowering;26,8;0;0;12;;;;2
+B05;T2;21.06.2025;true;alive;BE36;Polypodiaceae;Grammitis;Grammitis moniliformis;10;Sporangia;;0;;7;9,3;;;
+B05;T2;21.06.2025;true;alive;BE35;Polypodiaceae;Grammitis;Grammitis personata;20;Sporangia;;2;;8;26,4;;;
+B05;T2;21.06.2025;true;alive;BE32;Orchidaceae;Stelis;Stelis cassidis;40;Fruiting;20,7;27;0;33;12,2;;;
+B05;T3;26.08.2025;true;dead;BE34;Ericaceae;Demosthenesia;Demosthenesia buxifolia;;;;;;;;;;
+B05;T3;26.08.2025;true;alive;BE33;Ericaceae;Demosthenesia;Demosthenesia spectabilis;5;Vegetative ;27,2;0;;38;;0;0;
+B05;T3;26.08.2025;true;alive;BE38;Polypodiaceae;Elaphoglossum;Elaphoglossum metallicum ;2;Sterile;;0;;2;7,8;;;
+B05;T3;26.08.2025;true;dead;BE37;Orchidaceae;Epidendrum;Epidendrum ardens;;;;;;;;;;
+B05;T3;26.08.2025;true;dead;BE36;Polypodiaceae;Grammitis;Grammitis moniliformis;;;;;;;;;;
+B05;T3;26.08.2025;true;alive;BE35;Polypodiaceae;Grammitis;Grammitis personata;5;Sporangia;;0;;3;25,3;;;
+B05;T3;26.08.2025;true;dead;BE32;Orchidaceae;Stelis;Stelis cassidis;;;;;;;;;;
+B06;T1;21.04.2025;false;alive;BE03;Ericaceae;Demosthenesia;Demosthenesia buxifolia;5;Vegetative ;6,5;0;;15;;0;0;4
+B06;T1;21.04.2025;false;alive;BE01;Polypodiaceae;Grammitis ;Grammitis athyrioides ;10;Sporangia;;1;;8;18,5;;;
+B06;T1;21.04.2025;false;alive;BE02;Hymenophyllaceae;Hymenophyllum;Hymenophyllum sp 1 ;20;Sporulation;;0;;15;12,6;;;
+B06;T2;21.06.2025;false;alive;BE03;Ericaceae;Demosthenesia;Demosthenesia buxifolia;5;Vegetative ;6,9;0;;13;;0;0;
+B06;T2;21.06.2025;false;alive;BE01;Polypodiaceae;Grammitis ;Grammitis athyrioides ;10;Sporangia;;0;;5;19,2;;;3
+B06;T2;21.06.2025;false;alive;BE02;Hymenophyllaceae;Hymenophyllum;Hymenophyllum sp 1 ;20;Sporulation;;0;;14;14,8;;;
+B06;T3;26.08.2025;false;alive;BE03;Ericaceae;Demosthenesia;Demosthenesia buxifolia;5;Vegetative ;7,1;0;;11;;0;0;
+B06;T3;26.08.2025;false;alive;BE01;Polypodiaceae;Grammitis ;Grammitis athyrioides ;8;Sporangia;;0;;5;19,2;;;3
+B06;T3;26.08.2025;false;alive;BE02;Hymenophyllaceae;Hymenophyllum;Hymenophyllum sp 1 ;15;Sterile;;0;;13;14,9;;;
+B07;T1;21.04.2025;false;alive;BE05;Ericaceae;Demosthenesia;Demosthenesia buxifolia;20;Vegetative ;19;0;;28;;0;0;23
+B07;T1;21.04.2025;false;alive;BE04;Polypodiaceae;Grammitis;Grammitis subsessilis;10;Sporangia;;1;;21;20,2;;;
+B07;T1;21.04.2025;false;alive;BE06;Hymenophyllaceae;Hymenophyllum;Hymenophyllum sp 1 ;15;Sporangia;;0;;17;19,3;;;
+B07;T2;21.06.2025;false;alive;BE05;Ericaceae;Demosthenesia;Demosthenesia buxifolia;20;Vegetative ;19,8;0;;25;;0;0;
+B07;T2;21.06.2025;false;alive;BE04;Polypodiaceae;Grammitis;Grammitis subsessilis;10;Sporangia;;1;;20;19,9;;;
+B07;T2;21.06.2025;false;alive;BE06;Hymenophyllaceae;Hymenophyllum;Hymenophyllum sp 1 ;15;Sporangia;;0;;9;21,8;;;
+B07;T3;26.08.2025;false;alive;BE05;Ericaceae;Demosthenesia;Demosthenesia buxifolia;20;Vegetative ;19,8;0;;18;;0;0;
+B07;T3;26.08.2025;false;alive;BE04;Polypodiaceae;Grammitis;Grammitis subsessilis;10;Sporangia;;2;;16;20,2;;;
+B07;T3;26.08.2025;false;alive;BE06;Hymenophyllaceae;Hymenophyllum;Hymenophyllum sp 1 ;10;Sterile;;0;;16;21,5;;;
+B08;T1;21.04.2025;false;alive;BE09;Ericaceae;Demosthenesia;Demosthenesia buxifolia;7;Vegetative ;10,5;0;;14;;0;0;5
+B08;T1;21.04.2025;false;alive;BE08;Polypodiaceae;Grammitis;Grammitis moniliformis;15;Sporangia;;0;;32;13;;;
+B08;T1;21.04.2025;false;alive;BE10;Hymenophyllaceae;Hymenophyllum;Hymenophyllum sp 1 ;50;Sporangia;;0;;56;15,6;;;
+B08;T1;21.04.2025;false;alive;BE07;Oxalidaceae;Oxalis;Oxalis sp 1;2;Vegetative ;11;0;;11;;0;0;2
+B08;T2;21.06.2025;false;alive;BE09;Ericaceae;Demosthenesia;Demosthenesia buxifolia;7;Vegetative ;12,2;1;;14;;0;0;
+B08;T2;21.06.2025;false;alive;BE08;Polypodiaceae;Grammitis;Grammitis moniliformis;15;Sporangia;;0;;30;14,8;;;
+B08;T2;21.06.2025;false;alive;BE10;Hymenophyllaceae;Hymenophyllum;Hymenophyllum sp 1 ;50;Sporangia;;0;;54;17,2;;;
+B08;T2;21.06.2025;false;alive;BE07;Oxalidaceae;Oxalis;Oxalis sp 1;2;Vegetative ;10;1;;12;;0;0;1
+B08;T3;26.08.2025;false;alive;BE09;Ericaceae;Demosthenesia;Demosthenesia buxifolia;7;Vegetative ;11,4;1;;14;;0;0;
+B08;T3;26.08.2025;false;alive;BE08;Polypodiaceae;Grammitis;Grammitis moniliformis;15;Sporangia;;2;;31;14,4;;;
+B08;T3;26.08.2025;false;alive;BE10;Hymenophyllaceae;Hymenophyllum;Hymenophyllum sp 1 ;50;Sporangia;;0;;59;17,6;;;
+B08;T3;26.08.2025;false;alive;BE07;Oxalidaceae;Oxalis;Oxalis sp 1;2;Vegetative ;10,3;1;;8;;0;0;1
+B09;T1;21.04.2025;false;alive;BE11;Polypodiaceae;Grammitis;Grammitis personata;5;Sterile;;0;;6;23,8;;;
+B09;T1;21.04.2025;false;alive;BE12;Polypodiaceae;Grammitis;Grammitis subsessilis;5;Sterile;;16;;24;24,5;;;
+B09;T1;21.04.2025;false;alive;BE13;Hymenophyllaceae;Hymenophyllum;Hymenophyllum sp 1 ;2;Sporangia;;0;;5;22;;;
+B09;T1;21.04.2025;false;alive;BE14;Piperaceae;Peperomia;Peperomia sp 1;8;Flowering;10,8;0;;40;;0;0;7
+B09;T2;21.06.2025;false;alive;BE11;Polypodiaceae;Grammitis;Grammitis personata;5;Sterile;;0;;7;22,7;;;
+B09;T2;21.06.2025;false;alive;BE12;Polypodiaceae;Grammitis;Grammitis subsessilis;5;Sterile;;13;;15;24,6;;;
+B09;T2;21.06.2025;false;alive;BE13;Hymenophyllaceae;Hymenophyllum;Hymenophyllum sp 1 ;2;Sporangia;;0;;5;21,9;;;
+B09;T2;21.06.2025;false;alive;BE14;Piperaceae;Peperomia;Peperomia sp 1;8;Sterile;11;0;;41;;0;0;
+B09;T3;26.08.2025;false;alive;BE11;Polypodiaceae;Grammitis;Grammitis personata;10;Sterile;;0;;7;23,5;;;
+B09;T3;26.08.2025;false;alive;BE12;Polypodiaceae;Grammitis;Grammitis subsessilis;5;Sterile;;10;;14;25,1;;;
+B09;T3;26.08.2025;false;alive;BE13;Hymenophyllaceae;Hymenophyllum;Hymenophyllum sp 1 ;5;Sterile;;0;;6;22;;;
+B09;T3;26.08.2025;false;alive;BE14;Piperaceae;Peperomia;Peperomia sp 1;4;Sterile;12;0;;38;;0;0;
+B10;T1;21.04.2025;false;alive;BE16;Ericaceae;Demosthenesia;Demosthenesia buxifolia;8;Vegetative ;17;0;;21;;0;0;10
+B10;T1;21.04.2025;false;alive;BE15;Polypodiaceae;Elaphoglossum;Elaphoglossum metallicum ;5;Sterile;;0;;5;16;;;
+B10;T1;21.04.2025;false;alive;BE17;Hymenophyllaceae;Hymenophyllum;Hymenophyllum sp 1 ;40;Sporangia;;3;;21;8;;;
+B10;T2;21.06.2025;false;alive;BE16;Ericaceae;Demosthenesia;Demosthenesia buxifolia;8;Vegetative ;17,3;0;;20;;0;0;10
+B10;T2;21.06.2025;false;alive;BE15;Polypodiaceae;Elaphoglossum;Elaphoglossum metallicum ;5;Sporangia;;0;;4;16,3;;;
+B10;T2;21.06.2025;false;alive;BE17;Hymenophyllaceae;Hymenophyllum;Hymenophyllum sp 1 ;40;Sporangia;;2;;23;8,2;;;
+B10;T3;26.08.2025;false;alive;BE16;Ericaceae;Demosthenesia;Demosthenesia buxifolia;5;Vegetative ;17,3;0;;14;;0;0;10
+B10;T3;26.08.2025;false;alive;BE15;Polypodiaceae;Elaphoglossum;Elaphoglossum metallicum ;5;Sterile;;0;;4;16,3;;;
+B10;T3;26.08.2025;false;alive;BE17;Hymenophyllaceae;Hymenophyllum;Hymenophyllum sp 1 ;40;Sterile;;0;;22;8,2;;;

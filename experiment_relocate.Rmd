@@ -1,0 +1,99 @@
+---
+title: "Experiment"
+author: "Edith"
+date: "2025-10-30"
+output: html_document
+---
+data
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+expdata <- read.csv("relocadata.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+str(expdata)      # Estructura de la base de datos
+head(expdata)
+colnames(expdata)
+
+#corregir datos extraños
+library(dplyr)
+library(stringi)
+expdata <- expdata %>%
+  # Convierte todas las columnas tipo texto a UTF-8
+  mutate(across(where(is.character), ~ stri_encode(.x, from = "", to = "UTF-8"))) %>%
+  # Quita espacios en blanco y reemplaza vacíos por NA
+  mutate(across(everything(), ~ na_if(trimws(as.character(.x)), "")))
+###colocar NA en las celdas vacias
+expdata <- expdata %>%
+  mutate(across(where(is.character), ~iconv(.x, from = "", to = "UTF-8"))) %>%  # 🔧 corrige codificación
+  mutate(across(everything(), ~na_if(trimws(.x), "")))  # 🔄 reemplaza vacíos por NA
+str(expdata)
+colSums(is.na(expdata))
+expdata <- expdata %>%
+  mutate(across(everything(), ~na_if(trimws(.x), "")))
+
+
+```
+Mortality / Survival
+```{r}
+library(ggplot2)
+library(dplyr)
+
+names(expdata)
+
+# Ordenar los datos por fecha
+supervivencia <- expdata %>% arrange(epi_ID, time, branch_ID)
+
+#grafico supervivencia por rama 
+library(dplyr)
+library(ggplot2)
+
+# 1️⃣ Preparar los datos
+expdata <- expdata %>%
+  mutate(
+    dead_alive = tolower(dead_alive),   # uniformar texto
+    alive = ifelse(dead_alive == "alive", 1, 0),  # 1 = vivo, 0 = muerto
+    relocation = as.factor(relocation),
+    branch_ID = as.factor(branch_ID),
+    time = as.factor(time)
+  )
+
+# 2️⃣ Calcular supervivencia promedio (%)
+survival_summary <- expdata %>%
+  group_by(relocation, branch_ID, time) %>%
+  summarise(
+    survival = mean(alive, na.rm = TRUE) * 100
+  ) %>%
+  ungroup()
+
+# 3️⃣ Graficar supervivencia
+ggplot(survival_summary, aes(x = time, y = survival, color = branch_ID, group = branch_ID)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  facet_wrap(~ relocation, ncol = 1, labeller = labeller(relocation = c(`TRUE` = "Reubicados", `FALSE` = "No reubicados"))) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  theme_bw() +
+  labs(
+    title = "Survival (%) over time by branch",
+    x = "Time",
+    y = "Survival (%)",
+    color = "branch ID"
+  ) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 14)
+  )
+
+#grafico supervivencia por epifita
+# Tabla de conteo de individuos por morphospecies cuando relocated = TRUE
+tabla_relocated <- expdata %>%
+  filter(relocation == "true") %>%
+  group_by(morphospecies) %>%
+  summarise(
+    n_individuos = n_distinct(epi_ID)
+  ) %>%
+  arrange(desc(n_individuos))
+
+# Mostrar tabla
+tabla_relocated
+
+unique(expdata$relocation)
+```
+
