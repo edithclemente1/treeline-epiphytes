@@ -105,6 +105,54 @@ ggplot(DIVERFORO, aes(x = factor(elevation), y = RIQUEZA, fill = factor(elevatio
   theme_minimal() +
   theme(legend.position = "none")
 ```
+graphic unique
+```{r}
+# Calcular el número de especies únicas por elevación
+counts <- DIVERFORO %>%
+  group_by(elevation) %>%
+  summarise(n = n_distinct(forof))
+
+# --- Gráfico 1: Abundancia ---
+g_abund <- ggplot(DIVERFORO, aes(x = factor(elevation), y = ABUNDANCIA, fill = factor(elevation))) +
+  geom_violin(trim = FALSE, alpha = 0.6) +
+  geom_boxplot(width = 0.1, outlier.colour = "red", outlier.shape = 16, outlier.size = 2) +
+  geom_text(
+    data = counts,
+    aes(x = factor(elevation), y = 0, label = paste0("n=", n)),
+    vjust = 1.5, color = "black"
+  ) +
+  labs(
+    title = " ",
+    x = "Elevation (m)",
+    y = "Abundance"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# --- Gráfico 2: Riqueza ---
+g_rich <- ggplot(DIVERFORO, aes(x = factor(elevation), y = RIQUEZA, fill = factor(elevation))) +
+  geom_violin(trim = FALSE, alpha = 0.6) +
+  geom_boxplot(width = 0.1, outlier.colour = "red", outlier.shape = 16, outlier.size = 2) +
+  geom_text(
+    data = counts,
+    aes(x = factor(elevation), y = 0, label = paste0("n=", n)),
+    vjust = 1.5, color = "black"
+  ) +
+  labs(
+    title = " ",
+    x = "Elevation (m)",
+    y = "Richness"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# --- Combinar ambos gráficos ---
+(g_abund + g_rich) +
+  plot_annotation(
+    title = "Abundance and Species  Richness by Elevation",
+  )
+
+```
 
 Influence of DBH on epiphyte abundance
 ```{r}
