@@ -78,9 +78,9 @@ ggplot(DIVERFORO, aes(x = factor(elevation), y = ABUNDANCIA, fill = factor(eleva
     vjust = 1.5, color = "black"
   ) +
   labs(
-    title = "Distribución de la Abundancia por Elevación",
-    x = "Elevación (m)",
-    y = "Abundancia"
+    title = "Abundance Distribution by Elevation",
+    x = "Elevation (m)",
+    y = "Abundance"
   ) +
   theme_minimal() +
   theme(legend.position = "none")
@@ -98,9 +98,9 @@ ggplot(DIVERFORO, aes(x = factor(elevation), y = RIQUEZA, fill = factor(elevatio
     vjust = 1.5, color = "black"
   ) +
   labs(
-    title = "Riqueza por Elevación",
-    x = "Elevación (m)",
-    y = "Riqueza"
+    title = "Distribution of Species Richness by Elevation",
+    x = "Elevation (m)",
+    y = "Richness"
   ) +
   theme_minimal() +
   theme(legend.position = "none")
@@ -112,10 +112,10 @@ ggplot(DIVERFORO, aes(x = dap, y = ABUNDANCIA, color = factor(elevation))) +
   geom_point(size = 3, alpha = 0.7) +
   geom_smooth(method = "lm", se = FALSE) +
   labs(
-    title = "Relación entre DAP y Abundancia",
-    x = "DAP (cm)",
-    y = "Abundancia",
-    color = "Elevación (m)"
+    title = "Relationship between DBH and Abundance",
+    x = "DBH (cm)",
+    y = "Abundance",
+    color = "Elevation (m)"
   ) +
   theme_minimal()
 ```
@@ -126,10 +126,10 @@ ggplot(DIVERFORO, aes(x = dap, y = RIQUEZA, color = factor(elevation))) +
   geom_point(size = 3, alpha = 0.7) +
   geom_smooth(method = "lm", se = FALSE) +  
   labs(
-    title = "Relación entre DAP y RIQUEZA",
-    x = "DAP (cm)",
-    y = "Riqueza",
-    color = "Elevación (m)"
+    title = "Relationship between DBH and Species richness",
+    x = "DBH (cm)",
+    y = "Species Richness",
+    color = "Elevation (m)"
   ) +
   theme_minimal()
 ```
@@ -166,7 +166,7 @@ HILL_RESUMEN <- data.frame(    # 4. Juntamos todo en un solo data frame
 print(HILL_RESUMEN)
 
 ```
-Grafics
+Graphics of Numbers of HILL
 ```{r}
 
 HILL_perfil <- HILL_RESUMEN %>%  # Pasar a formato largo
@@ -184,10 +184,10 @@ ggplot(HILL_perfil, aes(x = q, y = Valor, color = elevation, group = elevation))
   geom_line(size = 1.2) +
   geom_point(size = 3) +
   scale_x_continuous(breaks = c(0,1,2)) +
-  labs(title = "Perfil de Diversidad de Hill",
+  labs(title = "Hill Diversity Profile",
        x = "q",
-       y = "Diversidad (Números de Hill)",
-       color = "Elevación") +
+       y = "Diversity (Hill Numbers)",
+       color = "Elevation") +
   theme_minimal()
 ```
 
@@ -198,19 +198,19 @@ Matrix of abundance
 matriz_num <- as.data.frame(matriz)
 rownames(matriz_num) <- matriz_num$elevation    # Poner la columna 'elevation' como rownames
 matriz_num$elevation <- NULL                    # Quitar columna 'elevation'
-dist_bray <- vegdist(matriz_num, method="bray")
-hc <- hclust(dist_bray, method="average")
+dist_chao <- vegdist(matriz_num, method="chao")
+hc <- hclust(dist_chao, method="average")
 
 ####DENDROGRAMA
-plot(hc, main="Dendrograma (UPGMA) - Bray-Curtis", 
-     xlab="Elevación (msnm)", sub="")
+plot(hc, main="Dendrogram (UPGMA) - Chao", #UPGMA= metodo de agrupamiento para construir el dendograma
+     xlab="Elevation (m.a.s.l.)",     sub="")
 
 ####NMDS y PCoA
 # -----------------------------
 # 1) NMDS
 # -----------------------------
-dist_bray <- vegdist(matriz_num, method = "bray")
-nmds <- metaMDS(dist_bray, k = 2, trymax = 100)
+dist_chao <- vegdist(matriz_num, method = "chao")
+nmds <- metaMDS(dist_chao, k = 2, trymax = 100)
 
 nmds_points <- as.data.frame(nmds$points)
 colnames(nmds_points) <- c("NMDS1", "NMDS2")
@@ -221,9 +221,9 @@ plot_nmds <- ggplot(nmds_points, aes(x = NMDS1, y = NMDS2, color = elevation)) +
   geom_text(aes(label = elevation), vjust = -1, size = 3) +
   stat_ellipse(type = "t", linetype = 2) +
   labs(
-    title = paste0("NMDS (Bray-Curtis)\nStress = ", round(nmds$stress, 3)),
+    title = paste0("NMDS (Chao)\nStress = ", round(nmds$stress, 3)),
     x = "NMDS1", y = "NMDS2",
-    color = "Elevación (m)"
+    color = "Elevation (m)"
   ) +
   theme_minimal() +
   theme(legend.position = "none",
@@ -232,7 +232,7 @@ plot_nmds <- ggplot(nmds_points, aes(x = NMDS1, y = NMDS2, color = elevation)) +
 # -----------------------------
 # 2) PCoA
 # -----------------------------
-pcoa <- cmdscale(dist_bray, eig = TRUE, k = 2)
+pcoa <- cmdscale(dist_chao, eig = TRUE, k = 2)
 
 pcoa_points <- as.data.frame(pcoa$points)
 colnames(pcoa_points) <- c("PCoA1", "PCoA2")
@@ -244,13 +244,13 @@ plot_pcoa <- ggplot(pcoa_points, aes(x = PCoA1, y = PCoA2, color = elevation)) +
   stat_ellipse(type = "t", linetype = 2) +
   labs(
     title = paste0(
-      "PCoA (Bray-Curtis)\nVar. Exp = ",
+      "PCoA (Chao)\nVar. Exp = ",
       round(pcoa$eig[1] / sum(pcoa$eig) * 100, 1), "%, ",
       round(pcoa$eig[2] / sum(pcoa$eig) * 100, 1), "%"
     ),
     x = paste0("PCoA1 (", round(pcoa$eig[1] / sum(pcoa$eig) * 100, 1), "%)"),
     y = paste0("PCoA2 (", round(pcoa$eig[2] / sum(pcoa$eig) * 100, 1), "%)"),
-    color = "Elevación (m)"
+    color = "Elevation (m)"
   ) +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
@@ -296,11 +296,11 @@ list(alpha_mean = alpha_mean,
 Matrix of presence-absence
 ```{r, results='hide'}
 matriz_pa <- (matriz_num > 0) * 1   # 1) Transformar a presencia/ausencia
-dist_bray_pa <- vegdist(matriz_pa, method = "bray") # 2) Distancia Bray-Curtis
+dist_jaccard_pa <- vegdist(matriz_pa, method = "jaccard") # 2) Distancia Bray-Curtis
 # -----------------------------
 # 3) NMDS con matriz PA
 # -----------------------------
-nmds_pa <- metaMDS(dist_bray_pa, k = 2, trymax = 100)
+nmds_pa <- metaMDS(dist_jaccard_pa, k = 2, trymax = 100)
 
 nmds_points_pa <- as.data.frame(nmds_pa$points)
 colnames(nmds_points_pa) <- c("NMDS1", "NMDS2")
@@ -311,9 +311,9 @@ plot_nmds_pa <- ggplot(nmds_points_pa, aes(x = NMDS1, y = NMDS2, color = elevati
   geom_text(aes(label = elevation), vjust = -1, size = 3) +
   stat_ellipse(type = "t", linetype = 2) +
   labs(
-    title = paste0("NMDS (Presencia/Ausencia, Bray-Curtis)\nStress = ", round(nmds_pa$stress, 3)),
+    title = paste0("NMDS (Presence-Absence, Jaccard)\nStress = ", round(nmds_pa$stress, 3)),
     x = "NMDS1", y = "NMDS2",
-    color = "Elevación (m)"
+    color = "Elevation (m)"
   ) +
   theme_minimal() +
   theme(legend.position = "none",
@@ -321,7 +321,7 @@ plot_nmds_pa <- ggplot(nmds_points_pa, aes(x = NMDS1, y = NMDS2, color = elevati
 # -----------------------------
 # 4) PCoA con matriz PA
 # -----------------------------
-pcoa_pa <- cmdscale(dist_bray_pa, eig = TRUE, k = 2)
+pcoa_pa <- cmdscale(dist_jaccard_pa, eig = TRUE, k = 2)
 
 pcoa_points_pa <- as.data.frame(pcoa_pa$points)
 colnames(pcoa_points_pa) <- c("PCoA1", "PCoA2")
@@ -333,13 +333,13 @@ plot_pcoa_pa <- ggplot(pcoa_points_pa, aes(x = PCoA1, y = PCoA2, color = elevati
   stat_ellipse(type = "t", linetype = 2) +
   labs(
     title = paste0(
-      "PCoA (Presencia/Ausencia, Bray-Curtis)\nVar. Exp = ",
+      "PCoA (Presence-Absence, Jaccard)\nVar. Exp = ",
       round(pcoa_pa$eig[1] / sum(pcoa_pa$eig) * 100, 1), "%, ",
       round(pcoa_pa$eig[2] / sum(pcoa_pa$eig) * 100, 1), "%"
     ),
     x = paste0("PCoA1 (", round(pcoa_pa$eig[1] / sum(pcoa_pa$eig) * 100, 1), "%)"),
     y = paste0("PCoA2 (", round(pcoa_pa$eig[2] / sum(pcoa_pa$eig) * 100, 1), "%)"),
-    color = "Elevación (m)"
+    color = "Elevation (m)"
   ) +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
@@ -349,7 +349,8 @@ plot_pcoa_pa <- ggplot(pcoa_points_pa, aes(x = PCoA1, y = PCoA2, color = elevati
 plot_nmds_pa + plot_pcoa_pa
 
 ```
-Componentes de la Beta diversidad
+
+Components of Beta Diversity
 ```{r}
 ## Para matriz de presencia ausencia
 matriz_pa <- (matriz_num > 0) * 1  # 1) Matriz de presencia/ausencia 
