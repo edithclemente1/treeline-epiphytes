@@ -14,7 +14,7 @@ head(climadata$date_hour)
 str(climadata$date_hour)
 ```
 
-graphic of ilumination
+graphic of illumination
 ```{r}
 library(dplyr)
 library(ggplot2)
