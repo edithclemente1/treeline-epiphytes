@@ -20,11 +20,10 @@ library(dplyr)
 library(ggplot2)
 library(lubridate)
 library(tidyr)
-
+library(patchwork)
 # 1️⃣ Convertir la fecha-hora al formato correcto
 climadata <- climadata %>%
   mutate(date_hour = as.POSIXct(date_hour, format = "%d/%m/%Y %H:%M", tz = "America/Lima"))
-
 # 2️⃣ Reorganizar datos en formato largo (para ggplot)
 clima_long <- climadata %>%
   select(date_hour, ilum_puna, ilum_forest) %>%
@@ -34,7 +33,6 @@ clima_long <- climadata %>%
     values_to = "light_lum_ft2"
   ) %>%
   mutate(date = as.Date(date_hour))  # extraer solo la fecha
-
 # 3️⃣ Calcular la media diaria ±95% CI por logger
 daily_light <- clima_long %>%
   group_by(date, logger_id) %>%
@@ -47,7 +45,6 @@ daily_light <- clima_long %>%
     ci         = tcrit * se_l,
     .groups = "drop"
   )
-
 # 4️⃣ Gráfico: Mean Daily Light Intensity (±95% CI)
 ggplot(daily_light, aes(x = date, y = light_mean, color = logger_id, fill = logger_id)) +
   geom_ribbon(aes(ymin = light_mean - ci, ymax = light_mean + ci), alpha = 0.15, color = NA) +
@@ -79,7 +76,6 @@ ggplot(daily_light, aes(x = date, y = light_mean, color = logger_id, fill = logg
     panel.grid.minor = element_blank(),
     plot.title = element_text(face = "bold", hjust = 0.5)
   )
-
 ```
 graphics of temperature
 ```{r}
@@ -87,11 +83,9 @@ library(dplyr)
 library(ggplot2)
 library(lubridate)
 library(tidyr)
-
 # 1️⃣ Convertir la fecha-hora al formato correcto
 climadata <- climadata %>%
   mutate(date_hour = as.POSIXct(date_hour, format = "%d/%m/%Y %H:%M", tz = "America/Lima"))
-
 # 2️⃣ Reorganizar datos en formato largo
 temp_long <- climadata %>%
   select(date_hour, temp_puna, temp_forest) %>%
@@ -101,7 +95,6 @@ temp_long <- climadata %>%
     values_to = "temperature"
   ) %>%
   mutate(date = as.Date(date_hour))
-
 # 3️⃣ Calcular la media diaria ±95% CI por logger
 daily_temp <- temp_long %>%
   group_by(date, logger_id) %>%
@@ -114,7 +107,6 @@ daily_temp <- temp_long %>%
     ci        = tcrit * se_t,
     .groups = "drop"
   )
-
 # 4️⃣ Gráfico: Mean Daily Temperature (±95% CI)
 ggplot(daily_temp, aes(x = date, y = temp_mean, color = logger_id, fill = logger_id)) +
   geom_ribbon(aes(ymin = temp_mean - ci, ymax = temp_mean + ci), alpha = 0.15, color = NA) +
@@ -146,7 +138,6 @@ ggplot(daily_temp, aes(x = date, y = temp_mean, color = logger_id, fill = logger
     panel.grid.minor = element_blank(),
     plot.title = element_text(face = "bold", hjust = 0.5)
   )
-
 ```
 graphic of humidity HR
 ```{r}
@@ -154,11 +145,9 @@ library(dplyr)
 library(ggplot2)
 library(lubridate)
 library(tidyr)
-
 # 1️⃣ Convertir fecha y hora
 climadata <- climadata %>%
   mutate(date_hour = as.POSIXct(date_hour, format = "%d/%m/%Y %H:%M", tz = "America/Lima"))
-
 # 2️⃣ Reorganizar datos (formato largo)
 hr_long <- climadata %>%
   select(date_hour, hr_puna, hr_forest) %>%
@@ -168,7 +157,6 @@ hr_long <- climadata %>%
     values_to = "humidity"
   ) %>%
   mutate(date = as.Date(date_hour))
-
 # 3️⃣ Calcular media diaria ±95% CI por logger
 daily_hr <- hr_long %>%
   group_by(date, logger_id) %>%
@@ -181,7 +169,6 @@ daily_hr <- hr_long %>%
     ci      = tcrit * se_h,
     .groups = "drop"
   )
-
 # 4️⃣ Gráfico: Mean Daily Relative Humidity (±95% CI)
 ggplot(daily_hr, aes(x = date, y = hr_mean, color = logger_id, fill = logger_id)) +
   geom_ribbon(aes(ymin = hr_mean - ci, ymax = hr_mean + ci), alpha = 0.15, color = NA) +
@@ -212,129 +199,57 @@ ggplot(daily_hr, aes(x = date, y = hr_mean, color = logger_id, fill = logger_id)
     panel.grid.minor = element_blank(),
     plot.title = element_text(face = "bold", hjust = 0.5)
   )
-
 ```
 graphic combined
 ```{r}
-library(dplyr)
-library(ggplot2)
-library(lubridate)
-library(tidyr)
-library(patchwork)
-
-# Asegurar que las fechas estén bien formateadas
-climadata <- climadata %>%
-  mutate(date_hour = as.POSIXct(date_hour, format = "%d/%m/%Y %H:%M", tz = "America/Lima"),
-         date = as.Date(date_hour))
-
-# ---------------------------
-# 1️⃣ LUZ (ilum_puna / ilum_forest)
-# ---------------------------
-light_long <- climadata %>%
-  select(date_hour, ilum_puna, ilum_forest) %>%
-  pivot_longer(cols = c(ilum_puna, ilum_forest),
-               names_to = "logger_id", values_to = "light") %>%
-  mutate(date = as.Date(date_hour))
-
-daily_light <- light_long %>%
-  group_by(date, logger_id) %>%
-  summarise(
-    n_obs = sum(!is.na(light)),
-    mean = mean(light, na.rm = TRUE),
-    sd = sd(light, na.rm = TRUE),
-    se = sd / sqrt(pmax(n_obs, 1)),
-    tcrit = qt(0.975, df = pmax(n_obs - 1, 1)),
-    ci = tcrit * se,
-    .groups = "drop"
+# 🔧 Tema compacto
+tema_compacto <- theme_light(base_size = 8) +  # tamaño base más pequeño
+  theme(
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    strip.text = element_text(size = 7),
+    legend.text = element_text(size = 6),
+    legend.title = element_text(size = 7),
+    plot.title = element_text(size = 8, face = "bold"),
+    legend.position = "none"
   )
-
+# 1️⃣ LUZ (ilum_puna / ilum_forest)
 g_light <- ggplot(daily_light, aes(x = date, y = mean, color = logger_id, fill = logger_id)) +
   geom_ribbon(aes(ymin = mean - ci, ymax = mean + ci), alpha = 0.15, color = NA) +
-  geom_line(linewidth = 1) +
+  geom_line(linewidth = 0.7) +
   labs(y = "Light (lum/ft²)", x = NULL, title = "A) Light Intensity") +
   scale_color_manual(values = c("ilum_forest" = "#228B22", "ilum_puna" = "#8B4513"),
                      labels = c("Forest", "Puna")) +
   scale_fill_manual(values = c("ilum_forest" = "#228B22", "ilum_puna" = "#8B4513"),
                     labels = c("Forest", "Puna")) +
-  theme_light(base_size = 12) +
-  theme(legend.position = "none",
-        plot.title = element_text(face = "bold"))
-
-# ---------------------------
+  tema_compacto
 # 2️⃣ TEMPERATURA
-# ---------------------------
-temp_long <- climadata %>%
-  select(date_hour, temp_puna, temp_forest) %>%
-  pivot_longer(cols = c(temp_puna, temp_forest),
-               names_to = "logger_id", values_to = "temperature") %>%
-  mutate(date = as.Date(date_hour))
-
-daily_temp <- temp_long %>%
-  group_by(date, logger_id) %>%
-  summarise(
-    n_obs = sum(!is.na(temperature)),
-    mean = mean(temperature, na.rm = TRUE),
-    sd = sd(temperature, na.rm = TRUE),
-    se = sd / sqrt(pmax(n_obs, 1)),
-    tcrit = qt(0.975, df = pmax(n_obs - 1, 1)),
-    ci = tcrit * se,
-    .groups = "drop"
-  )
-
 g_temp <- ggplot(daily_temp, aes(x = date, y = mean, color = logger_id, fill = logger_id)) +
   geom_ribbon(aes(ymin = mean - ci, ymax = mean + ci), alpha = 0.15, color = NA) +
-  geom_line(linewidth = 1) +
+  geom_line(linewidth = 0.7) +
   labs(y = "Temperature (°C)", x = NULL, title = "B) Temperature") +
   scale_color_manual(values = c("temp_forest" = "#228B22", "temp_puna" = "#8B4513"),
                      labels = c("Forest", "Puna")) +
   scale_fill_manual(values = c("temp_forest" = "#228B22", "temp_puna" = "#8B4513"),
                     labels = c("Forest", "Puna")) +
-  theme_light(base_size = 12) +
-  theme(legend.position = "none",
-        plot.title = element_text(face = "bold"))
-
-# ---------------------------
+  tema_compacto
 # 3️⃣ HUMEDAD RELATIVA
-# ---------------------------
-hr_long <- climadata %>%
-  select(date_hour, hr_puna, hr_forest) %>%
-  pivot_longer(cols = c(hr_puna, hr_forest),
-               names_to = "logger_id", values_to = "humidity") %>%
-  mutate(date = as.Date(date_hour))
-
-daily_hr <- hr_long %>%
-  group_by(date, logger_id) %>%
-  summarise(
-    n_obs = sum(!is.na(humidity)),
-    mean = mean(humidity, na.rm = TRUE),
-    sd = sd(humidity, na.rm = TRUE),
-    se = sd / sqrt(pmax(n_obs, 1)),
-    tcrit = qt(0.975, df = pmax(n_obs - 1, 1)),
-    ci = tcrit * se,
-    .groups = "drop"
-  )
-
 g_hr <- ggplot(daily_hr, aes(x = date, y = mean, color = logger_id, fill = logger_id)) +
   geom_ribbon(aes(ymin = mean - ci, ymax = mean + ci), alpha = 0.15, color = NA) +
-  geom_line(linewidth = 1) +
+  geom_line(linewidth = 0.7) +
   labs(y = "Relative Humidity (%)", x = "Date", title = "C) Relative Humidity") +
   scale_color_manual(values = c("hr_forest" = "#228B22", "hr_puna" = "#8B4513"),
                      labels = c("Forest", "Puna")) +
   scale_fill_manual(values = c("hr_forest" = "#228B22", "hr_puna" = "#8B4513"),
                     labels = c("Forest", "Puna")) +
-  theme_light(base_size = 12) +
-  theme(legend.position = "bottom",
-        plot.title = element_text(face = "bold"))
-
-# ---------------------------
+  tema_compacto +
+  theme(legend.position = "bottom")
 # 4️⃣ COMBINAR LOS GRÁFICOS
-# ---------------------------
 (g_light / g_temp / g_hr) +
   plot_layout(heights = c(1, 1, 1)) +
   plot_annotation(
     title = "Daily Environmental Conditions (Puna vs Forest, ±95% CI)",
-    theme = theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 15))
+    theme = theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 9))
   )
-
 ```
 
