@@ -80,6 +80,57 @@ ggplot(survival_summary, aes(x = time, y = survival, color = branch_ID, group = 
     strip.text = element_text(face = "bold"),
     plot.title = element_text(face = "bold", hjust = 0.5, size = 14)
   )
+#GRAFICO EVITANDO LA SOBREPOSICION
+ggplot(
+  survival_summary,
+  aes(
+    x = time,
+    y = survival,
+    color = branch_ID,
+    group = branch_ID
+  )
+) +
+  geom_line(
+    position = position_dodge2(width = 0.3),
+    size = 1
+  ) +
+  geom_point(
+    position = position_dodge2(width = 0.3),
+    size = 2
+  ) +
+  facet_wrap(
+    ~ relocation,
+    ncol = 1,
+    labeller = labeller(
+      relocation = c(
+        `TRUE` = "Treeline",
+        `FALSE` = "Puna"
+      )
+    )
+  ) +
+  scale_x_discrete(
+    labels = c(
+      "T1" = "April",
+      "T2" = "June",
+      "T3" = "August"
+    )
+  ) +
+  scale_y_continuous(
+    labels = scales::percent_format(scale = 1)
+  ) +
+  theme_bw() +
+  labs(
+    title = "Survival (%) over time by branch",
+    x = "Time",
+    y = "Survival (%)",
+    color = "branch ID"
+  ) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 14)
+  )
+
+
 
 #grafico supervivencia por epifita
 # Tabla de conteo de individuos por morphospecies cuando relocated = TRUE
@@ -93,7 +144,224 @@ tabla_relocated <- expdata %>%
 
 # Mostrar tabla
 tabla_relocated
-
 unique(expdata$relocation)
+
+
+##grafico de barras
+ggplot(survival_summary, aes(x = time, y = survival, fill = branch_ID)) +
+  geom_col(position = position_dodge(width = 0.8)) +
+  facet_wrap(
+    ~ relocation,
+    ncol = 1,
+    labeller = labeller(
+      relocation = c(`TRUE` = "Reubicados", `FALSE` = "No reubicados")
+    )
+  ) +
+  scale_x_discrete(
+    labels = c(
+      "T1" = "April",
+      "T2" = "June",
+      "T3" = "August"
+    )
+  ) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  theme_bw() +
+  labs(
+    title = "Survival (%) over time by branch",
+    x = "Time",
+    y = "Survival (%)",
+    fill = "Branch ID"
+  ) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 14)
+  )
+
+
+
+
+
+```
+
+INFLUENCIA DEL CLIMA EN LA SOBREVIVENCIA DE EPIFITAS
+```{r}
+
+library(tidyverse)
+library(lubridate)
+
+# 1. Cargar archivo con separador ";"
+clima <- read_delim("dataclima.csv",
+                    delim = ";",
+                    col_types = cols(.default = "c"))  # leer todo como texto primero
+
+# 2. Convertir columnas numéricas correctamente
+num_cols <- c("t_puna", "ilum_puna", "t_forest", "ilum_forest",
+              "temp_forest", "hr_forest", "temp_puna", "hr_puna")
+
+clima <- clima %>%
+  mutate(across(all_of(num_cols), ~ parse_number(.)))
+
+# 3. Convertir la fecha-hora (formato dmy_hm)
+clima <- clima %>%
+  mutate(
+    date_hour = dmy_hm(date_hour),
+    date = as.Date(date_hour)
+  )
+
+# 4. Crear la tabla diaria
+clima_daily <- clima %>%
+  group_by(date) %>%
+  summarise(
+    light_max_puna   = if (all(is.na(ilum_puna))) NA else max(ilum_puna, na.rm = TRUE),
+    temp_max_puna    = if (all(is.na(temp_puna))) NA else max(temp_puna, na.rm = TRUE),
+    temp_min_puna    = if (all(is.na(temp_puna))) NA else min(temp_puna, na.rm = TRUE),
+    rh_min_puna      = if (all(is.na(hr_puna)))   NA else min(hr_puna,   na.rm = TRUE),
+
+    light_max_forest = if (all(is.na(ilum_forest))) NA else max(ilum_forest, na.rm = TRUE),
+    temp_max_forest  = if (all(is.na(temp_forest))) NA else max(temp_forest, na.rm = TRUE),
+    temp_min_forest  = if (all(is.na(temp_forest))) NA else min(temp_forest, na.rm = TRUE),
+    rh_min_forest    = if (all(is.na(hr_forest)))   NA else min(hr_forest,   na.rm = TRUE)
+  )
+clima_daily
+####preparar tabla de epifitas
+library(tidyverse)
+library(lubridate)
+
+# --- 1. Cargar tabla ---
+surv <- read.csv("relocadata.csv", sep = ";", stringsAsFactors = FALSE)
+
+# --- 2. Convertir fechas: "21.04.2025" → 2025-04-21 ---
+surv <- surv %>%
+  mutate(
+    date = dmy(date)
+  )
+
+# --- 3. Convertir columnas numéricas que vienen como texto ---
+num_cols_surv <- c(
+  "coverage_branch", "stem_length", "no_shoots", "no_pseudobulbs",
+  "no_leaves", "length_longest_leaf", "ramification_1",
+  "ramification_2", "no_stems"
+)
+
+surv <- surv %>%
+  mutate(across(all_of(num_cols_surv),
+                ~ parse_number(str_replace_all(., ",", "."))))
+
+# --- 4. Asegurar que dead_alive o alive sea 1/0 ---
+surv <- surv %>%
+  mutate(
+    alive = case_when(
+      dead_alive == "alive" ~ 1,
+      dead_alive == "dead"  ~ 0,
+      TRUE ~ NA_real_
+    )
+  )
+
+# --- 5. Asegurar que relocation sea factor (TRUE/FALSE) ---
+surv <- surv %>%
+  mutate(
+    relocation = factor(relocation, levels = c("false", "true"))
+  )
+surv
+
+####MODELO DE CLIMA Y SOBREVIVENCIA SOLO PARA PUNA PORQUE LAS DEL BOSQUE NO VARIARON 
+mod <- glmer(
+  alive ~ light_max_puna + temp_min_puna + relocation + (1 | branch_ID),
+  family = binomial,
+  data = df_model
+)
+
+
+install.packages("glmmTMB")
+library(glmmTMB)
+df_puna <- df_puna %>%
+  mutate(
+    tempmin_z = scale(temp_min_puna),
+    light_z   = scale(light_max_puna),
+    rhmin_z   = scale(rh_min_puna)
+  )
+
+mod_puna <- glmmTMB(
+  alive ~ tempmin_z + light_z + rhmin_z + (1 | branch_ID),
+  family = binomial,
+  data = df_puna
+)
+mod_puna
+
+
+###Tabla de resultados 
+library(lme4)
+install.packages("broom.mixed")
+library(broom.mixed)
+library(dplyr)
+
+# Extraer tabla de coeficientes (efectos fijos)
+tabla_fx <- tidy(mod_puna, effects = "fixed", conf.int = TRUE)
+tabla_fx
+###Tabla lista para paper con sjPlot
+install.packages("sjPlot")
+library(sjPlot)
+
+tab_model(mod_puna,
+          show.re.var = TRUE,
+          show.icc = TRUE,
+          show.aic = TRUE,
+          show.ci = TRUE,
+          p.style = "stars",
+          dv.labels = "Survival (alive)",
+          pred.labels = c("(Intercept)",
+                          "Min temperature (z)",
+                          "Light (z)",
+                          "RH min (z)")
+          )
+###Graficos
+install.packages("ggeffects")
+library(ggeffects)
+library(ggplot2)
+eff_temp   <- ggpredict(mod_puna, terms = "tempmin_z")
+eff_light  <- ggpredict(mod_puna, terms = "light_z")
+eff_rh     <- ggpredict(mod_puna, terms = "rhmin_z")
+
+library(patchwork)
+
+p1 <- plot(eff_temp)  +
+  labs(x = "Minimum temperature (z)",
+       y = "Survival probability") +
+  theme_bw(14)
+
+p2 <- plot(eff_light) +
+  labs(x = "Light (z)",
+       y = "Survival probability") +
+  theme_bw(14)
+
+p3 <- plot(eff_rh)    +
+  labs(x = "RH min (z)",
+       y = "Survival probability") +
+  theme_bw(14)
+
+p1 | p2 | p3   # Los coloca en una fila
+
+
+##Código para el gráfico parcial (solo tempmin_z)
+library(ggeffects)
+library(ggplot2)
+
+# Obtener efecto marginal de la variable significativa
+eff_temp <- ggpredict(mod_puna, terms = "tempmin_z")
+
+# Graficar efecto parcial
+ggplot(eff_temp, aes(x = x, y = predicted)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
+              alpha = 0.2) +
+  labs(
+    x = "Minimum temperature (z-score)",
+    y = "Predicted survival probability",
+    title = "Partial effect of minimum temperature on survival"
+  ) +
+  theme_bw(base_size = 16)
+
+
+
 ```
 
