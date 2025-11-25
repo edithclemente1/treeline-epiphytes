@@ -8,7 +8,7 @@ output:
 ---
 
 Packages
-```{r setup, include=FALSE}
+```{r}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 library(dplyr)
 library(ggplot2)
@@ -29,7 +29,6 @@ head(data)
 ```
 
 TABLES species richness and abundance by plots - elevations 
-
 ```{r}
 RIQPLOT <- data %>%
   group_by(plot, elevation) %>%              # Agrupa por árbol
@@ -40,7 +39,6 @@ ABUNDPLOT <- data %>%
   summarise(ABUNDANCIA = n())     #Cuenta numero de individuos
 ABUNDPLOT
 ```
-
 TABLES species richness and abundance by forophytes
 ```{r}
 DIVERFORO <- data %>%
@@ -60,9 +58,7 @@ DIVERFORO <- DIVERFORO %>%          #juntar
   left_join(data_tree, by = "forof")
 DIVERFORO
 ```
-
 GRAPHICS
-
 Graphic abundance by elevation
 ```{r}
 counts <- DIVERFORO %>%
@@ -86,7 +82,6 @@ ggplot(DIVERFORO, aes(x = factor(elevation), y = ABUNDANCIA, fill = factor(eleva
   theme(legend.position = "none")
 
 ```
-
 Graphic richness by elevation
 ```{r}
 ggplot(DIVERFORO, aes(x = factor(elevation), y = RIQUEZA, fill = factor(elevation))) +
@@ -105,7 +100,7 @@ ggplot(DIVERFORO, aes(x = factor(elevation), y = RIQUEZA, fill = factor(elevatio
   theme_minimal() +
   theme(legend.position = "none")
 ```
-graphic unique
+graphic conbined of ABUNDANCE and richness
 ```{r}
 # Calcular el número de especies únicas por elevación
 counts <- DIVERFORO %>%
@@ -149,11 +144,10 @@ g_rich <- ggplot(DIVERFORO, aes(x = factor(elevation), y = RIQUEZA, fill = facto
 # --- Combinar ambos gráficos ---
 (g_abund + g_rich) +
   plot_annotation(
-    title = "Abundance and Species  Richness by Elevation",
+    title = "Abundance and Species  Richness by plot",
   )
 
 ```
-
 Influence of DBH on epiphyte abundance
 ```{r}
 ggplot(DIVERFORO, aes(x = dap, y = ABUNDANCIA, color = factor(elevation))) +
@@ -167,7 +161,6 @@ ggplot(DIVERFORO, aes(x = dap, y = ABUNDANCIA, color = factor(elevation))) +
   ) +
   theme_minimal()
 ```
-
 Influence of DBH on epiphyte richness
 ```{r}
 ggplot(DIVERFORO, aes(x = dap, y = RIQUEZA, color = factor(elevation))) +
@@ -181,6 +174,274 @@ ggplot(DIVERFORO, aes(x = dap, y = RIQUEZA, color = factor(elevation))) +
   ) +
   theme_minimal()
 ```
+graphic conbined of DBH
+```{r}
+# Cargar librería
+library(patchwork)
+
+# Gráfico 1: DBH vs Abundance
+g3 <- ggplot(DIVERFORO, aes(x = dap, y = ABUNDANCIA, color = factor(elevation))) +
+  geom_point(size = 3, alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = " ",
+    x = "DBH (cm)",
+    y = "Abundance",
+    color = "Elevation (m)"
+  ) +
+  theme_minimal()
+
+# Gráfico 2: DBH vs Species Richness
+g4 <- ggplot(DIVERFORO, aes(x = dap, y = RIQUEZA, color = factor(elevation))) +
+  geom_point(size = 3, alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = " ",
+    x = "DBH (cm)",
+    y = "Species Richness",
+    color = "Elevation (m)"
+  ) +
+  theme_minimal()
+
+# Unir ambos gráficos lado a lado
+(g3 + g4) +
+  plot_annotation(
+    title = "Relationships between DBH and abundance or species richness by elevation",
+        theme = theme(plot.title = element_text(face = "bold", size = 12))
+  )
+
+##analisis de la influencia 
+library(dplyr)
+library(broom)
+
+mod_abund_R2 <- DIVERFORO %>%
+  group_by(elevation) %>%
+  do(glance(lm(ABUNDANCIA ~ dap, data = .))) %>%
+  select(elevation, r.squared, p.value)
+mod_abund_R2
+mod_rich_R2 <- DIVERFORO %>%
+  group_by(elevation) %>%
+  do(glance(lm(RIQUEZA ~ dap, data = .))) %>%
+  select(elevation, r.squared, p.value)
+mod_rich_R2
+
+
+resultados_abund <- DIVERFORO %>%
+  group_by(elevation) %>%
+  do(model = lm(ABUNDANCIA ~ dap, data = .)) %>%
+  mutate(
+    slope = coef(model)[2],
+    p_value = summary(model)$coefficients[2,4],
+    R2 = summary(model)$r.squared
+  ) %>%
+  select(elevation, slope, p_value, R2)
+
+resultados_abund
+
+
+resultados_riqu <- DIVERFORO %>%
+  group_by(elevation) %>%
+  do(model = lm(RIQUEZA ~ dap, data = .)) %>%
+  mutate(
+    slope = coef(model)[2],
+    p_value = summary(model)$coefficients[2,4],
+    R2 = summary(model)$r.squared
+  ) %>%
+  select(elevation, slope, p_value, R2)
+
+resultados_riqu
+
+
+DIVERFORO_long <- DIVERFORO %>%
+  pivot_longer(cols = c(ABUNDANCIA, RIQUEZA),
+               names_to = "atributo",
+               values_to = "valor")
+#####Grafico con facets por elevacion y sus datos 
+library(dplyr)
+library(ggplot2)
+library(purrr)
+# Crear la tabla con pendientes y R2 por elevación y atributo
+modelos <- DIVERFORO_long %>%
+  group_by(elevation, atributo) %>%
+  do({
+    m <- lm(valor ~ dap, data = .)
+    tibble(
+      slope = coef(m)[2],
+      r2 = summary(m)$r.squared
+    )
+  }) %>%
+  mutate(
+    label = paste0("Slope = ", round(slope, 3), "\nR² = ", round(r2, 3))
+  )
+# Hacer el gráfico con los textos en cada panel
+ggplot(DIVERFORO_long, aes(x = dap, y = valor)) +
+  geom_point(size = 2.5, alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 1) +
+  facet_grid(atributo ~ factor(elevation), scales = "free_y") +
+  geom_text(
+    data = modelos,
+    aes(label = label),
+    x = -Inf, y = Inf,
+    hjust = -0.1, vjust = 1.3,
+    size = 3.5,
+    inherit.aes = FALSE
+  ) +
+  labs(
+    title = "Relationships between DBH and epiphyte attributes across elevations",
+    x = "DBH (cm)",
+    y = "Value"
+  ) +
+  theme_bw() +
+  theme(
+    strip.text = element_text(face = "bold", size = 12),
+    plot.title = element_text(face = "bold", size = 13, hjust = 0.5)
+  )
+
+
+```
+Curva de acumulacion de especies
+```{r}
+###Todo las parcelas
+data <- data %>%
+  mutate(
+    morphospe = iconv(morphospe, from = "UTF-8", to = "ASCII//TRANSLIT"),
+    morphospe = gsub("[^-A-Za-z0-9_ ]", "", morphospe),  # quitar caracteres raros
+    morphospe = gsub(" +", "_", morphospe)               # convertir varios espacios en _
+  )
+ABU <- data %>% #tabla de abundancias por plot/ELEVATION 
+  group_by(forof, morphospe) %>% 
+  summarise(ABUNDANCIA = n(), .groups = "drop") %>% 
+  arrange(forof, desc(ABUNDANCIA)) 
+matr <- ABU %>% #matriz de abundancias 
+  pivot_wider( names_from = morphospe, 
+               values_from = ABUNDANCIA, values_fill = 0 )
+matriz_sol <- as.data.frame(matr[, -1])
+# 4. Calcular curva de acumulación
+curva <- specaccum(matriz_sol, method = "random")
+plot(curva,
+     xlab = "Phorophytes",
+     ylab = "Cumulative species richness",
+     main = "Species accumulation curve",
+     col = "blue", lwd = 2,
+     ci.type = "polygon",
+     ci.col = "lightblue")
+
+###POR PLOT
+library(dplyr)
+library(tidyr)
+library(vegan)
+##ACJ-01
+# 1. Filtrar solo ACJ-01 y calcular abundancia por árbol y especie
+ABU_ACJ01 <- data %>%
+  filter(plot == "ACJ-01") %>%
+  group_by(forof, morphospe) %>%
+  summarise(ABUNDANCIA = n(), .groups = "drop") %>%
+  arrange(forof, desc(ABUNDANCIA))
+# 2. Convertir a matriz (filas = forof, columnas = especies)
+matriz_ACJ01 <- ABU_ACJ01 %>%
+  pivot_wider(names_from = morphospe,
+              values_from = ABUNDANCIA,
+              values_fill = 0)
+# 3. Eliminar columna forof (quedarse solo con abundancias)
+matriz_solo_ab <- as.data.frame(matriz_ACJ01[, -1])
+# 4. Calcular curva de acumulación
+curva_ACJ01 <- specaccum(matriz_solo_ab, method = "random")
+##APK-01
+# 1. Filtrar solo APK-01 y calcular abundancia por árbol y especie
+ABU_APK01 <- data %>%
+  filter(plot == "APK-01") %>%
+  group_by(forof, morphospe) %>%
+  summarise(ABUNDANCIA = n(), .groups = "drop") %>%
+  arrange(forof, desc(ABUNDANCIA))
+# 2. Convertir a matriz (filas = forof, columnas = especies)
+matriz_APK01 <- ABU_APK01 %>%
+  pivot_wider(names_from = morphospe,
+              values_from = ABUNDANCIA,
+              values_fill = 0)
+# 3. Eliminar columna forof (quedarse solo con abundancias)
+matriz_solo_abK <- as.data.frame(matriz_APK01[, -1])
+# 4. Calcular curva de acumulación
+curva_APK01 <- specaccum(matriz_solo_abK, method = "random")
+###TRU-1
+# 1. Filtrar solo TRU-01 y calcular abundancia por árbol y especie
+ABU_TRU01 <- data %>%
+  filter(plot == "TRU-01") %>%
+  group_by(forof, morphospe) %>%
+  summarise(ABUNDANCIA = n(), .groups = "drop") %>%
+  arrange(forof, desc(ABUNDANCIA))
+# 2. Convertir a matriz (filas = forof, columnas = especies)
+matriz_TRU01 <- ABU_TRU01 %>%
+  pivot_wider(names_from = morphospe,
+              values_from = ABUNDANCIA,
+              values_fill = 0)
+# 3. Eliminar columna forof (quedarse solo con abundancias)
+matriz_solo_abT1 <- as.data.frame(matriz_TRU01[, -1])
+# 4. Calcular curva de acumulación
+curva_TRU01 <- specaccum(matriz_solo_abT1, method = "random")
+####TRU-02
+# 1. Filtrar solo APK-01 y calcular abundancia por árbol y especie
+ABU_TRU02 <- data %>%
+  filter(plot == "TRU-02") %>%
+  group_by(forof, morphospe) %>%
+  summarise(ABUNDANCIA = n(), .groups = "drop") %>%
+  arrange(forof, desc(ABUNDANCIA))
+# 2. Convertir a matriz (filas = forof, columnas = especies)
+matriz_TRU02 <- ABU_TRU02 %>%
+  pivot_wider(names_from = morphospe,
+              values_from = ABUNDANCIA,
+              values_fill = 0)
+# 3. Eliminar columna forof (quedarse solo con abundancias)
+matriz_solo_abT2 <- as.data.frame(matriz_TRU02[, -1])
+# 4. Calcular curva de acumulación
+curva_TRU02 <- specaccum(matriz_solo_abT2, method = "random")
+
+par(mfrow = c(2, 2),
+    mar = c(3, 3.2, 2, 1),   # ⬅️ AUMENTADO SOLO LO NECESARIO
+    oma = c(2, 1, 2, 1),
+    mgp = c(2, 0.6, 0))
+### --- ACJ-01 ---
+plot(curva_ACJ01,
+     xlab = "",
+     ylab = "Cumulative species richness",
+     main = "ACJ-01",
+     col = "blue", lwd = 2,
+     ci.type = "polygon",
+     ci.col = "lightblue",
+     xaxt = "n")
+### --- APK-01 ---
+plot(curva_APK01,
+     xlab = "",
+     ylab = "",
+     main = "APK-01",
+     col = "blue", lwd = 2,
+     ci.type = "polygon",
+     ci.col = "lightblue",
+     xaxt = "n", yaxt = "n")
+### --- TRU-01 ---
+plot(curva_TRU01,
+     xlab = "Phorophytes",
+     ylab = "Cumulative species richness",
+     main = "TRU-01",
+     col = "blue", lwd = 2,
+     ci.type = "polygon",
+     ci.col = "lightblue")
+### --- TRU-02 ---
+plot(curva_TRU02,
+     xlab = "Phorophytes",
+     ylab = "",
+     main = "TRU-02",
+     col = "blue", lwd = 2,
+     ci.type = "polygon",
+     ci.col = "lightblue",
+     yaxt = "n")
+# --- Título general ---
+mtext("Species accumulation curve", 
+      outer = TRUE, cex = 1.2, font = 2)
+
+
+
+```
+
 
 ALPHA DIVERSITY
 ```{r}
@@ -188,35 +449,27 @@ ABUND <- data %>%               #tabla de abundancias por plot/ELEVATION
   group_by(elevation, morphospe) %>%
   summarise(ABUNDANCIA = n(), .groups = "drop") %>%
   arrange(elevation, desc(ABUNDANCIA)) 
-ABUND
-
 matriz <- ABUND %>%              #matriz de abundancias
   pivot_wider(
     names_from = morphospe,
     values_from = ABUNDANCIA,
     values_fill = 0
   )
-print(matriz)
-
 elevation <- matriz$elevation   # 1. Guardamos los nombres de los plots
 matriz_num <- matriz %>% select(-elevation)  # 2. Extraemos solo las abundancias (sin la columna plot)
 # 3. Calculamos los números de Hill
 hill_0 <- hill_taxa(matriz_num, q = 0)  # Riqueza (S)
 hill_1 <- hill_taxa(matriz_num, q = 1)  # Exponencial de Shannon
 hill_2 <- hill_taxa(matriz_num, q = 2)  # Inversa de Simpson
-matriz_num
 HILL_RESUMEN <- data.frame(    # 4. Juntamos todo en un solo data frame
   elevation = elevation,
   H0 = hill_0,
   H1 = hill_1,
   H2 = hill_2
 )
-print(HILL_RESUMEN)
-
 ```
 Graphics of Numbers of HILL
 ```{r}
-
 HILL_perfil <- HILL_RESUMEN %>%  # Pasar a formato largo
   pivot_longer(cols = c(H0, H1, H2),
                names_to = "q",
@@ -227,7 +480,6 @@ HILL_perfil <- HILL_RESUMEN %>%  # Pasar a formato largo
     q == "H2" ~ 2
   ))
 HILL_perfil
-
 ggplot(HILL_perfil, aes(x = q, y = Valor, color = elevation, group = elevation)) +
   geom_line(size = 1.2) +
   geom_point(size = 3) +
@@ -238,11 +490,9 @@ ggplot(HILL_perfil, aes(x = q, y = Valor, color = elevation, group = elevation))
        color = "Elevation") +
   theme_minimal()
 ```
-
-
 BETA DIVERSITY 
 Matrix of abundance
-```{r,results='hide'}
+```{r}
 matriz_num <- as.data.frame(matriz)
 rownames(matriz_num) <- matriz_num$elevation    # Poner la columna 'elevation' como rownames
 matriz_num$elevation <- NULL                    # Quitar columna 'elevation'
@@ -254,9 +504,7 @@ plot(hc, main="Dendrogram (UPGMA) - Chao", #UPGMA= metodo de agrupamiento para c
      xlab="Elevation (m.a.s.l.)",     sub="")
 
 ####NMDS y PCoA
-# -----------------------------
 # 1) NMDS
-# -----------------------------
 dist_chao <- vegdist(matriz_num, method = "chao")
 nmds <- metaMDS(dist_chao, k = 2, trymax = 100)
 
@@ -276,16 +524,11 @@ plot_nmds <- ggplot(nmds_points, aes(x = NMDS1, y = NMDS2, color = elevation)) +
   theme_minimal() +
   theme(legend.position = "none",
         plot.title = element_text(hjust = 0.5, face = "bold"))
-
-# -----------------------------
 # 2) PCoA
-# -----------------------------
 pcoa <- cmdscale(dist_chao, eig = TRUE, k = 2)
-
 pcoa_points <- as.data.frame(pcoa$points)
 colnames(pcoa_points) <- c("PCoA1", "PCoA2")
 pcoa_points$elevation <- rownames(pcoa_points)
-
 plot_pcoa <- ggplot(pcoa_points, aes(x = PCoA1, y = PCoA2, color = elevation)) +
   geom_point(size = 4, alpha = 0.8) +
   geom_text(aes(label = elevation), vjust = -1, size = 3) +
@@ -302,16 +545,10 @@ plot_pcoa <- ggplot(pcoa_points, aes(x = PCoA1, y = PCoA2, color = elevation)) +
   ) +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
-
-# -----------------------------
 # 3) Gráfico combinado
-# -----------------------------
 plot_nmds + plot_pcoa
-
 ```
-
 Beta diversidad global (Whittaker 1960, 1972)
-
 1. Alpha promedio (alpha_mean)
 Calcula la riqueza promedio de especies por parcela.
 Es básicamente el promedio de cuántas especies tiene cada comunidad.
@@ -324,7 +561,6 @@ Ejemplo: si sale 4, significa que la diversidad regional es 4 veces la riqueza p
 4. Beta aditiva (beta_add)
 Representa la diferencia absoluta entre la riqueza regional y la local promedio.
 Ejemplo: si gamma = 120 especies y alpha promedio = 30, entonces beta aditiva = 90 → hay 90 especies que en promedio no se encuentran en cada comunidad.
-
 ```{r}
 # Alpha promedio (riqueza por parcela)
 alpha_mean <- mean(specnumber(matriz_num))
@@ -342,12 +578,10 @@ list(alpha_mean = alpha_mean,
      beta_additive = beta_add)
 ```
 Matrix of presence-absence
-```{r, results='hide'}
+```{r}
 matriz_pa <- (matriz_num > 0) * 1   # 1) Transformar a presencia/ausencia
 dist_jaccard_pa <- vegdist(matriz_pa, method = "jaccard") # 2) Distancia Bray-Curtis
-# -----------------------------
 # 3) NMDS con matriz PA
-# -----------------------------
 nmds_pa <- metaMDS(dist_jaccard_pa, k = 2, trymax = 100)
 
 nmds_points_pa <- as.data.frame(nmds_pa$points)
@@ -366,9 +600,7 @@ plot_nmds_pa <- ggplot(nmds_points_pa, aes(x = NMDS1, y = NMDS2, color = elevati
   theme_minimal() +
   theme(legend.position = "none",
         plot.title = element_text(hjust = 0.5, face = "bold"))
-# -----------------------------
 # 4) PCoA con matriz PA
-# -----------------------------
 pcoa_pa <- cmdscale(dist_jaccard_pa, eig = TRUE, k = 2)
 
 pcoa_points_pa <- as.data.frame(pcoa_pa$points)
@@ -391,12 +623,206 @@ plot_pcoa_pa <- ggplot(pcoa_points_pa, aes(x = PCoA1, y = PCoA2, color = elevati
   ) +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
-# -----------------------------
 # 5) Gráfico combinado
-# -----------------------------
 plot_nmds_pa + plot_pcoa_pa
+```
+PCOA and NMDS IN UNIQUE GRAPHIC
+```{r}
+library(vegan)
+library(ggplot2)
+library(patchwork)
+
+# --- MATRIZ DE ABUNDANCIA ---
+matriz_num <- as.data.frame(matriz)
+rownames(matriz_num) <- matriz_num$elevation
+matriz_num$elevation <- NULL
+
+# --- DISTANCIA CHAO ---
+dist_chao <- vegdist(matriz_num, method = "chao")
+
+# --- NMDS CHAO ---
+nmds <- metaMDS(dist_chao, k = 2, trymax = 100)
+nmds_points <- as.data.frame(nmds$points)
+colnames(nmds_points) <- c("NMDS1", "NMDS2")
+nmds_points$elevation <- rownames(nmds_points)
+
+plot_nmds <- ggplot(nmds_points, aes(NMDS1, NMDS2, color = elevation)) +
+  geom_point(size = 4, alpha = 0.8) +
+  geom_text(aes(label = elevation), vjust = -1, size = 2) +
+  stat_ellipse(type = "t", linetype = 2) +
+  labs(
+    title = paste0("NMDS (Chao)\nStress = ", round(nmds$stress, 3)),
+    x = "NMDS1", y = "NMDS2"
+  ) +
+  theme_minimal(base_size = 10) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# --- PCoA CHAO ---
+pcoa <- cmdscale(dist_chao, eig = TRUE, k = 2)
+pcoa_points <- as.data.frame(pcoa$points)
+colnames(pcoa_points) <- c("PCoA1", "PCoA2")
+pcoa_points$elevation <- rownames(pcoa_points)
+
+plot_pcoa <- ggplot(pcoa_points, aes(PCoA1, PCoA2, color = elevation)) +
+  geom_point(size = 4, alpha = 0.8) +
+  geom_text(aes(label = elevation), vjust = -1, size = 2) +
+  stat_ellipse(type = "t", linetype = 2) +
+  labs(
+    title = paste0("PCoA (Chao)\nVar. Exp = ",
+      round(pcoa$eig[1] / sum(pcoa$eig) * 100, 1), "%, ",
+      round(pcoa$eig[2] / sum(pcoa$eig) * 100, 1), "%"
+    ),
+    x = paste0("PCoA1 (", round(pcoa$eig[1] / sum(pcoa$eig) * 100, 1), "%)"),
+    y = paste0("PCoA2 (", round(pcoa$eig[2] / sum(pcoa$eig) * 100, 1), "%)")
+  ) +
+  theme_minimal(base_size = 10) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# --- MATRIZ PRESENCIA-AUSENCIA ---
+matriz_pa <- (matriz_num > 0) * 1
+dist_jaccard_pa <- vegdist(matriz_pa, method = "jaccard")
+
+# --- NMDS JACCARD ---
+nmds_pa <- metaMDS(dist_jaccard_pa, k = 2, trymax = 100)
+nmds_points_pa <- as.data.frame(nmds_pa$points)
+colnames(nmds_points_pa) <- c("NMDS1", "NMDS2")
+nmds_points_pa$elevation <- rownames(nmds_points_pa)
+
+plot_nmds_pa <- ggplot(nmds_points_pa, aes(NMDS1, NMDS2, color = elevation)) +
+  geom_point(size = 4, alpha = 0.8) +
+  geom_text(aes(label = elevation), vjust = -1, size = 2) +
+  stat_ellipse(type = "t", linetype = 2) +
+  labs(
+    title = paste0("NMDS (Presence-Absence, Jaccard)\nStress = ", round(nmds_pa$stress, 3)),
+    x = "NMDS1", y = "NMDS2"
+  ) +
+  theme_minimal(base_size = 10) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# --- PCoA JACCARD ---
+pcoa_pa <- cmdscale(dist_jaccard_pa, eig = TRUE, k = 2)
+pcoa_points_pa <- as.data.frame(pcoa_pa$points)
+colnames(pcoa_points_pa) <- c("PCoA1", "PCoA2")
+pcoa_points_pa$elevation <- rownames(pcoa_points_pa)
+
+plot_pcoa_pa <- ggplot(pcoa_points_pa, aes(PCoA1, PCoA2, color = elevation)) +
+  geom_point(size = 4, alpha = 0.8) +
+  geom_text(aes(label = elevation), vjust = -1, size = 2) +
+  stat_ellipse(type = "t", linetype = 2) +
+  labs(
+    title = paste0("PCoA (Presence-Absence, Jaccard)\nVar. Exp = ",
+      round(pcoa_pa$eig[1] / sum(pcoa_pa$eig) * 100, 1), "%, ",
+      round(pcoa_pa$eig[2] / sum(pcoa_pa$eig) * 100, 1), "%"
+    ),
+    x = paste0("PCoA1 (", round(pcoa_pa$eig[1] / sum(pcoa_pa$eig) * 100, 1), "%)"),
+    y = paste0("PCoA2 (", round(pcoa_pa$eig[2] / sum(pcoa_pa$eig) * 100, 1), "%)")
+  ) +
+  theme_minimal(base_size = 10) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# --- COMBINAR EN 2x2 CON TÍTULOS POR FILA ---
+final_plot <- (
+  (plot_nmds + plot_pcoa) +
+    plot_annotation(title = "Abundance (Chao)",
+                    theme = theme(plot.title = element_text(hjust = 0.5, size = 6, face = "bold")))
+) /
+(
+  (plot_nmds_pa + plot_pcoa_pa) +
+    plot_annotation(title = "Presence-ausence (Jaccard)",
+                    theme = theme(plot.title = element_text(hjust = 0.5, size = 6, face = "bold")))
+)
+
+final_plot
 
 ```
+
+GRAPHIC NMDS AND PCoA by phorophyte -abundance matrix
+```{r}
+library(vegan)
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+
+ABUNDFO <- data %>%               #tabla de abundancias por plot/ELEVATION 
+  group_by(forof, morphospe) %>%
+  summarise(ABUNDANCIA = n(), .groups = "drop") %>%
+  arrange(forof, desc(ABUNDANCIA)) 
+matrizf <- ABUNDFO %>%              #matriz de abundancias
+  pivot_wider(
+    names_from = morphospe,
+    values_from = ABUNDANCIA,
+    values_fill = 0
+  )
+names(matrizf)
+forofito <- matrizf$forof   # 1. Guardamos los nombres de los plots
+matrizfo_num <- matrizf %>% select(-forof)
+# --- 1. Preparar matriz de abundancia por forófito ---
+matriz_forof <- matrizf %>%
+  group_by(forof) %>%                     # agrupar por forófito
+  summarise(across(where(is.numeric), sum)) %>%  # sumar abundancias por especie
+  as.data.frame()
+
+rownames(matriz_forof) <- matriz_forof$forof
+matriz_forof$forof <- NULL
+
+# --- 2. Calcular distancia Chao ---
+dist_chao <- vegdist(matriz_forof, method = "chao")
+
+# --- 3. Dendrograma ---
+hc <- hclust(dist_chao, method = "average")
+plot(
+  hc,
+  main = "Dendrogram (UPGMA) - Chao (por forófito)",
+  xlab = "Forófito",
+  sub = ""
+)
+
+# --- 4. NMDS ---
+nmds <- metaMDS(dist_chao, k = 2, trymax = 100)
+nmds_points <- as.data.frame(nmds$points)
+colnames(nmds_points) <- c("NMDS1", "NMDS2")
+nmds_points$forof <- rownames(nmds_points)
+
+plot_nmds <- ggplot(nmds_points, aes(x = NMDS1, y = NMDS2, color = forof)) +
+  geom_point(size = 4, alpha = 0.8) +
+  geom_text(aes(label = forof), vjust = -1, size = 3) +
+  stat_ellipse(type = "t", linetype = 2) +
+  labs(
+    title = paste0("NMDS (Chao) por forófito\nStress = ", round(nmds$stress, 3)),
+    x = "NMDS1", y = "NMDS2",
+    color = "Forófito"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# --- 5. PCoA ---
+pcoa <- cmdscale(dist_chao, eig = TRUE, k = 2)
+pcoa_points <- as.data.frame(pcoa$points)
+colnames(pcoa_points) <- c("PCoA1", "PCoA2")
+pcoa_points$forof <- rownames(pcoa_points)
+
+plot_pcoa <- ggplot(pcoa_points, aes(x = PCoA1, y = PCoA2, color = forof)) +
+  geom_point(size = 4, alpha = 0.8) +
+  geom_text(aes(label = forof), vjust = -1, size = 3) +
+  stat_ellipse(type = "t", linetype = 2) +
+  labs(
+    title = paste0(
+      "PCoA (Chao) por forófito\nVar. Exp = ",
+      round(pcoa$eig[1] / sum(pcoa$eig) * 100, 1), "%, ",
+      round(pcoa$eig[2] / sum(pcoa$eig) * 100, 1), "%"
+    ),
+    x = paste0("PCoA1 (", round(pcoa$eig[1] / sum(pcoa$eig) * 100, 1), "%)"),
+    y = paste0("PCoA2 (", round(pcoa$eig[2] / sum(pcoa$eig) * 100, 1), "%)"),
+    color = "Forófito"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# --- 6. Combinar NMDS y PCoA ---
+plot_nmds + plot_pcoa
+
+```
+
 
 Components of Beta Diversity
 ```{r}
