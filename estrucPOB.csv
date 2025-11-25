@@ -54,7 +54,7 @@ ACJ-01;3537;9;339;ACJ-01_339;Symplocos baehnii;Symplocos;25.2;12;IV;Elaphoglossu
 ACJ-01;3537;9;339;ACJ-01_339;Symplocos baehnii;Symplocos;25.2;12;IV;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;9;juvenil;12.1;15;esteril;0
 ACJ-01;3537;9;339;ACJ-01_339;Symplocos baehnii;Symplocos;25.2;12;V;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;12;adulto;18.5;13;esteril;1
 ACJ-01;3537;9;339;ACJ-01_339;Symplocos baehnii;Symplocos;25.2;12;IV;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;10;juvenil;9;4;esteril;0
-ACJ-01;3537;9;339;ACJ-01_339;Symplocos baehnii;Symplocos;25.2;12;V;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;9;plantula;5.2;7;esteril;1
+ACJ-01;3537;9;339;ACJ-01_339;Symplocos baehnii;Symplocos;25.2;12;V;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;9;juvenil;5.2;7;esteril;1
 ACJ-01;3537;9;339;ACJ-01_339;Symplocos baehnii;Symplocos;25.2;12;III;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;6;adulto;16;6;reproductivo;1
 ACJ-01;3537;9;339;ACJ-01_339;Symplocos baehnii;Symplocos;25.2;12;III;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;5;adulto;9.6;4;esteril;0
 ACJ-01;3537;9;339;ACJ-01_339;Symplocos baehnii;Symplocos;25.2;12;IV;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;7;adulto;10.3;5;reproductivo;0
@@ -111,11 +111,11 @@ ACJ-01;3537;9;336;ACJ-01_336;Weinmannia fagaroides;Weinmannia;31.1;15;II;Lepanth
 ACJ-01;3537;9;336;ACJ-01_336;Weinmannia fagaroides;Weinmannia;31.1;15;II;Lepanthes 1;Lepanthes sp1;Lepanthes;Orchidaceae;Angiosperma;3.5;adulto;12.2;30;reproductivo;1
 ACJ-01;3537;9;336;ACJ-01_336;Weinmannia fagaroides;Weinmannia;31.1;15;I;Lepanthes 2;Lepanthes sp2;Lepanthes;Orchidaceae;Angiosperma;2.8;adulto;4.7;40;reproductivo;0
 ACJ-01;3537;9;336;ACJ-01_336;Weinmannia fagaroides;Weinmannia;31.1;15;II;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;2.5;adulto;5.2;10;esteril;0
-ACJ-01;3537;9;319;ACJ-01_319;Symplocos quitensis;Symplocos;15.1;10;I;Microgramma 1;Campyloneurum densifolium;Campyloneurum;Polypodiaceae;Pteridophyta;1.6;plantula;10.9;15;esteril;0
+ACJ-01;3537;9;319;ACJ-01_319;Symplocos quitensis;Symplocos;15.1;10;I;Microgramma 1;Campyloneurum densifolium;Campyloneurum;Polypodiaceae;Pteridophyta;1.6;juvenil;10.9;15;esteril;0
 ACJ-01;3537;9;319;ACJ-01_319;Symplocos quitensis;Symplocos;15.1;10;I;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;1.7;adulto;8;17;esteril;0
 ACJ-01;3537;9;319;ACJ-01_319;Symplocos quitensis;Symplocos;15.1;10;I;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;1.7;adulto;6.5;9;reproductivo;0
 ACJ-01;3537;9;319;ACJ-01_319;Symplocos quitensis;Symplocos;15.1;10;II;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;6.5;adulto;8.5;10;esteril;0
-ACJ-01;3537;9;319;ACJ-01_319;Symplocos quitensis;Symplocos;15.1;10;II;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;6;plantula;4;8;esteril;0
+ACJ-01;3537;9;319;ACJ-01_319;Symplocos quitensis;Symplocos;15.1;10;II;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;6;juvenil;4;8;esteril;0
 ACJ-01;3537;9;4546;ACJ-01_4546;Symplocos baehnii;Symplocos;12.6;9;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;7;juvenil;9;6;esteril;0
 ACJ-01;3537;9;321;ACJ-01_321;Weinmannia fagaroides;Weinmannia;15.7;9;I;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;1.3;juvenil;6.4;7;esteril;0
 ACJ-01;3537;9;321;ACJ-01_321;Weinmannia fagaroides;Weinmannia;15.7;9;I;Microgramma 1;Campyloneurum densifolium;Campyloneurum;Polypodiaceae;Pteridophyta;1.8;adulto;22;8;esteril;0
@@ -156,15 +156,15 @@ ACJ-01;3537;9;323;ACJ-01_323;Weinmannia auriculata;Weinmannia;28.3;15;V;Elaphogl
 ACJ-01;3537;9;323;ACJ-01_323;Weinmannia auriculata;Weinmannia;28.3;15;V;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;14.5;adulto;17.5;5;reproductivo;0
 ACJ-01;3537;9;323;ACJ-01_323;Weinmannia auriculata;Weinmannia;28.3;15;V;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;14.5;adulto;14.7;7;reproductivo;0
 ACJ-01;3537;9;323;ACJ-01_323;Weinmannia auriculata;Weinmannia;28.3;15;V;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;14.5;juvenil;4.2;8;esteril;0
-ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;V;Bromelia 2;Racinaea sp3;Racinaea;Bromeliaceae;Angiosperma;8.5;plantula;13.5;1;esteril;0
-ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;V;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;8;plantula;3.5;5;esteril;0
-ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;V;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;8;plantula;7;7;esteril;0
+ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;V;Bromelia 2;Racinaea sp3;Racinaea;Bromeliaceae;Angiosperma;8.5;juvenil;13.5;1;esteril;0
+ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;V;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;8;juvenil;3.5;5;esteril;0
+ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;V;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;8;juvenil;7;7;esteril;0
 ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;V;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;7.5;adulto;9.6;14;esteril;0
 ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;V;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;7.2;adulto;8.5;4;esteril;0
 ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;IV;Trichomanes 1;Asplenium fragans;Asplenium;Hymenophyllaceae;Pteridophyta;6.7;adulto;18.5;10;esteril;0
 ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;IV;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;6.7;adulto;7.2;4;esteril;0
-ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;IV;Epidendrum 1;Epidendrum sp1;Epidendrum;Orchidaceae;Angiosperma;5.7;plantula;13;2;esteril;1
-ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;IV;Epidendrum 1;Epidendrum sp1;Epidendrum;Orchidaceae;Angiosperma;4.7;plantula;7.5;1;esteril;0
+ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;IV;Epidendrum 1;Epidendrum sp1;Epidendrum;Orchidaceae;Angiosperma;5.7;juvenil;13;2;esteril;1
+ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;IV;Epidendrum 1;Epidendrum sp1;Epidendrum;Orchidaceae;Angiosperma;4.7;juvenil;7.5;1;esteril;0
 ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;IV;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;4.4;adulto;15;19;esteril;1
 ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;III;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;3.4;juvenil;6.4;11;esteril;0
 ACJ-01;3537;9;4577;ACJ-01_4577;Symplocos baehnii;Symplocos;10.6;9;I;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;2;juvenil;6.8;5;esteril;0
@@ -273,9 +273,9 @@ ACJ-01;3537;9;329;ACJ-01_329;Weinmannia fagaroides;Weinmannia;17.7;8;V;Melpomene
 ACJ-01;3537;9;344;ACJ-01_344;Symplocos baehnii;Symplocos;16.9;10;V;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;8;adulto;14.6;10;esteril;0
 ACJ-01;3537;9;344;ACJ-01_344;Symplocos baehnii;Symplocos;16.9;10;V;Erica 3;Siphonandra elliptica;Siphonandra;Ericaceae;Angiosperma;7;adulto;31;2;esteril;1
 ACJ-01;3537;9;344;ACJ-01_344;Symplocos baehnii;Symplocos;16.9;10;IV;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;6.7;adulto;6.3;25;esteril;0
-ACJ-01;3537;9;344;ACJ-01_344;Symplocos baehnii;Symplocos;16.9;10;IV;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;6;plantula;6.3;5;esteril;1
+ACJ-01;3537;9;344;ACJ-01_344;Symplocos baehnii;Symplocos;16.9;10;IV;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;6;juvenil;6.3;5;esteril;1
 ACJ-01;3537;9;344;ACJ-01_344;Symplocos baehnii;Symplocos;16.9;10;I;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;2.5;adulto;11.3;12;esteril;1
-ACJ-01;3537;9;344;ACJ-01_344;Symplocos baehnii;Symplocos;16.9;10;I;Elaphoglossum 4;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;2.2;plantula;2.5;2;esteril;0
+ACJ-01;3537;9;344;ACJ-01_344;Symplocos baehnii;Symplocos;16.9;10;I;Elaphoglossum 4;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;2.2;juvenil;2.5;2;esteril;0
 ACJ-01;3537;9;344;ACJ-01_344;Symplocos baehnii;Symplocos;16.9;10;I;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;2.2;juvenil;6.8;2;reproductivo;0
 ACJ-01;3537;9;344;ACJ-01_344;Symplocos baehnii;Symplocos;16.9;10;III;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;4;adulto;14.7;4;esteril;0
 ACJ-01;3537;9;345;ACJ-01_345;Polylepis pauta;Polylepis;31;11;I;Melpomene 1;Ascogrammitis athyrioides;Ascogrammitis;Polypodiaceae;Pteridophyta;2.2;juvenil;9.7;22;esteril;1
@@ -288,9 +288,9 @@ ACJ-01;3537;9;345;ACJ-01_345;Polylepis pauta;Polylepis;31;11;II;Melpomene 1;Asco
 ACJ-01;3537;9;345;ACJ-01_345;Polylepis pauta;Polylepis;31;11;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;5;adulto;18;8;esteril;2
 ACJ-01;3537;9;345;ACJ-01_345;Polylepis pauta;Polylepis;31;11;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;5.5;adulto;10.3;15;esteril;1
 ACJ-01;3537;9;345;ACJ-01_345;Polylepis pauta;Polylepis;31;11;III;Melpomene 1;Ascogrammitis athyrioides;Ascogrammitis;Polypodiaceae;Pteridophyta;5.5;adulto;19.3;8;reproductivo;0
-ACJ-01;3537;9;345;ACJ-01_345;Polylepis pauta;Polylepis;31;11;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;5.5;plantula;7;4;esteril;0
+ACJ-01;3537;9;345;ACJ-01_345;Polylepis pauta;Polylepis;31;11;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;5.5;juvenil;7;4;esteril;0
 ACJ-01;3537;9;345;ACJ-01_345;Polylepis pauta;Polylepis;31;11;IV;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;6.2;adulto;20.1;12;esteril;0
-ACJ-01;3537;9;4511;ACJ-01_4511;Symplocos quitensis;Symplocos;11.9;9.5;I;Microgramma 1;Campyloneurum densifolium;Campyloneurum;Polypodiaceae;Pteridophyta;3;plantula;5.1;4;esteril;0
+ACJ-01;3537;9;4511;ACJ-01_4511;Symplocos quitensis;Symplocos;11.9;9.5;I;Microgramma 1;Campyloneurum densifolium;Campyloneurum;Polypodiaceae;Pteridophyta;3;juvenil;5.1;4;esteril;0
 ACJ-01;3537;9;4511;ACJ-01_4511;Symplocos quitensis;Symplocos;11.9;9.5;IV;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;9;adulto;15.1;17;esteril;1
 ACJ-01;3537;9;343;ACJ-01_343;Miconia alpina;Miconia;29.6;13;IV;Erica 3;Siphonandra elliptica;Siphonandra;Ericaceae;Angiosperma;10;adulto;11;3;esteril;1
 ACJ-01;3537;9;343;ACJ-01_343;Miconia alpina;Miconia;29.6;13;V;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;12;juvenil;7.9;17;esteril;1
@@ -306,14 +306,14 @@ ACJ-01;3537;9;343;ACJ-01_343;Miconia alpina;Miconia;29.6;13;III;Melpomene 1;Asco
 ACJ-01;3537;9;343;ACJ-01_343;Miconia alpina;Miconia;29.6;13;III;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;6;adulto;8.7;1;reproductivo;0
 ACJ-01;3537;9;343;ACJ-01_343;Miconia alpina;Miconia;29.6;13;II;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;6;adulto;17;7;reproductivo;0
 ACJ-01;3537;9;343;ACJ-01_343;Miconia alpina;Miconia;29.6;13;II;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;5.2;adulto;14.7;11;reproductivo;0
-ACJ-01;3537;9;343;ACJ-01_343;Miconia alpina;Miconia;29.6;13;II;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;4;plantula;4.2;3;esteril;0
+ACJ-01;3537;9;343;ACJ-01_343;Miconia alpina;Miconia;29.6;13;II;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;4;juvenil;4.2;3;esteril;0
 ACJ-01;3537;9;343;ACJ-01_343;Miconia alpina;Miconia;29.6;13;I;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;3;adulto;20;23;reproductivo;0
 ACJ-01;3537;9;334;ACJ-01_334;Clethra WRF584;Clethra;19.6;15;V;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;13.5;adulto;13.4;5;reproductivo;1
 ACJ-01;3537;9;334;ACJ-01_334;Clethra WRF584;Clethra;19.6;15;III;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;12;adulto;10.8;90;reproductivo;0
 ACJ-01;3537;9;334;ACJ-01_334;Clethra WRF584;Clethra;19.6;15;III;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;12;adulto;19.8;28;reproductivo;0
 ACJ-01;3537;9;334;ACJ-01_334;Clethra WRF584;Clethra;19.6;15;III;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;11;adulto;20;160;reproductivo;0
 ACJ-01;3537;9;334;ACJ-01_334;Clethra WRF584;Clethra;19.6;15;II;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;9;adulto;8.5;122;reproductivo;0
-ACJ-01;3537;9;334;ACJ-01_334;Clethra WRF584;Clethra;19.6;15;II;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;9;plantula;4.9;6;esteril;0
+ACJ-01;3537;9;334;ACJ-01_334;Clethra WRF584;Clethra;19.6;15;II;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;9;juvenil;4.9;6;esteril;0
 ACJ-01;3537;9;334;ACJ-01_334;Clethra WRF584;Clethra;19.6;15;II;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;8.3;juvenil;6.1;18;esteril;1
 ACJ-01;3537;9;334;ACJ-01_334;Clethra WRF584;Clethra;19.6;15;II;Erica 1;Demosthenesia buxifolia;Demosthenesia;Ericaceae;Angiosperma;8.3;juvenil;9;2;esteril;0
 ACJ-01;3537;9;334;ACJ-01_334;Clethra WRF584;Clethra;19.6;15;II;Microgramma 1;Campyloneurum densifolium;Campyloneurum;Polypodiaceae;Pteridophyta;8;adulto;27;6;reproductivo;1
@@ -341,10 +341,10 @@ ACJ-01;3537;21;716;ACJ-01_716;Clethra cuneata;Clethra;31.6;15;III;Hymenophyllum 
 ACJ-01;3537;21;716;ACJ-01_716;Clethra cuneata;Clethra;31.6;15;IV;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;7;adulto;11.2;8;esteril;0
 ACJ-01;3537;21;716;ACJ-01_716;Clethra cuneata;Clethra;31.6;15;V;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;10;adulto;10;4;reproductivo;1
 ACJ-01;3537;21;716;ACJ-01_716;Clethra cuneata;Clethra;31.6;15;V;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;14;adulto;2.1;20;esteril;1
-ACJ-01;3537;21;716;ACJ-01_716;Clethra cuneata;Clethra;31.6;15;V;Elaphoglossum 4;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;14.2;plantula;4;3;esteril;0
+ACJ-01;3537;21;716;ACJ-01_716;Clethra cuneata;Clethra;31.6;15;V;Elaphoglossum 4;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;14.2;juvenil;4;3;esteril;0
 ACJ-01;3537;21;716;ACJ-01_716;Clethra cuneata;Clethra;31.6;15;V;Stelis 2;Lepanthopsis acuminata;Lepanthopsis;Orchidaceae;Angiosperma;14;adulto;6;78;reproductivo;0
-ACJ-01;3537;21;4528;ACJ-01_4528;Symplocos baehnii;Symplocos;12.1;9.5;II;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;6;plantula;3.5;3;esteril;0
-ACJ-01;3537;21;4528;ACJ-01_4528;Symplocos baehnii;Symplocos;12.1;9.5;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;8;plantula;5;4;esteril;0
+ACJ-01;3537;21;4528;ACJ-01_4528;Symplocos baehnii;Symplocos;12.1;9.5;II;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;6;juvenil;3.5;3;esteril;0
+ACJ-01;3537;21;4528;ACJ-01_4528;Symplocos baehnii;Symplocos;12.1;9.5;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;8;juvenil;5;4;esteril;0
 ACJ-01;3537;21;4529;ACJ-01_4529;Symplocos quitensis;Symplocos;12.6;7.5;I;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;3;juvenil;5.5;4;esteril;0
 ACJ-01;3537;21;4593;ACJ-01_4593;Miconia AMM15963;Miconia;10.7;6;II;Microgramma 1;Campyloneurum densifolium;Campyloneurum;Polypodiaceae;Pteridophyta;2;adulto;20.5;7;esteril;3
 ACJ-01;3537;21;4593;ACJ-01_4593;Miconia AMM15963;Miconia;10.7;6;I;Melpomene 1;Ascogrammitis athyrioides;Ascogrammitis;Polypodiaceae;Pteridophyta;1.5;adulto;14.6;4;reproductivo;1
@@ -385,7 +385,7 @@ ACJ-01;3537;21;724;ACJ-01_724;Miconia AMM15963;Miconia;16.4;9;III;Melpomene 2;Me
 ACJ-01;3537;21;724;ACJ-01_724;Miconia AMM15963;Miconia;16.4;9;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;5.5;adulto;13.6;6;esteril;1
 ACJ-01;3537;21;724;ACJ-01_724;Miconia AMM15963;Miconia;16.4;9;V;Erica 4;Psammisia sp1;Psammisia;Ericaceae;Angiosperma;8;adulto;26.5;5;esteril;0
 ACJ-01;3537;21;725;ACJ-01_725;Miconia AMM15963;Miconia;15.2;9;I;Microgramma 1;Campyloneurum densifolium;Campyloneurum;Polypodiaceae;Pteridophyta;1.5;juvenil;9;2;esteril;0
-ACJ-01;3537;21;725;ACJ-01_725;Miconia AMM15963;Miconia;15.2;9;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;6;plantula;5.8;3;esteril;0
+ACJ-01;3537;21;725;ACJ-01_725;Miconia AMM15963;Miconia;15.2;9;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;6;juvenil;5.8;3;esteril;0
 ACJ-01;3537;21;725;ACJ-01_725;Miconia AMM15963;Miconia;15.2;9;III;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;6;adulto;18.5;1;reproductivo;1
 ACJ-01;3537;21;725;ACJ-01_725;Miconia AMM15963;Miconia;15.2;9;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;7;adulto;16.8;12;esteril;1
 ACJ-01;3537;21;725;ACJ-01_725;Miconia AMM15963;Miconia;15.2;9;III;Cavendisha 1;Thibaudia yungensis;Thibaudia ;Ericaceae;Angiosperma;7;adulto;81;1;esteril;3
@@ -418,7 +418,7 @@ ACJ-01;3537;21;744;ACJ-01_744;Symplocos quitensis;Symplocos;24.4;11;III;Hymenoph
 ACJ-01;3537;21;744;ACJ-01_744;Symplocos quitensis;Symplocos;24.4;11;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;6.5;adulto;7.8;4;esteril;1
 ACJ-01;3537;21;744;ACJ-01_744;Symplocos quitensis;Symplocos;24.4;11;III;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;7;adulto;6.2;8;esteril;0
 ACJ-01;3537;21;744;ACJ-01_744;Symplocos quitensis;Symplocos;24.4;11;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;7.2;adulto;11;7;esteril;1
-ACJ-01;3537;21;744;ACJ-01_744;Symplocos quitensis;Symplocos;24.4;11;III;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;7.2;plantula;8.9;4;esteril;0
+ACJ-01;3537;21;744;ACJ-01_744;Symplocos quitensis;Symplocos;24.4;11;III;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;7.2;juvenil;8.9;4;esteril;0
 ACJ-01;3537;21;744;ACJ-01_744;Symplocos quitensis;Symplocos;24.4;11;IV;Erica 4;Psammisia sp1;Psammisia;Ericaceae;Angiosperma;6;adulto;79.5;3;esteril;1
 ACJ-01;3537;21;717;ACJ-01_717;Symplocos baehnii;Symplocos;29.2;12;I;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;1.7;adulto;8;17;reproductivo;0
 ACJ-01;3537;21;717;ACJ-01_717;Symplocos baehnii;Symplocos;29.2;12;II;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;2.1;adulto;7.1;8;reproductivo;0
@@ -541,7 +541,7 @@ ACJ-01;3537;21;719;ACJ-01_719;Hedyosmum maximum;Hedyosmum;25.2;12;III;Hymenophyl
 ACJ-01;3537;21;719;ACJ-01_719;Hedyosmum maximum;Hedyosmum;25.2;12;III;Microgramma 1;Campyloneurum densifolium;Campyloneurum;Polypodiaceae;Pteridophyta;5;adulto;21;21;reproductivo;1
 ACJ-01;3537;21;719;ACJ-01_719;Hedyosmum maximum;Hedyosmum;25.2;12;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;5;adulto;12.5;4;esteril;1
 ACJ-01;3537;21;719;ACJ-01_719;Hedyosmum maximum;Hedyosmum;25.2;12;III;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;3.5;adulto;10.1;9;reproductivo;0
-ACJ-01;3537;21;719;ACJ-01_719;Hedyosmum maximum;Hedyosmum;25.2;12;III;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;3;plantula;8;2;esteril;0
+ACJ-01;3537;21;719;ACJ-01_719;Hedyosmum maximum;Hedyosmum;25.2;12;III;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;3;juvenil;8;2;esteril;0
 ACJ-01;3537;21;719;ACJ-01_719;Hedyosmum maximum;Hedyosmum;25.2;12;III;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;3;juvenil;6.1;17;reproductivo;0
 ACJ-01;3537;21;719;ACJ-01_719;Hedyosmum maximum;Hedyosmum;25.2;12;III;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;3;juvenil;8.7;3;esteril;0
 ACJ-01;3537;21;719;ACJ-01_719;Hedyosmum maximum;Hedyosmum;25.2;12;III;Microgramma 1;Campyloneurum densifolium;Campyloneurum;Polypodiaceae;Pteridophyta;2;adulto;41.5;12;reproductivo;2
@@ -1202,7 +1202,7 @@ TRU-01;3402;1;17;TRU-01_17;Weinmannia cochensis;Weinmannia;27.1;10;III;Erica 1;D
 TRU-01;3402;1;17;TRU-01_17;Weinmannia cochensis;Weinmannia;27.1;10;III;Elleanthus 2;Elleanthus longibracteatus;Elleanthus;Orchidaceae;Angiosperma;5;adulto;21;20;reproductivo;0
 TRU-01;3402;1;17;TRU-01_17;Weinmannia cochensis;Weinmannia;27.1;10;III;Erica 1;Demosthenesia buxifolia;Demosthenesia;Ericaceae;Angiosperma;5.5;adulto;23.4;4;esteril;1
 TRU-01;3402;1;17;TRU-01_17;Weinmannia cochensis;Weinmannia;27.1;10;III;Erica 1;Demosthenesia buxifolia;Demosthenesia;Ericaceae;Angiosperma;6;adulto;27.5;12;esteril;1
-TRU-01;3402;1;17;TRU-01_17;Weinmannia cochensis;Weinmannia;27.1;10;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;5;plantula;5.6;8;esteril;0
+TRU-01;3402;1;17;TRU-01_17;Weinmannia cochensis;Weinmannia;27.1;10;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;5;juvenil;5.6;8;esteril;0
 TRU-01;3402;1;17;TRU-01_17;Weinmannia cochensis;Weinmannia;27.1;10;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;5.5;juvenil;10.5;3;esteril;1
 TRU-01;3402;1;17;TRU-01_17;Weinmannia cochensis;Weinmannia;27.1;10;III;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;6;adulto;26.3;13;esteril;1
 TRU-01;3402;1;17;TRU-01_17;Weinmannia cochensis;Weinmannia;27.1;10;III;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;6;adulto;10.9;14;reproductivo;0
@@ -1282,7 +1282,7 @@ TRU-01;3402;1;16;TRU-01_16;Weinmannia cochensis;Weinmannia;32.5;10;III;Stelis 1;
 TRU-01;3402;1;16;TRU-01_16;Weinmannia cochensis;Weinmannia;32.5;10;III;Lepanthes 2;Lepanthes sp2;Lepanthes;Orchidaceae;Angiosperma;4;adulto;3;3;reproductivo;0
 TRU-01;3402;1;16;TRU-01_16;Weinmannia cochensis;Weinmannia;32.5;10;I;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;2.2;juvenil;5;8;esteril;0
 TRU-01;3402;1;16;TRU-01_16;Weinmannia cochensis;Weinmannia;32.5;10;III;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;5;adulto;11.8;10;reproductivo;0
-TRU-01;3402;1;16;TRU-01_16;Weinmannia cochensis;Weinmannia;32.5;10;III;Serpocaulon 1;Serpocaulon sp2;Serpocaulon;Polypodiaceae;Pteridophyta;5;plantula;10.5;4;esteril;0
+TRU-01;3402;1;16;TRU-01_16;Weinmannia cochensis;Weinmannia;32.5;10;III;Serpocaulon 1;Serpocaulon sp2;Serpocaulon;Polypodiaceae;Pteridophyta;5;juvenil;10.5;4;esteril;0
 TRU-01;3402;1;16;TRU-01_16;Weinmannia cochensis;Weinmannia;32.5;10;III;Erica 1;Demosthenesia buxifolia;Demosthenesia;Ericaceae;Angiosperma;5;adulto;15;8;esteril;0
 TRU-01;3402;1;16;TRU-01_16;Weinmannia cochensis;Weinmannia;32.5;10;III;Elleanthus 1;Elleanthus sp1;Elleanthus;Orchidaceae;Angiosperma;5.5;adulto;26.7;14;esteril;0
 TRU-01;3402;1;16;TRU-01_16;Weinmannia cochensis;Weinmannia;32.5;10;V;Pleurothalis 3;Pleurothallis sp3;Pleurothallis;Orchidaceae;Angiosperma;8.5;adulto;32;60;reproductivo;1
@@ -1455,7 +1455,7 @@ TRU-01;3402;1;2;TRU-01_2;Persea ferruginea;Persea;22.6;5;I;Elaphoglossum 8;Elaph
 TRU-01;3402;1;2;TRU-01_2;Persea ferruginea;Persea;22.6;5;I;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;3;adulto;8.2;2;esteril;0
 TRU-01;3402;1;2;TRU-01_2;Persea ferruginea;Persea;22.6;5;I;Erica 1;Demosthenesia mandonii;Demosthenesia;Ericaceae;Angiosperma;2.5;adulto;27.2;10;esteril;0
 TRU-01;3402;1;2;TRU-01_2;Persea ferruginea;Persea;22.6;5;I;Elleanthus 2;Elleanthus longibracteatus;Elleanthus;Orchidaceae;Angiosperma;2;adulto;27.2;7;reproductivo;0
-TRU-01;3402;1;2;TRU-01_2;Persea ferruginea;Persea;22.6;5;I;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;2;plantula;4.6;7;esteril;0
+TRU-01;3402;1;2;TRU-01_2;Persea ferruginea;Persea;22.6;5;I;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;2;juvenil;4.6;7;esteril;0
 TRU-01;3402;1;2;TRU-01_2;Persea ferruginea;Persea;22.6;5;I;Elleanthus 2;Elleanthus longibracteatus;Elleanthus;Orchidaceae;Angiosperma;1.5;juvenil;16.2;6;esteril;1
 TRU-01;3402;1;2;TRU-01_2;Persea ferruginea;Persea;22.6;5;I;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;2;juvenil;6.1;4;esteril;1
 TRU-01;3402;1;2;TRU-01_2;Persea ferruginea;Persea;22.6;5;I;Serpocaulon 1;Serpocaulon sp2;Serpocaulon;Polypodiaceae;Pteridophyta;2;juvenil;10.7;3;esteril;0
@@ -1495,7 +1495,7 @@ TRU-01;3402;1;9;TRU-01_9;MIconia setulosa;Miconia;15.9;9.5;III;Elaphoglossum 1;E
 TRU-01;3402;1;9;TRU-01_9;MIconia setulosa;Miconia;15.9;9.5;III;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;4;adulto;4;3;reproductivo;0
 TRU-01;3402;1;9;TRU-01_9;MIconia setulosa;Miconia;15.9;9.5;III;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;4;adulto;8;5;esteril;1
 TRU-01;3402;1;9;TRU-01_9;MIconia setulosa;Miconia;15.9;9.5;III;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;4;juvenil;6;4;esteril;0
-TRU-01;3402;1;9;TRU-01_9;MIconia setulosa;Miconia;15.9;9.5;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;4.5;plantula;4;4;esteril;0
+TRU-01;3402;1;9;TRU-01_9;MIconia setulosa;Miconia;15.9;9.5;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;4.5;juvenil;4;4;esteril;0
 TRU-01;3402;1;9;TRU-01_9;MIconia setulosa;Miconia;15.9;9.5;III;Epidendrum 4;Epidendrum sp4;Epidendrum;Orchidaceae;Angiosperma;4;juvenil;20;2;esteril;0
 TRU-01;3402;23;4112;TRU-01_4112;Clusia alata;Clusia;25.1;12;III;Bromelia 3;Racinaea seemannii;Racinaea;Bromeliaceae;Angiosperma;3.1;adulto;19;1;esteril;0
 TRU-01;3402;23;4112;TRU-01_4112;Clusia alata;Clusia;25.1;12;III;Epidendrum 3;Epidendrum sp3;Epidendrum;Orchidaceae;Angiosperma;3.1;adulto;54;3;reproductivo;1
@@ -1511,7 +1511,7 @@ TRU-01;3402;23;4112;TRU-01_4112;Clusia alata;Clusia;25.1;12;III;Maxillaria 4;Fer
 TRU-01;3402;23;4112;TRU-01_4112;Clusia alata;Clusia;25.1;12;III;Maxillaria 4*;Maxillaria sp4;Maxillaria;Orchidaceae;Angiosperma;4.1;adulto;25;5;reproductivo;0
 TRU-01;3402;23;4112;TRU-01_4112;Clusia alata;Clusia;25.1;12;III;Maxillaria 4;Fernandezia parvifolia;Fernandezia;Orchidaceae;Angiosperma;5;adulto;51;7;reproductivo;0
 TRU-01;3402;23;4112;TRU-01_4112;Clusia alata;Clusia;25.1;12;III;Elleanthus 1;Elleanthus sp1;Elleanthus;Orchidaceae;Angiosperma;5;adulto;27;2;esteril;1
-TRU-01;3402;23;4112;TRU-01_4112;Clusia alata;Clusia;25.1;12;III;Bromelia 3;Racinaea seemannii;Racinaea;Bromeliaceae;Angiosperma;4.5;plantula;8;1;esteril;0
+TRU-01;3402;23;4112;TRU-01_4112;Clusia alata;Clusia;25.1;12;III;Bromelia 3;Racinaea seemannii;Racinaea;Bromeliaceae;Angiosperma;4.5;juvenil;8;1;esteril;0
 TRU-01;3402;23;4112;TRU-01_4112;Clusia alata;Clusia;25.1;12;III;Bromelia 3;Racinaea seemannii;Racinaea;Bromeliaceae;Angiosperma;5.5;adulto;19;1;esteril;1
 TRU-01;3402;23;4112;TRU-01_4112;Clusia alata;Clusia;25.1;12;III;Maxillaria 3;Pachyphyllum sp2;Pachyphyllum;Orchidaceae;Angiosperma;5.5;adulto;10;1;reproductivo;0
 TRU-01;3402;23;4112;TRU-01_4112;Clusia alata;Clusia;25.1;12;III;Maxillaria 4;Fernandezia parvifolia;Fernandezia;Orchidaceae;Angiosperma;5.5;adulto;17;4;reproductivo;0
@@ -1567,9 +1567,9 @@ TRU-01;3402;23;4111;TRU-01_4111;Clusia alata;Clusia;15.6;13;IV;Bromelia 3;Racina
 TRU-01;3402;23;4111;TRU-01_4111;Clusia alata;Clusia;15.6;13;IV;Epidendrum 4;Epidendrum sp4;Epidendrum;Orchidaceae;Angiosperma;7.5;juvenil;11;1;esteril;0
 TRU-01;3402;23;4111;TRU-01_4111;Clusia alata;Clusia;15.6;13;IV;Stelis 2;Lepanthopsis acuminata;Lepanthopsis;Orchidaceae;Angiosperma;7.5;adulto;4;130;reproductivo;0
 TRU-01;3402;23;4111;TRU-01_4111;Clusia alata;Clusia;15.6;13;IV;Bromelia 3;Racinaea seemannii;Racinaea;Bromeliaceae;Angiosperma;9;adulto;15;42;esteril;0
-TRU-01;3402;23;4114;TRU-01_4114;Macrocarpaea maguirei;Macrocarpaea;20.7;9;I;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;1.8;plantula;7;7;esteril;0
+TRU-01;3402;23;4114;TRU-01_4114;Macrocarpaea maguirei;Macrocarpaea;20.7;9;I;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;1.8;juvenil;7;7;esteril;0
 TRU-01;3402;23;4114;TRU-01_4114;Macrocarpaea maguirei;Macrocarpaea;20.7;9;I;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;1.8;juvenil;4;4;esteril;0
-TRU-01;3402;23;4114;TRU-01_4114;Macrocarpaea maguirei;Macrocarpaea;20.7;9;I;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;2.1;plantula;9;3;esteril;0
+TRU-01;3402;23;4114;TRU-01_4114;Macrocarpaea maguirei;Macrocarpaea;20.7;9;I;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;2.1;juvenil;9;3;esteril;0
 TRU-01;3402;23;4114;TRU-01_4114;Macrocarpaea maguirei;Macrocarpaea;20.7;9;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;2.1;juvenil;8;33;esteril;1
 TRU-01;3402;23;4114;TRU-01_4114;Macrocarpaea maguirei;Macrocarpaea;20.7;9;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;2.3;juvenil;9;22;esteril;0
 TRU-01;3402;23;4114;TRU-01_4114;Macrocarpaea maguirei;Macrocarpaea;20.7;9;III;Cavendisha 2;Sphyrospermum cordifolium;Sphyrospermum;Ericaceae;Angiosperma;2.3;juvenil;19;3;esteril;2
@@ -1617,7 +1617,7 @@ TRU-01;3402;23;4108;TRU-01_4108;Weinmannia cochensis;Weinmannia;38.8;12;IV;Caven
 TRU-01;3402;23;4108;TRU-01_4108;Weinmannia cochensis;Weinmannia;38.8;12;IV;Cavendisha 1;Thibaudia yungensis;Thibaudia ;Ericaceae;Angiosperma;10;adulto;48;7;esteril;1
 TRU-01;3402;23;4108;TRU-01_4108;Weinmannia cochensis;Weinmannia;38.8;12;IV;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;10;adulto;39;33;esteril;2
 TRU-01;3402;23;4108;TRU-01_4108;Weinmannia cochensis;Weinmannia;38.8;12;IV;Maxillaria 3;Pachyphyllum sp2;Pachyphyllum;Orchidaceae;Angiosperma;10;adulto;13;6;reproductivo;0
-TRU-01;3402;23;4108;TRU-01_4108;Weinmannia cochensis;Weinmannia;38.8;12;IV;Cavendisha 2;Sphyrospermum cordifolium;Sphyrospermum;Ericaceae;Angiosperma;10;plantula;17;1;esteril;0
+TRU-01;3402;23;4108;TRU-01_4108;Weinmannia cochensis;Weinmannia;38.8;12;IV;Cavendisha 2;Sphyrospermum cordifolium;Sphyrospermum;Ericaceae;Angiosperma;10;juvenil;17;1;esteril;0
 TRU-01;3402;23;4108;TRU-01_4108;Weinmannia cochensis;Weinmannia;38.8;12;IV;Maxillaria 3;Pachyphyllum sp2;Pachyphyllum;Orchidaceae;Angiosperma;9;adulto;24;12;reproductivo;0
 TRU-01;3402;23;4108;TRU-01_4108;Weinmannia cochensis;Weinmannia;38.8;12;IV;Elleanthus 1;Elleanthus sp1;Elleanthus;Orchidaceae;Angiosperma;9;adulto;40;2;esteril;0
 TRU-01;3402;23;4108;TRU-01_4108;Weinmannia cochensis;Weinmannia;38.8;12;IV;Epidendrum 3;Epidendrum sp3;Epidendrum;Orchidaceae;Angiosperma;9;adulto;34;6;esteril;0
@@ -1666,7 +1666,7 @@ TRU-01;3402;23;4115;TRU-01_4115;Clethra cuneata;Clethra;28;14;II;Bromelia 7;Till
 TRU-01;3402;23;4115;TRU-01_4115;Clethra cuneata;Clethra;28;14;II;Epidendrum 3;Epidendrum sp3;Epidendrum;Orchidaceae;Angiosperma;5;adulto;41;17;reproductivo;0
 TRU-01;3402;23;4115;TRU-01_4115;Clethra cuneata;Clethra;28;14;II;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;5;adulto;8;38;esteril;0
 TRU-01;3402;23;4115;TRU-01_4115;Clethra cuneata;Clethra;28;14;III;Elaphoglossum 4*;Elaphoglossum lingua;Elaphoglossum;Dryopteridaceae;Pteridophyta;3;adulto;31;19;esteril;2
-TRU-01;3402;23;4115;TRU-01_4115;Clethra cuneata;Clethra;28;14;I;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;2.5;plantula;7;3;esteril;0
+TRU-01;3402;23;4115;TRU-01_4115;Clethra cuneata;Clethra;28;14;I;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;2.5;juvenil;7;3;esteril;0
 TRU-01;3402;23;4116;TRU-01_4116;Clethra cuneata;Clethra;22.9;11;V;Maxillaria 4*;Maxillaria sp4;Maxillaria;Orchidaceae;Angiosperma;10.5;adulto;19;8;reproductivo;0
 TRU-01;3402;23;4116;TRU-01_4116;Clethra cuneata;Clethra;22.9;11;V;Maxillaria 3;Pachyphyllum sp2;Pachyphyllum;Orchidaceae;Angiosperma;10.5;adulto;13;6;reproductivo;0
 TRU-01;3402;23;4116;TRU-01_4116;Clethra cuneata;Clethra;22.9;11;V;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;10.5;juvenil;9;2;esteril;0
@@ -1682,7 +1682,7 @@ TRU-01;3402;23;4116;TRU-01_4116;Clethra cuneata;Clethra;22.9;11;IV;Pleurothalis 
 TRU-01;3402;23;4116;TRU-01_4116;Clethra cuneata;Clethra;22.9;11;IV;Stelis 4*;Stelis aurea;Stelis;Orchidaceae;Angiosperma;9;adulto;13;58;reproductivo;1
 TRU-01;3402;23;4116;TRU-01_4116;Clethra cuneata;Clethra;22.9;11;IV;Pleurothalis 6;Pleurothallis cassidis;Pleurothallis;Orchidaceae;Angiosperma;9;adulto;49;6;reproductivo;1
 TRU-01;3402;23;4116;TRU-01_4116;Clethra cuneata;Clethra;22.9;11;IV;Maxillaria 3;Pachyphyllum sp2;Pachyphyllum;Orchidaceae;Angiosperma;9;adulto;11;2;reproductivo;0
-TRU-01;3402;23;4116;TRU-01_4116;Clethra cuneata;Clethra;22.9;11;IV;Bromelia 3;Racinaea seemannii;Racinaea;Bromeliaceae;Angiosperma;9;plantula;13;1;esteril;1
+TRU-01;3402;23;4116;TRU-01_4116;Clethra cuneata;Clethra;22.9;11;IV;Bromelia 3;Racinaea seemannii;Racinaea;Bromeliaceae;Angiosperma;9;juvenil;13;1;esteril;1
 TRU-01;3402;23;4116;TRU-01_4116;Clethra cuneata;Clethra;22.9;11;III;Cavendisha 1;Thibaudia yungensis;Thibaudia ;Ericaceae;Angiosperma;8;juvenil;35;1;esteril;1
 TRU-01;3402;23;4116;TRU-01_4116;Clethra cuneata;Clethra;22.9;11;III;Epidendrum 8;Epidendrum sp7;Epidendrum;Orchidaceae;Angiosperma;8;adulto;17;3;esteril;0
 TRU-01;3402;23;4116;TRU-01_4116;Clethra cuneata;Clethra;22.9;11;III;Cavendisha 1;Thibaudia yungensis;Thibaudia ;Ericaceae;Angiosperma;8.5;adulto;38;4;esteril;1
@@ -1734,18 +1734,18 @@ TRU-01;3402;23;4117;TRU-01_4117;Clethra cuneata;Clethra;35.3;15;III;Maxillaria 4
 TRU-01;3402;23;4117;TRU-01_4117;Clethra cuneata;Clethra;35.3;15;III;Melpomene peludo;Melpomene jimenezii;Melpomene;Polypodiaceae;Pteridophyta;7;adulto;15;7;reproductivo;0
 TRU-01;3402;23;4117;TRU-01_4117;Clethra cuneata;Clethra;35.3;15;III;Maxillaria 3;Pachyphyllum sp2;Pachyphyllum;Orchidaceae;Angiosperma;7;juvenil;7;2;esteril;0
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;V;Epidendrum 4;Epidendrum sp4;Epidendrum;Orchidaceae;Angiosperma;12;adulto;21;1;reproductivo;0
-TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;V;Bromelia 7;Tillandsia sp9;Tillandsia;Bromeliaceae;Angiosperma;12;plantula;10;1;esteril;0
+TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;V;Bromelia 7;Tillandsia sp9;Tillandsia;Bromeliaceae;Angiosperma;12;juvenil;10;1;esteril;0
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;V;Epidendrum 8;Epidendrum manusalinasiae;Epidendrum;Orchidaceae;Angiosperma;12;juvenil;9;3;esteril;0
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;IV;Epidendrum 8*;Epidendrum manusalinasiae;Epidendrum;Orchidaceae;Angiosperma;10.5;adulto;21;13;esteril;0
-TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;IV;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;10.5;plantula;8;4;esteril;0
-TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;IV;Cavendisha 1;Thibaudia yungensis;Thibaudia ;Ericaceae;Angiosperma;10;plantula;9;5;esteril;1
+TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;IV;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;10.5;juvenil;8;4;esteril;0
+TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;IV;Cavendisha 1;Thibaudia yungensis;Thibaudia ;Ericaceae;Angiosperma;10;juvenil;9;5;esteril;1
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;IV;Maxillaria 3;Pachyphyllum sp2;Pachyphyllum;Orchidaceae;Angiosperma;10;juvenil;7;8;esteril;0
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;IV;Epidendrum 4;Epidendrum sp4;Epidendrum;Orchidaceae;Angiosperma;10;adulto;25;2;reproductivo;0
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;III;Vittaria 1;Radiovittaria ruizziana;Radiovittaria;Pteridaceae;Pteridophyta;3.6;adulto;15;27;reproductivo;0
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;III;Vittaria 1;Radiovittaria ruizziana;Radiovittaria;Pteridaceae;Pteridophyta;4;adulto;13;15;esteril;0
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;IV;Maxillaria 3;Pachyphyllum sp2;Pachyphyllum;Orchidaceae;Angiosperma;10;adulto;5;11;reproductivo;0
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;4.2;juvenil;10;28;esteril;0
-TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;III;Melpomene peludo;Ceradenia clavipila;Ceradenia;Polypodiaceae;Pteridophyta;3.5;plantula;10;8;esteril;1
+TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;III;Melpomene peludo;Ceradenia clavipila;Ceradenia;Polypodiaceae;Pteridophyta;3.5;juvenil;10;8;esteril;1
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;IV;Stelis 10;Stelis superbiens ;Stelis;Orchidaceae;Angiosperma;10;adulto;7;50;reproductivo;1
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;I;Vittaria 1;Radiovittaria ruizziana;Radiovittaria;Pteridaceae;Pteridophyta;2.2;adulto;18;34;reproductivo;0
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;I;Vittaria 1;Radiovittaria ruizziana;Radiovittaria;Pteridaceae;Pteridophyta;2;adulto;22;11;reproductivo;1
@@ -1769,7 +1769,7 @@ TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;III;Peperom
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;III;Lepanthes 2;Lepanthes sp2;Lepanthes;Orchidaceae;Angiosperma;7;adulto;9;15;reproductivo;0
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;III;Cavendisha 2;Sphyrospermum cordifolium;Sphyrospermum;Ericaceae;Angiosperma;7;juvenil;4;2;esteril;0
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;III;Erica 1;Demosthenesia buxifolia;Demosthenesia;Ericaceae;Angiosperma;7;juvenil;17;2;esteril;0
-TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;7;plantula;4;6;esteril;1
+TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;7;juvenil;4;6;esteril;1
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;III;Oncidium 1;Oncidium aurarium ;Oncidium;Orchidaceae;Angiosperma;7;adulto;19;5;reproductivo;0
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;III;Epidendrum 3;Epidendrum sp3;Epidendrum;Orchidaceae;Angiosperma;7;juvenil;16;1;esteril;0
 TRU-01;3402;23;571;TRU-01_571;Symplocos quitensis;Symplocos;52.52;13;III;Oncidium 1;Oncidium aurarium ;Oncidium;Orchidaceae;Angiosperma;6.5;adulto;24;12;reproductivo;0
@@ -1926,7 +1926,7 @@ TRU-01;3402;23;561;TRU-01_561;Weinmannia cochensis;Weinmannia;46.47;7;III;Elapho
 TRU-01;3402;23;561;TRU-01_561;Weinmannia cochensis;Weinmannia;46.47;7;III;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;5.5;adulto;19;26;esteril;1
 TRU-01;3402;23;561;TRU-01_561;Weinmannia cochensis;Weinmannia;46.47;7;III;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;5.5;adulto;19;1;reproductivo;0
 TRU-01;3402;23;561;TRU-01_561;Weinmannia cochensis;Weinmannia;46.47;7;III;Epidendrum 4;Epidendrum sp4;Epidendrum;Orchidaceae;Angiosperma;5.5;juvenil;16;1;esteril;0
-TRU-01;3402;23;561;TRU-01_561;Weinmannia cochensis;Weinmannia;46.47;7;III;Bromelia 3;Racinaea seemannii;Racinaea;Bromeliaceae;Angiosperma;5.5;plantula;9;1;esteril;0
+TRU-01;3402;23;561;TRU-01_561;Weinmannia cochensis;Weinmannia;46.47;7;III;Bromelia 3;Racinaea seemannii;Racinaea;Bromeliaceae;Angiosperma;5.5;juvenil;9;1;esteril;0
 TRU-01;3402;23;561;TRU-01_561;Weinmannia cochensis;Weinmannia;46.47;7;III;Maxillaria 3;Pachyphyllum sp2;Pachyphyllum;Orchidaceae;Angiosperma;5.5;juvenil;4;5;esteril;0
 TRU-01;3402;23;561;TRU-01_561;Weinmannia cochensis;Weinmannia;46.47;7;III;Stelis 12;Stelis sp12;Stelis;Orchidaceae;Angiosperma;5.5;adulto;27;8;reproductivo;1
 TRU-01;3402;23;561;TRU-01_561;Weinmannia cochensis;Weinmannia;46.47;7;III;Epidendrum 4;Epidendrum sp4;Epidendrum;Orchidaceae;Angiosperma;5.5;adulto;21;5;reproductivo;0
@@ -1945,7 +1945,7 @@ TRU-01;3402;23;561;TRU-01_561;Weinmannia cochensis;Weinmannia;46.47;7;III;Hymeno
 TRU-01;3402;23;4167;TRU-01_4167;Clusia alata;Clusia;11.23;7;III;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;3.4;adulto;4;8;reproductivo;0
 TRU-01;3402;23;4167;TRU-01_4167;Clusia alata;Clusia;11.23;7;III;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;3.1;adulto;5;6;reproductivo;0
 TRU-01;3402;23;4167;TRU-01_4167;Clusia alata;Clusia;11.23;7;V;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;4.5;adulto;5;12;reproductivo;0
-TRU-01;3402;23;4167;TRU-01_4167;Clusia alata;Clusia;11.23;7;V;Bromelia 9;Tillandsia sp11;Tillandsia;Bromeliaceae;Angiosperma;4.6;plantula;9;1;esteril;0
+TRU-01;3402;23;4167;TRU-01_4167;Clusia alata;Clusia;11.23;7;V;Bromelia 9;Tillandsia sp11;Tillandsia;Bromeliaceae;Angiosperma;4.6;juvenil;9;1;esteril;0
 TRU-01;3402;23;4167;TRU-01_4167;Clusia alata;Clusia;11.23;7;III;Epidendrum 4;Epidendrum sp4;Epidendrum;Orchidaceae;Angiosperma;4.5;juvenil;10;1;esteril;0
 TRU-01;3402;23;565;TRU-01_565;Ilex sessiliflora;Ilex;13.15;6;IV;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;4.5;adulto;21;5;reproductivo;0
 TRU-01;3402;23;565;TRU-01_565;Ilex sessiliflora;Ilex;13.15;6;IV;Erica 1;Demosthenesia buxifolia;Demosthenesia;Ericaceae;Angiosperma;4.5;adulto;26;6;esteril;0
@@ -1979,7 +1979,7 @@ TRU-01;3402;23;566;TRU-01_566;MIconia setulosa;Miconia;16.23;9;II;Maxillaria 4*;
 TRU-01;3402;23;566;TRU-01_566;MIconia setulosa;Miconia;16.23;9;I;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;1.7;adulto;6.2;4;esteril;0
 TRU-01;3402;23;4150;TRU-01_4150;Miconia WFR632;Miconia;11.46;7;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;4;adulto;15;16;esteril;1
 TRU-01;3402;23;4150;TRU-01_4150;Miconia WFR632;Miconia;11.46;7;III;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;3.7;adulto;11;4;esteril;0
-TRU-01;3402;23;4150;TRU-01_4150;Miconia WFR632;Miconia;11.46;7;III;Elaphoglossum 7;Elaphoglossum rimbachii;Elaphoglossum;Dryopteridaceae;Pteridophyta;4;plantula;1.8;6;esteril;0
+TRU-01;3402;23;4150;TRU-01_4150;Miconia WFR632;Miconia;11.46;7;III;Elaphoglossum 7;Elaphoglossum rimbachii;Elaphoglossum;Dryopteridaceae;Pteridophyta;4;juvenil;1.8;6;esteril;0
 TRU-01;3402;23;4150;TRU-01_4150;Miconia WFR632;Miconia;11.46;7;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;3.5;juvenil;10;8;esteril;0
 TRU-01;3402;23;4150;TRU-01_4150;Miconia WFR632;Miconia;11.46;7;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;3.5;juvenil;6;8;esteril;0
 TRU-01;3402;23;4150;TRU-01_4150;Miconia WFR632;Miconia;11.46;7;III;Erica 1;Demosthenesia buxifolia;Demosthenesia;Ericaceae;Angiosperma;3.2;adulto;56;13;esteril;1
@@ -2000,7 +2000,7 @@ TRU-01;3402;23;567;TRU-01_567;Ilex sessiliflora;Ilex;25.94;9;I;Erica 1;Demosthen
 TRU-01;3402;23;567;TRU-01_567;Ilex sessiliflora;Ilex;25.94;9;V;Erica 1;Demosthenesia buxifolia;Demosthenesia;Ericaceae;Angiosperma;8.5;adulto;32;64;esteril;1
 TRU-01;3402;23;567;TRU-01_567;Ilex sessiliflora;Ilex;25.94;9;V;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;8.5;adulto;15.5;9;esteril;0
 TRU-01;3402;23;567;TRU-01_567;Ilex sessiliflora;Ilex;25.94;9;V;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;8.5;adulto;12.5;3;esteril;0
-TRU-01;3402;23;567;TRU-01_567;Ilex sessiliflora;Ilex;25.94;9;V;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;8.5;plantula;3;3;esteril;0
+TRU-01;3402;23;567;TRU-01_567;Ilex sessiliflora;Ilex;25.94;9;V;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;8.5;juvenil;3;3;esteril;0
 TRU-01;3402;23;567;TRU-01_567;Ilex sessiliflora;Ilex;25.94;9;V;Cavendisha 2;Sphyrospermum cordifolium;Sphyrospermum;Ericaceae;Angiosperma;8.5;juvenil;18.5;1;esteril;0
 TRU-01;3402;23;567;TRU-01_567;Ilex sessiliflora;Ilex;25.94;9;V;Erica 1;Demosthenesia buxifolia;Demosthenesia;Ericaceae;Angiosperma;6;adulto;51;9;esteril;1
 TRU-01;3402;23;567;TRU-01_567;Ilex sessiliflora;Ilex;25.94;9;V;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;6;adulto;8.5;6;esteril;0
@@ -2144,7 +2144,7 @@ TRU-01;3402;23;575;TRU-01_575;Miconia setulosa;Miconia;25.53;10;IV;Stelis ( );St
 TRU-01;3402;23;575;TRU-01_575;Miconia setulosa;Miconia;25.53;10;IV;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;5.5;juvenil;11;7;esteril;1
 TRU-01;3402;23;575;TRU-01_575;Miconia setulosa;Miconia;25.53;10;IV;Maxillaria 3;Pachyphyllum sp2;Pachyphyllum;Orchidaceae;Angiosperma;5.5;juvenil;9;1;esteril;1
 TRU-01;3402;23;575;TRU-01_575;Miconia setulosa;Miconia;25.53;10;IV;Stelis ( );Stelis superbiens ;Stelis;Orchidaceae;Angiosperma;5.5;juvenil;3;3;esteril;0
-TRU-01;3402;23;575;TRU-01_575;Miconia setulosa;Miconia;25.53;10;IV;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;5.5;plantula;3;4;esteril;0
+TRU-01;3402;23;575;TRU-01_575;Miconia setulosa;Miconia;25.53;10;IV;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;5.5;juvenil;3;4;esteril;0
 TRU-01;3402;23;575;TRU-01_575;Miconia setulosa;Miconia;25.53;10;IV;Melpomene peludo;Ceradenia clavipila;Ceradenia;Polypodiaceae;Pteridophyta;5.5;adulto;14;3;esteril;0
 TRU-01;3402;23;575;TRU-01_575;Miconia setulosa;Miconia;25.53;10;IV;Epidendrum 4;Epidendrum sp4;Epidendrum;Orchidaceae;Angiosperma;5.5;juvenil;19;3;esteril;1
 TRU-01;3402;23;575;TRU-01_575;Miconia setulosa;Miconia;25.53;10;IV;Cavendisha 2;Sphyrospermum cordifolium;Sphyrospermum;Ericaceae;Angiosperma;5;adulto;13;5;esteril;2
@@ -2458,8 +2458,8 @@ APK-01;3625;5;120;APK-01_120;Gynoxys pillahuatensis;Gynoxys;25.78;8;II;Trichoman
 APK-01;3625;5;120;APK-01_120;Gynoxys pillahuatensis;Gynoxys;25.78;8;II;Trichomanes 1;Asplenium fragans;Asplenium;Hymenophyllaceae;Pteridophyta;4;adulto;32;40;esteril;0
 APK-01;3625;5;120;APK-01_120;Gynoxys pillahuatensis;Gynoxys;25.78;8;I;Trichomanes 1;Asplenium fragans;Asplenium;Hymenophyllaceae;Pteridophyta;2.5;adulto;28;14;esteril;0
 APK-01;3625;5;120;APK-01_120;Gynoxys pillahuatensis;Gynoxys;25.78;8;I;Melpomene 4;Melpomene moniliformis ;Melpomene;Polypodiaceae;Pteridophyta;1.5;adulto;13;6;esteril;0
-APK-01;3625;5;114;APK-01_114;Oreopanax ruizii;Oreopanax;14.39;8;V;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;7.5;plantula;5;8;esteril;0
-APK-01;3625;5;114;APK-01_114;Oreopanax ruizii;Oreopanax;14.39;8;V;Trichomanes 1;Asplenium fragans;Asplenium;Hymenophyllaceae;Pteridophyta;7.5;plantula;6;10;esteril;0
+APK-01;3625;5;114;APK-01_114;Oreopanax ruizii;Oreopanax;14.39;8;V;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;7.5;juvenil;5;8;esteril;0
+APK-01;3625;5;114;APK-01_114;Oreopanax ruizii;Oreopanax;14.39;8;V;Trichomanes 1;Asplenium fragans;Asplenium;Hymenophyllaceae;Pteridophyta;7.5;juvenil;6;10;esteril;0
 APK-01;3625;5;114;APK-01_114;Oreopanax ruizii;Oreopanax;14.39;8;IV;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;7;juvenil;8;4;esteril;0
 APK-01;3625;5;114;APK-01_114;Oreopanax ruizii;Oreopanax;14.39;8;IV;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;6.5;juvenil;17;11;esteril;1
 APK-01;3625;5;114;APK-01_114;Oreopanax ruizii;Oreopanax;14.39;8;IV;Erica 1;Demosthenesia buxifolia;Demosthenesia;Ericaceae;Angiosperma;6.5;juvenil;11;8;esteril;0
@@ -2498,7 +2498,7 @@ APK-01;3625;5;116;APK-01_116;Miconia alpina;Miconia;25.5;8;III;Trichomanes 1;Asp
 APK-01;3625;5;116;APK-01_116;Miconia alpina;Miconia;25.5;8;III;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;4.7;adulto;15;17;reproductivo;0
 APK-01;3625;5;116;APK-01_116;Miconia alpina;Miconia;25.5;8;III;Trichomanes 1;Asplenium fragans;Asplenium;Hymenophyllaceae;Pteridophyta;4.7;adulto;16;25;esteril;0
 APK-01;3625;5;116;APK-01_116;Miconia alpina;Miconia;25.5;8;III;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;4.7;adulto;8;7;reproductivo;0
-APK-01;3625;5;116;APK-01_116;Miconia alpina;Miconia;25.5;8;III;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;5;plantula;11;12;esteril;0
+APK-01;3625;5;116;APK-01_116;Miconia alpina;Miconia;25.5;8;III;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;5;juvenil;11;12;esteril;0
 APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;V;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;7.8;juvenil;10;20;esteril;1
 APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;V;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;7.8;adulto;11;10;reproductivo;0
 APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;V;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;7.8;adulto;10.5;8;reproductivo;0
@@ -2506,7 +2506,7 @@ APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;V;Trichomanes 1;As
 APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;V;Ribes 1;Ribes 1;Ribes;Grosulariaceae;Angiosperma;7.8;juvenil;13;3;esteril;0
 APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;III;Trichomanes 1;Asplenium fragans;Asplenium;Hymenophyllaceae;Pteridophyta;6.8;adulto;19;26;esteril;0
 APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;III;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;6.8;adulto;22;15;reproductivo;0
-APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;I;Melpomene 3;Alansmia lanigera;Alansmia;Polypodiaceae;Pteridophyta;2.1;plantula;8.5;3;esteril;0
+APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;I;Melpomene 3;Alansmia lanigera;Alansmia;Polypodiaceae;Pteridophyta;2.1;juvenil;8.5;3;esteril;0
 APK-01;3625;5;4015;APK-01_4015;Saracha punctata;Saracha;11.12;5;III;Elaphoglossum 10;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;4.2;adulto;17;12;esteril;0
 APK-01;3625;5;118;APK-01_118;Oreopanax ruizii;Oreopanax;22.38;10;V;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;9;adulto;18;41;esteril;0
 APK-01;3625;5;118;APK-01_118;Oreopanax ruizii;Oreopanax;22.38;10;V;Erica 1;Demosthenesia buxifolia;Demosthenesia;Ericaceae;Angiosperma;9;adulto;24;5;esteril;0
@@ -2567,7 +2567,7 @@ APK-01;3625;5;123;APK-01_123;Gynoxys pillahuatensis;Gynoxys;38.9;12;IV;Elaphoglo
 APK-01;3625;5;123;APK-01_123;Gynoxys pillahuatensis;Gynoxys;38.9;12;I;Cavendisha 10;Thibaudia sp1;Thibaudia ;Ericaceae;Angiosperma;2;juvenil;17;2;esteril;0
 APK-01;3625;5;123;APK-01_123;Gynoxys pillahuatensis;Gynoxys;38.9;12;IV;Melpomene 1;Ascogrammitis athyrioides;Ascogrammitis;Polypodiaceae;Pteridophyta;9.5;adulto;14;19;reproductivo;0
 APK-01;3625;5;123;APK-01_123;Gynoxys pillahuatensis;Gynoxys;38.9;12;I;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;1.5;juvenil;6;5;esteril;0
-APK-01;3625;5;123;APK-01_123;Gynoxys pillahuatensis;Gynoxys;38.9;12;I;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;1.5;plantula;3.2;4;esteril;0
+APK-01;3625;5;123;APK-01_123;Gynoxys pillahuatensis;Gynoxys;38.9;12;I;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;1.5;juvenil;3.2;4;esteril;0
 APK-01;3625;5;123;APK-01_123;Gynoxys pillahuatensis;Gynoxys;38.9;12;III;Cavendisha 10;Thibaudia sp1;Thibaudia ;Ericaceae;Angiosperma;8;juvenil;32;4;esteril;0
 APK-01;3625;5;123;APK-01_123;Gynoxys pillahuatensis;Gynoxys;38.9;12;III;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;8;juvenil;16;18;esteril;1
 APK-01;3625;5;123;APK-01_123;Gynoxys pillahuatensis;Gynoxys;38.9;12;III;Fucsia 1;Fuchsia sp1;Fuchsia;Onagraceae;Angiosperma;8;juvenil;16;17;esteril;0
@@ -2812,7 +2812,7 @@ APK-01;3625;14;316;APK-01_316;Gynoxys pillahuatensis;Gynoxys;46.95;13;V;Epidendr
 APK-01;3625;14;316;APK-01_316;Gynoxys pillahuatensis;Gynoxys;46.95;13;V;Epidendrum bleparichillum;Epidendrum bleparichillum;Epidendrum;Orchidaceae;Angiosperma;12;adulto;21;1;reproductivo;0
 APK-01;3625;14;316;APK-01_316;Gynoxys pillahuatensis;Gynoxys;46.95;13;V;Erica 1*;Disterigma alaternoides;Disterigma;Ericaceae;Angiosperma;12;adulto;13.5;45;esteril;1
 APK-01;3625;14;316;APK-01_316;Gynoxys pillahuatensis;Gynoxys;46.95;13;V;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;12;adulto;10.8;5;reproductivo;0
-APK-01;3625;14;316;APK-01_316;Gynoxys pillahuatensis;Gynoxys;46.95;13;V;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;12;plantula;3.8;4;esteril;0
+APK-01;3625;14;316;APK-01_316;Gynoxys pillahuatensis;Gynoxys;46.95;13;V;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;12;juvenil;3.8;4;esteril;0
 APK-01;3625;14;316;APK-01_316;Gynoxys pillahuatensis;Gynoxys;46.95;13;V;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;11.5;adulto;8.5;12;reproductivo;0
 APK-01;3625;14;316;APK-01_316;Gynoxys pillahuatensis;Gynoxys;46.95;13;V;Melpomene 4;Melpomene moniliformis ;Melpomene;Polypodiaceae;Pteridophyta;11.5;adulto;12.5;13;reproductivo;0
 APK-01;3625;14;316;APK-01_316;Gynoxys pillahuatensis;Gynoxys;46.95;13;V;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;11;adulto;11.5;13;esteril;0
@@ -3022,7 +3022,7 @@ APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;Melpo
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;8.5;adulto;14;44;reproductivo;1
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;Pleurothalis 10;Pleurothallis sp7;Pleurothallis;Orchidaceae;Angiosperma;8.5;adulto;22;9;reproductivo;0
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;Melpomene 4;Melpomene moniliformis ;Melpomene;Polypodiaceae;Pteridophyta;8.5;adulto;17;79;reproductivo;0
-APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;Pleurothalis 10;Pleurothallis sp7;Pleurothallis;Orchidaceae;Angiosperma;8.5;plantula;8;3;esteril;0
+APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;Pleurothalis 10;Pleurothallis sp7;Pleurothallis;Orchidaceae;Angiosperma;8.5;juvenil;8;3;esteril;0
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;Microgramma 1;Campyloneurum densifolium;Campyloneurum;Polypodiaceae;Pteridophyta;2.5;adulto;28;60;esteril;2
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;2.3;juvenil;8;10;esteril;0
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;Melpomene 3;Alansmia lanigera;Alansmia;Polypodiaceae;Pteridophyta;2.3;juvenil;13;6;esteril;0
@@ -3257,7 +3257,7 @@ TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;II;Hymenophy
 TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;II;Tillandsia  tigre;Tillandsia ionochroma;Tillandsia;Bromeliaceae;Angiosperma;3.2;juvenil;14.5;1;esteril;2
 TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;II;Epidendrum 15;Epidendrum sp15;Epidendrum;Orchidaceae;Angiosperma;4;adulto;56;3;reproductivo;2
 TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;II;Epidendrum 15;Epidendrum sp15;Epidendrum;Orchidaceae;Angiosperma;3;juvenil;5.2;2;esteril;1
-TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;II;Epidendrum 15;Epidendrum sp15;Epidendrum;Orchidaceae;Angiosperma;4.3;plantula;2.3;3;esteril;0
+TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;II;Epidendrum 15;Epidendrum sp15;Epidendrum;Orchidaceae;Angiosperma;4.3;juvenil;2.3;3;esteril;0
 TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;II;Tillandsia  sp4;Tillandsia complanata;Tillandsia;Bromeliaceae;Angiosperma;4.2;juvenil;12.7;1;esteril;0
 TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;II;Tillandsia complanata;Tillandsia complanata;Tillandsia;Bromeliaceae;Angiosperma;4.2;adulto;48.9;1;reproductivo;0
 TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;III;Epidendrum sp4;Epidendrum sp4;Epidendrum;Orchidaceae;Angiosperma;4.5;adulto;39.8;2;reproductivo;1
@@ -3272,15 +3272,15 @@ TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;III;Sphyrosp
 TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;III;Oncidium auroincarum;Cyrtochilum rhodoneurum;Cyrtochilum;Orchidaceae;Angiosperma;6;adulto;17.9;6;esteril;1
 TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;III;Pleurothalis sp8;Pleurothallis sp8;Pleurothallis;Orchidaceae;Angiosperma;7;adulto;20;4;reproductivo;0
 TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;III;Stelis sp13;Stelis sp13;Stelis;Orchidaceae;Angiosperma;7.5;adulto;8;104;reproductivo;1
-TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;III;Stelis superbiens ;Stelis superbiens ;Stelis;Orchidaceae;Angiosperma;8;adulto;8;204;esteril;
-TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;III;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;12;juvenil;6.4;67;esteril;
-TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;III;Pleurothalis sp8;Pleurothallis sp8;Pleurothallis;Orchidaceae;Angiosperma;8;adulto;29.6;13;reproductivo;
-TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;V;Pleurothalis sp8;Pleurothallis sp8;Pleurothallis;Orchidaceae;Angiosperma;14;adulto;22;8;reproductivo;
-TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;V;Pleurothalis sp8;Pleurothallis sp8;Pleurothallis;Orchidaceae;Angiosperma;13;adulto;22;7;reproductivo;
-TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;V;Elaphoglossum muscosum;Elaphoglossum muscosum;Elaphoglossum ;Dryopteridaceae;Pteridophyta;13;adulto;18.4;7;esteril;
-TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;V;Stelis superbiens ;Stelis superbiens ;Stelis;Orchidaceae;Angiosperma;13;adulto;9.5;66;esteril;
-TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;V;Epidendrum sp10;Epidendrum bleparichillum;Epidendrum;Orchidaceae;Angiosperma;14.5;adulto;20.2;6;esteril;
-TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;V;Tillandsia  tigre;Tillandsia ionochroma;Tillandsia;Bromeliaceae;Angiosperma;14.5;juvenil;15;11;esteril;
+TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;III;Stelis superbiens ;Stelis superbiens ;Stelis;Orchidaceae;Angiosperma;8;adulto;8;204;esteril;1
+TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;III;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;12;juvenil;6.4;67;esteril;0
+TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;III;Pleurothalis sp8;Pleurothallis sp8;Pleurothallis;Orchidaceae;Angiosperma;8;adulto;29.6;13;reproductivo;1
+TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;V;Pleurothalis sp8;Pleurothallis sp8;Pleurothallis;Orchidaceae;Angiosperma;14;adulto;22;8;reproductivo;1
+TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;V;Pleurothalis sp8;Pleurothallis sp8;Pleurothallis;Orchidaceae;Angiosperma;13;adulto;22;7;reproductivo;1
+TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;V;Elaphoglossum muscosum;Elaphoglossum muscosum;Elaphoglossum ;Dryopteridaceae;Pteridophyta;13;adulto;18.4;7;esteril;1
+TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;V;Stelis superbiens ;Stelis superbiens ;Stelis;Orchidaceae;Angiosperma;13;adulto;9.5;66;esteril;0
+TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;V;Epidendrum sp10;Epidendrum bleparichillum;Epidendrum;Orchidaceae;Angiosperma;14.5;adulto;20.2;6;esteril;0
+TRU-02;3261;11;309;TRU-02_309;Weinmannia bangii;Weinmannia;15.44;15;V;Tillandsia  tigre;Tillandsia ionochroma;Tillandsia;Bromeliaceae;Angiosperma;14.5;juvenil;15;11;esteril;1
 TRU-02;3261;11;310;TRU-02_310;Weinmannia bangii;Weinmannia;22.38;7;III;Alansmia sp3;Alansmia sp3;Alansmia;Polypodiaceae;Pteridophyta;1.5;juvenil;5.2;6;esteril;0
 TRU-02;3261;11;310;TRU-02_310;Weinmannia bangii;Weinmannia;22.38;7;III;Tillandsia tigre;Tillandsia ionochroma;Tillandsia;Bromeliaceae;Angiosperma;1.8;juvenil;12.5;1;esteril;0
 TRU-02;3261;11;310;TRU-02_310;Weinmannia bangii;Weinmannia;22.38;7;III;Sphyrospermum cordifolium;Sphyrospermum cordifolium;Sphyrospermum;Ericaceae;Angiosperma;2.1;juvenil;13;4;esteril;2
@@ -4279,7 +4279,7 @@ TRU-02;3261;15;425;TRU-02_425;Ocotea WFR576;Ocotea;32.98;15;IV;Elaphoglossum vul
 TRU-02;3261;15;425;TRU-02_425;Ocotea WFR576;Ocotea;32.98;15;IV;Elaphoglossum muscosum;Elaphoglossum muscosum;Elaphoglossum ;Dryopteridaceae;Pteridophyta;11;juvenil;17;8;esteril;1
 TRU-02;3261;15;425;TRU-02_425;Ocotea WFR576;Ocotea;32.98;15;IV;Elaphoglossum muscosum;Elaphoglossum muscosum;Elaphoglossum ;Dryopteridaceae;Pteridophyta;11.6;juvenil;16;12;esteril;0
 TRU-02;3261;15;425;TRU-02_425;Ocotea WFR576;Ocotea;32.98;15;V;Elaphoglossum muscosum;Elaphoglossum muscosum;Elaphoglossum ;Dryopteridaceae;Pteridophyta;12.1;juvenil;12;6;esteril;0
-TRU-02;3261;15;425;TRU-02_425;Ocotea WFR576;Ocotea;32.98;15;II;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;8;adulto;13;25;reproductivo ;0
+TRU-02;3261;15;425;TRU-02_425;Ocotea WFR576;Ocotea;32.98;15;II;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;8;adulto;13;25;reproductivo;0
 TRU-02;3261;15;425;TRU-02_425;Ocotea WFR576;Ocotea;32.98;15;V;Pachyphyllum pequeña;Pachyphyllum sp2;Pachyphyllum;Orchidaceae;Angiosperma;14.6;adulto;10.6;124;reproductivo;0
 TRU-02;3261;15;425;TRU-02_425;Ocotea WFR576;Ocotea;32.98;15;V;Oncidium auroincarum;Oncidium aurarium ;Oncidium;Orchidaceae;Angiosperma;12.8;juvenil;16.2;4;reproductivo;0
 TRU-02;3261;15;425;TRU-02_425;Ocotea WFR576;Ocotea;32.98;15;V;Sphyrospermum cordifolium;Sphyrospermum cordifolium;Sphyrospermum;Ericaceae;Angiosperma;14;adulto;8;8;esteril;0
