@@ -202,7 +202,7 @@ ggplot(daily_hr, aes(x = date, y = hr_mean, color = logger_id, fill = logger_id)
 ```
 graphic combined
 ```{r}
-# 🔧 Tema compacto
+# Tema compacto
 tema_compacto <- theme_light(base_size = 8) +  # tamaño base más pequeño
   theme(
     axis.text = element_text(size = 6),
@@ -213,9 +213,8 @@ tema_compacto <- theme_light(base_size = 8) +  # tamaño base más pequeño
     plot.title = element_text(size = 8, face = "bold"),
     legend.position = "none"
   )
-# 1️⃣ LUZ (ilum_puna / ilum_forest)
-g_light <- ggplot(daily_light, aes(x = date, y = mean, color = logger_id, fill = logger_id)) +
-  geom_ribbon(aes(ymin = mean - ci, ymax = mean + ci), alpha = 0.15, color = NA) +
+# 1️ LUZ (ilum_puna / ilum_forest)
+g_light <- ggplot(daily_light, aes(x = date, y = mean, color = logger_id, fill = logger_id)) +  geom_ribbon(aes(ymin = mean - ci, ymax = mean + ci), alpha = 0.15, color = NA) +
   geom_line(linewidth = 0.7) +
   labs(y = "Light (lum/ft²)", x = NULL, title = "A) Light Intensity") +
   scale_color_manual(values = c("ilum_forest" = "#228B22", "ilum_puna" = "#8B4513"),
@@ -223,7 +222,7 @@ g_light <- ggplot(daily_light, aes(x = date, y = mean, color = logger_id, fill =
   scale_fill_manual(values = c("ilum_forest" = "#228B22", "ilum_puna" = "#8B4513"),
                     labels = c("Forest", "Puna")) +
   tema_compacto
-# 2️⃣ TEMPERATURA
+# 2️ TEMPERATURA
 g_temp <- ggplot(daily_temp, aes(x = date, y = mean, color = logger_id, fill = logger_id)) +
   geom_ribbon(aes(ymin = mean - ci, ymax = mean + ci), alpha = 0.15, color = NA) +
   geom_line(linewidth = 0.7) +
@@ -233,7 +232,7 @@ g_temp <- ggplot(daily_temp, aes(x = date, y = mean, color = logger_id, fill = l
   scale_fill_manual(values = c("temp_forest" = "#228B22", "temp_puna" = "#8B4513"),
                     labels = c("Forest", "Puna")) +
   tema_compacto
-# 3️⃣ HUMEDAD RELATIVA
+# 3️ HUMEDAD RELATIVA
 g_hr <- ggplot(daily_hr, aes(x = date, y = mean, color = logger_id, fill = logger_id)) +
   geom_ribbon(aes(ymin = mean - ci, ymax = mean + ci), alpha = 0.15, color = NA) +
   geom_line(linewidth = 0.7) +
@@ -244,7 +243,7 @@ g_hr <- ggplot(daily_hr, aes(x = date, y = mean, color = logger_id, fill = logge
                     labels = c("Forest", "Puna")) +
   tema_compacto +
   theme(legend.position = "bottom")
-# 4️⃣ COMBINAR LOS GRÁFICOS
+# 4️ COMBINAR LOS GRÁFICOS
 (g_light / g_temp / g_hr) +
   plot_layout(heights = c(1, 1, 1)) +
   plot_annotation(
@@ -252,4 +251,3 @@ g_hr <- ggplot(daily_hr, aes(x = date, y = mean, color = logger_id, fill = logge
     theme = theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 9))
   )
 ```
-
