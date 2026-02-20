@@ -16,6 +16,7 @@ str(climadata$date_hour)
 
 graphic of illumination
 ```{r}
+library(tidyverse)
 library(dplyr)
 library(ggplot2)
 library(lubridate)
@@ -26,7 +27,7 @@ climadata <- climadata %>%
   mutate(date_hour = as.POSIXct(date_hour, format = "%d/%m/%Y %H:%M", tz = "America/Lima"))
 # 2️⃣ Reorganizar datos en formato largo (para ggplot)
 clima_long <- climadata %>%
-  select(date_hour, ilum_puna, ilum_forest) %>%
+  dplyr::select(date_hour, ilum_puna, ilum_forest) %>%
   pivot_longer(
     cols = c(ilum_puna, ilum_forest),
     names_to = "logger_id",
@@ -88,7 +89,7 @@ climadata <- climadata %>%
   mutate(date_hour = as.POSIXct(date_hour, format = "%d/%m/%Y %H:%M", tz = "America/Lima"))
 # 2️⃣ Reorganizar datos en formato largo
 temp_long <- climadata %>%
-  select(date_hour, temp_puna, temp_forest) %>%
+  dplyr::select(date_hour, temp_puna, temp_forest) %>%
   pivot_longer(
     cols = c(temp_puna, temp_forest),
     names_to = "logger_id",
@@ -150,7 +151,7 @@ climadata <- climadata %>%
   mutate(date_hour = as.POSIXct(date_hour, format = "%d/%m/%Y %H:%M", tz = "America/Lima"))
 # 2️⃣ Reorganizar datos (formato largo)
 hr_long <- climadata %>%
-  select(date_hour, hr_puna, hr_forest) %>%
+  dplyr::select(date_hour, hr_puna, hr_forest) %>%
   pivot_longer(
     cols = c(hr_puna, hr_forest),
     names_to = "logger_id",
@@ -214,7 +215,9 @@ tema_compacto <- theme_light(base_size = 8) +  # tamaño base más pequeño
     legend.position = "none"
   )
 # 1️ LUZ (ilum_puna / ilum_forest)
-g_light <- ggplot(daily_light, aes(x = date, y = mean, color = logger_id, fill = logger_id)) +  geom_ribbon(aes(ymin = mean - ci, ymax = mean + ci), alpha = 0.15, color = NA) +
+g_light <- ggplot(daily_light, aes(x = date, y = light_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = light_mean - ci, ymax = light_mean + ci),
+              alpha = 0.15, color = NA) +
   geom_line(linewidth = 0.7) +
   labs(y = "Light (lum/ft²)", x = NULL, title = "A) Light Intensity") +
   scale_color_manual(values = c("ilum_forest" = "#228B22", "ilum_puna" = "#8B4513"),
@@ -222,9 +225,16 @@ g_light <- ggplot(daily_light, aes(x = date, y = mean, color = logger_id, fill =
   scale_fill_manual(values = c("ilum_forest" = "#228B22", "ilum_puna" = "#8B4513"),
                     labels = c("Forest", "Puna")) +
   tema_compacto
+g_light <- g_light +
+  theme(
+    axis.text = element_text(size = 13),
+    axis.title = element_text(size = 14)
+  )
+
 # 2️ TEMPERATURA
-g_temp <- ggplot(daily_temp, aes(x = date, y = mean, color = logger_id, fill = logger_id)) +
-  geom_ribbon(aes(ymin = mean - ci, ymax = mean + ci), alpha = 0.15, color = NA) +
+g_temp <- ggplot(daily_temp, aes(x = date, y = temp_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = temp_mean - ci, ymax = temp_mean + ci),
+              alpha = 0.15, color = NA) +
   geom_line(linewidth = 0.7) +
   labs(y = "Temperature (°C)", x = NULL, title = "B) Temperature") +
   scale_color_manual(values = c("temp_forest" = "#228B22", "temp_puna" = "#8B4513"),
@@ -232,9 +242,19 @@ g_temp <- ggplot(daily_temp, aes(x = date, y = mean, color = logger_id, fill = l
   scale_fill_manual(values = c("temp_forest" = "#228B22", "temp_puna" = "#8B4513"),
                     labels = c("Forest", "Puna")) +
   tema_compacto
+
+g_temp <- g_temp +
+  theme(
+    axis.text = element_text(size = 13),
+    axis.title = element_text(size = 14)
+  )
+
+g_temp
+
 # 3️ HUMEDAD RELATIVA
-g_hr <- ggplot(daily_hr, aes(x = date, y = mean, color = logger_id, fill = logger_id)) +
-  geom_ribbon(aes(ymin = mean - ci, ymax = mean + ci), alpha = 0.15, color = NA) +
+g_hr <- ggplot(daily_hr, aes(x = date, y = hr_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = hr_mean - ci, ymax = hr_mean + ci),
+              alpha = 0.15, color = NA) +
   geom_line(linewidth = 0.7) +
   labs(y = "Relative Humidity (%)", x = "Date", title = "C) Relative Humidity") +
   scale_color_manual(values = c("hr_forest" = "#228B22", "hr_puna" = "#8B4513"),
@@ -243,11 +263,168 @@ g_hr <- ggplot(daily_hr, aes(x = date, y = mean, color = logger_id, fill = logge
                     labels = c("Forest", "Puna")) +
   tema_compacto +
   theme(legend.position = "bottom")
+
+g_hr <- g_hr +
+  theme(
+    axis.text = element_text(size = 13),
+    axis.title = element_text(size = 14)
+  )
+g_hr
+#Tema profesional uniforme
+tema_publicacion <- theme_light(base_size = 14) +
+  theme(
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    strip.text = element_text(size = 14),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5)
+  )
+#aplicar el tema en los graficos
+g_light <- g_light + tema_publicacion
+g_temp  <- g_temp  + tema_publicacion
+g_hr    <- g_hr    + tema_publicacion
+
+
+
+
 # 4️ COMBINAR LOS GRÁFICOS
-(g_light / g_temp / g_hr) +
-  plot_layout(heights = c(1, 1, 1)) +
+g_clima <- (g_light / g_temp / g_hr) +
+  plot_layout(heights = c(1,1,1)) +
   plot_annotation(
     title = "Daily Environmental Conditions (Puna vs Forest, ±95% CI)",
-    theme = theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 9))
+    theme = theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
   )
+
+
+ggsave(
+  filename = "Environmental_conditions_patchwork.png",
+  plot = g_clima,
+  width = 10,       # ancho en pulgadas
+  height = 12,      # alto en pulgadas (3 paneles)
+  dpi = 300         # resolución alta
+)
+
+
+
+
 ```
+
+
+
+```{r}
+# ==============================
+# LIBRERÍAS
+# ==============================
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+
+# ==============================
+# TEMA DE PUBLICACIÓN (uniforme)
+# ==============================
+tema_publicacion <- theme_light(base_size = 14) +
+  theme(
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    strip.text = element_text(size = 14),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    plot.title = element_text(size = 14, face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+
+# ==============================
+# ESCALA DE FECHAS CADA 1 MES
+# ==============================
+escala_fecha <- scale_x_date(
+  date_breaks = "1 month",
+  date_labels = "%b"
+)
+
+# ==============================
+# 1) LUZ
+# ==============================
+g_light <- ggplot(daily_light, aes(date, light_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = light_mean - ci, ymax = light_mean + ci),
+              alpha = 0.15, color = NA) +
+  geom_line(linewidth = 0.7) +
+  labs(y = "Light (lum/ft²)", x = NULL, title = "A) Light Intensity") +
+  scale_color_manual(values = c("ilum_forest" = "#228B22", "ilum_puna" = "#8B4513"),
+                     labels = c("Forest", "Puna")) +
+  scale_fill_manual(values = c("ilum_forest" = "#228B22", "ilum_puna" = "#8B4513"),
+                    labels = c("Forest", "Puna")) +
+  escala_fecha +
+  tema_publicacion +
+  theme(legend.position = "none")   # quitar leyenda aquí
+
+
+# ==============================
+# 2) TEMPERATURA
+# ==============================
+daily_temp_clean <- daily_temp %>% 
+  filter(!is.na(temp_mean), !is.na(ci), n_obs > 1)
+
+g_temp <- ggplot(daily_temp_clean, aes(date, temp_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = temp_mean - ci, ymax = temp_mean + ci),
+              alpha = 0.15, color = NA) +
+  geom_line(linewidth = 0.7) +
+  labs(y = "Temperature (°C)", x = NULL, title = "B) Temperature") +
+  scale_color_manual(values = c("temp_forest" = "#228B22", "temp_puna" = "#8B4513"),
+                     labels = c("Forest", "Puna")) +
+  scale_fill_manual(values = c("temp_forest" = "#228B22", "temp_puna" = "#8B4513"),
+                    labels = c("Forest", "Puna")) +
+  escala_fecha +
+  tema_publicacion +
+  theme(legend.position = "none")   # quitar leyenda aquí
+
+
+# ==============================
+# 3) HUMEDAD RELATIVA
+# ==============================
+daily_hr_clean <- daily_hr %>% 
+  filter(!is.na(hr_mean), !is.na(ci), n_obs > 1)
+
+g_hr <- ggplot(daily_hr_clean, aes(date, hr_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = hr_mean - ci, ymax = hr_mean + ci),
+              alpha = 0.15, color = NA) +
+  geom_line(linewidth = 0.7) +
+  labs(y = "Relative Humidity (%)", x = "Date", title = "C) Relative Humidity") +
+  scale_color_manual(values = c("hr_forest" = "#228B22", "hr_puna" = "#8B4513"),
+                     labels = c("Forest", "Puna")) +
+  scale_fill_manual(values = c("hr_forest" = "#228B22", "hr_puna" = "#8B4513"),
+                    labels = c("Forest", "Puna")) +
+  escala_fecha +
+  tema_publicacion +
+  theme(legend.position = "bottom")   # SOLO aquí dejamos leyenda
+
+
+# ==============================
+# COMBINAR LOS TRES GRÁFICOS
+# ==============================
+g_clima <- (g_light / g_temp / g_hr) +
+  plot_layout(heights = c(1,1,1), guides = "collect") +  # collect = una sola leyenda
+  plot_annotation(
+    title = "Daily Environmental Conditions (Puna vs Forest, ±95% CI)",
+    theme = theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5))+
+      theme(legend.position = "bottom")
+
+  )
+
+# ==============================
+# MOSTRAR
+# ==============================
+g_clima
+
+# ==============================
+# EXPORTAR PARA PAPER
+# ==============================
+ggsave("Environmental_conditions_panel.png", g_clima,
+       width = 12, height = 14, dpi = 300)
+
+# Versión journal (TIFF 600 dpi)
+ggsave("Environmental_conditions_panel.tiff", g_clima,
+       width = 12, height = 14, dpi = 600, compression = "lzw")
+
+```
+

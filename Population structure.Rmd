@@ -16,6 +16,13 @@ library(scales)
 library(FSA)
 install.packages(c("rcompanion"))
 library(rcompanion)
+install.packages("janitor")
+install.packages("stringi")
+library(dplyr)
+library(janitor)
+library(stringi)
+library(dplyr)
+library(janitor)
 ```
 
 DATA
@@ -35,7 +42,76 @@ POBSTRU <- data %>% ###TABLA DE DATOS POBLACIONALES
 head(POBSTRU)
 POBSTRU$log_l_leaf_stem <- log10(POBSTRU$l_leaf_stem)##logaritmizar
 summary(POBSTRU$log_l_leaf_stem)
+
+
+
+# 1. Limpiar nombres con janitor
+data <- data %>% janitor::clean_names()
+
+# 2. Convertir todo a ASCII (borra caracteres raros y <a0>)
+names(data) <- iconv(names(data), from = "", to = "ASCII//TRANSLIT")
+
+# 3. Eliminar todo lo que no sea letras, números o _
+names(data) <- gsub("[^A-Za-z0-9_]", "", names(data))
+names(data)
+names(data) <- stri_replace_all_regex(names(data), "[^A-Za-z0-9_]", "")
+names(data)
 ```
+nivel generos y familia
+```{r}
+POBSTRU <- data %>% ###TABLA DE DATOS POBLACIONALES
+  select(elevation,subplot, forof,morphospe, family, life_stage, l_leaf_stem, n_shoots_leaf, reprod_stage, herbi)
+EPIDATA<- data %>%
+  select(elevation,forof, morphospe, family, genera_epi, life_stage, l_leaf_stem, n_shoots_leaf, reprod_stage, herbi)
+str(EPIDATA)
+##tabla de familias con especies e individuos
+tabla_familias_completa <- EPIDATA %>%
+  group_by(family) %>%
+  summarise(
+    n_especies = n_distinct(morphospe),  # especies únicas por familia
+    n_individuos = n()                   # total de individuos
+  ) %>%
+  arrange(desc(n_especies))              # orden opcional
+tabla_familias_completa
+tabla_familias_completai <- tabla_familias_completa %>%
+  arrange(desc(n_individuos))
+tabla_familias_completai
+###por genero 
+tabla_familia_genero <- EPIDATA %>%
+  group_by(family, genera_epi) %>%
+  summarise(
+    n_especies = n_distinct(morphospe),
+    n_individuos = n(),
+    .groups = "drop"
+  ) %>%
+  arrange( desc(n_especies))
+tabla_familia_genero
+tabla_familia_generoi <- tabla_familia_genero %>%
+  arrange(desc(n_individuos))
+tabla_familia_generoi
+
+dataplot <- EPIDATA %>%
+  group_by(elevation) %>%
+  summarise(
+    n_especies = n_distinct(morphospe),  # especies únicas por familia
+    n_individuos = n()                   # total de individuos
+  ) 
+dataplot
+
+```
+
+```{r}
+pop_mean_elev <- EPIDATA %>%
+  group_by(elevation, morphospe) %>%
+  summarise(n_ind = n(), .groups = "drop") %>%
+  group_by(elevation) %>%
+  summarise(mean_pop_size = mean(n_ind),
+            sd_pop_size = sd(n_ind))
+
+pop_mean_elev
+
+```
+
 
 Abundant species(Most Abundant Species and Most Abundant Species Present at All Elevations)
 ```{r}
@@ -74,6 +150,8 @@ species_all_elev$morphospe <- trimws(species_all_elev$morphospe)
 
 # 4️⃣ Verificar si el problema persiste
 grep("Fernandezia", species_abundance$morphospe, value = TRUE)
+
+#Grafico
 g1 <- species_abundance %>%
   slice_max(abundancia, n = 10) %>%
   ggplot(aes(x = reorder(morphospe, abundancia), y = abundancia)) +
@@ -106,7 +184,122 @@ g2
     subtitle = "Left: most abundant species overall | Right: species present at all elevations"
   )
 
+
 ```
+
+grafico de species abundantes por plot 
+```{r}
+##tabla de indv por plot por especie
+library(dplyr)
+library(tidyr)
+
+tabla_indiv_por_plot <- POBSTRU %>%
+  group_by(morphospe, elevation) %>%       # contar individuos por especie y plot
+  summarise(n_individuos = n(), .groups = "drop") %>%
+  pivot_wider(
+    names_from = elevation,
+    values_from = n_individuos,
+    values_fill = 0                       # rellena con 0 donde no hay individuos
+  ) %>%
+  arrange(morphospe)
+tabla_indiv_por_plot
+
+##solo especie que estan en tods los plots
+tabla_presentes_todos <- tabla_indiv_por_plot %>%
+  filter(if_all(-morphospe, ~ .x > 0))
+tabla_presentes_todos
+nrow(tabla_presentes_todos)
+###ordenado por la abundancia
+tabla_presentes_todos_ordenada <- tabla_presentes_todos %>%
+  mutate(abund_total = rowSums(across(where(is.numeric)))) %>%   # sumar todos los plots
+  arrange(desc(abund_total)) %>%                                # ordenar de mayor a menor
+  select(morphospe, abund_total, everything())                  # poner abund_total adelante
+tabla_presentes_todos_ordenada
+
+##grafico
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+tabla_long <- tabla_presentes_todos %>%
+  pivot_longer(-morphospe, names_to = "plot", values_to = "abundancia")
+#nombres dañados
+tabla_long$morphospe[!stri_enc_isutf8(tabla_long$morphospe)]
+tabla_long$morphospe <- iconv(tabla_long$morphospe, from = "", to = "UTF-8")
+
+tabla_long$morphospe <- gsub("�", "", tabla_long$morphospe)
+tabla_long$morphospe <- trimws(tabla_long$morphospe)
+tabla_long[is.na(tabla_long$morphospe), ]
+unique(data$morphospe)
+tabla_long$morphospe[is.na(tabla_long$morphospe)] <- "Fernandezia parvifolia"
+tabla_long$morphospe <- trimws(tabla_long$morphospe)
+##grafico
+ggplot(tabla_long, aes(x = morphospe, y = abundancia, fill = plot)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(
+    x = "Especie",
+    y = "Abundancia",
+    title = "Abundancia por especie en cada plot"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+###grafico de barras con numero de ind por plot
+ggplot(tabla_long, aes(x = morphospe, y = abundancia, fill = plot)) +
+  geom_bar(stat = "identity", position = position_stack()) +
+  geom_text(aes(label = abundancia),
+            position = position_stack(vjust = 0.5),
+            size = 3, color = "white") +
+  labs(
+    x = "Especie",
+    y = "Abundancia",
+    title = "Abundancia por especie en cada relevación (plot)"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+Código con barras ordenadas de mayor a menor abundancia total
+```{r}
+library(dplyr)
+library(ggplot2)
+install.packages("MetBrewer")
+library(MetBrewer)
+
+# 1. Ordenar especies por abundancia total
+orden_especies <- tabla_long %>%
+  group_by(morphospe) %>%
+  summarise(total_abund = sum(abundancia, na.rm = TRUE)) %>%
+  arrange(desc(total_abund)) %>%
+  pull(morphospe)
+
+tabla_long$morphospe <- factor(tabla_long$morphospe, levels = orden_especies)
+
+# 2. Gráfico con paleta elegante
+g_abund <- ggplot(tabla_long, aes(x = morphospe, y = abundancia, fill = plot)) +
+  geom_bar(stat = "identity", position = position_stack()) +
+  geom_text(aes(label = abundancia),
+            position = position_stack(vjust = 0.5),
+            size = 3, color = "white") +
+  scale_fill_manual(values = MetBrewer::met.brewer("Hiroshige", length(unique(tabla_long$plot)))) +
+  labs(
+    x = "Species",
+    y = "Abundance",
+    title = "Most abundant species present across all plots",
+    fill = "Plot"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    panel.grid = element_blank(),              # ❌ Sin cuadrículas
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.background = element_rect(fill = "white", color = NA)
+  )
+
+g_abund
+ggsave("Abundancia_epifitas.png", 
+       plot = g_abund,
+       width = 8, height = 7, dpi = 300)
+```
+
+
 For each abundant species
 ```{r}
 ###da la escala a cada variable
@@ -145,6 +338,9 @@ g2 <- ggplot(filter(num_summary_species, variable == "n_shoots_leaf"),
   facet_wrap(~ morphospe, scales = "free_y") +
   theme_bw() +
   labs(x = "Elevation (m.a.s.l.)", y = "Mean ± SD", title = "n_shoots_leaf")
+
+g1 <- g1 + theme(legend.position = "none")
+g2 <- g2 + theme(legend.position = "none")
 # Unir ambos gráficos en una fila
 g1 + g2
 

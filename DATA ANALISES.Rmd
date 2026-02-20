@@ -1,0 +1,948 @@
+---
+title: "PAPER"
+author: "Edith"
+date: "2026-01-30"
+output: DATA ANALISES
+---
+
+OB.1: Cuantificar la variación en la riqueza, abundancia y composición de epífitas vasculares a lo largo del gradiente elevacional hacia el treeline.
+
+Data Epis treeline
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+#FOROFITOS
+data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+str(data)
+
+
+```
+riqueza
+```{r}
+#crear matriz de comunidad
+#Crear matriz de abundancia
+library(tidyr)
+library(dplyr)
+comm <- data %>%
+  group_by(forof, elevation, morphospe) %>%
+  summarise(abundance = n(), .groups="drop") %>%
+  pivot_wider(names_from = morphospe, values_from = abundance, values_fill = 0)
+#Matriz ambiental del árbol
+env_tree <- data %>%
+  distinct(forof, elevation, dap, height, plot, subplot, tree_name, genera_tree)
+#RIQUEZA DE EPÍFITAS POR ÁRBOL
+species_cols <- names(comm)[!names(comm) %in% c("forof","elevation")]
+#datos raros nombres
+library(stringi)
+
+data$morphospe <- stri_trans_general(data$morphospe, "Latin-ASCII")
+data$morphospe <- gsub("[^[:alnum:] ]", "", data$morphospe)
+
+richness <- comm %>%
+  mutate(richness = rowSums(across(all_of(species_cols), ~ . > 0))) %>%
+  dplyr::select(forof, elevation, richness)
+
+#MODELOS A LO LARGO DEL GRADIENTE ELEVACIONAL
+#Riqueza
+richness$elev_f <- factor(richness$elevation)
+library(lme4)
+m_rich <- glmer(richness ~ elev_f + (1|forof),
+                family=poisson, data=richness)
+summary(m_rich)
+###La elevación se trató como una variable categórica debido a que solo se muestrearon cuatro niveles discretos, lo que impide el uso de enfoques de suavizamiento continuo como los GAM
+
+#grafico
+library(ggplot2)
+
+ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot() +
+  geom_jitter(width=0.1, alpha=0.4) +
+  theme_classic() +
+  ylab("Epiphyte species richness per tree") +
+  xlab("Elevation (m)")
+```
+
+ABUNDANCIA
+```{r}
+#ABUNDANCIA TOTAL
+abundance <- comm %>%
+  mutate(abundance = rowSums(dplyr::select(., -forof, -elevation))) %>%
+  dplyr::select(forof, elevation, abundance)
+
+#Abundancia 
+abund <- data %>%
+  group_by(forof, elevation) %>%
+  summarise(abundance = n(), .groups="drop")
+
+abund$elev_f <- factor(abund$elevation)
+
+#modelo 
+library(lme4)
+
+m_abund <- glmer(abundance ~ elev_f + (1|forof),
+                 family = poisson, data = abund)
+
+summary(m_abund)
+
+#grafico
+ggplot(abund, aes(elev_f, abundance)) +
+  geom_boxplot() +
+  geom_jitter(width=0.1, alpha=0.4) +
+  theme_classic() +
+  ylab("Epiphyte abundance per tree") +
+  xlab("Elevation (m)")
+
+```
+
+Comparando el efecto de la elevacion con la riq y abund
+```{r}
+
+richness$elev_z <- scale(richness$elevation)
+
+str(richness)
+
+m_rich_z <- glmer(richness ~ elev_z + (1|forof),
+                  family = poisson, data = richness)
+
+abundance$elev_z <- scale(abundance$elevation)
+m_abund_z <- glmer(abundance ~ elev_z + (1|forof),
+                   family = poisson, data = abundance)
+summary(m_rich_z)$coefficients
+summary(m_abund_z)$coefficients
+
+#grafico riq y abund
+pA <- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1, alpha = 0.4) +
+  theme_classic() +
+  ylab("Species richness per tree") +
+  xlab("Elevation (m)") +
+  labs(tag = "A")
+pB <- ggplot(abund, aes(elev_f, abundance)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1, alpha = 0.4) +
+  theme_classic() +
+  ylab("Abundance per tree") +
+  xlab("Elevation (m)") +
+  labs(tag = "B")
+p_compuesto <- pA + pB
+ggsave(
+  filename = "Fig_richness_abundance elevation .png",
+  plot = p_compuesto,
+  width = 18,
+  height = 10,
+  units = "cm",
+  dpi = 300
+)
+
+
+```
+
+
+Composición
+```{r}
+#COMPOSICIÓN DE ESPECIES
+
+library(dplyr)
+library(tidyr)
+
+# Matriz de abundancia por árbol
+#Separar metadata y matriz de especies
+meta <- comm %>% dplyr::select(forof, elevation)
+comm_mat <- comm %>% dplyr::select(-forof, -elevation)
+###################nombres raros
+# reemplazar el caracter raro por espacio
+colnames(comm_mat) <- gsub("�", " ", colnames(comm_mat))
+# quitar dobles espacios
+colnames(comm_mat) <- gsub(" +", " ", colnames(comm_mat))
+# limpiar espacios al inicio y final
+colnames(comm_mat) <- trimws(colnames(comm_mat))
+###########################################
+# Convertir a matriz
+comm_mat <- as.matrix(comm_mat)
+rownames(comm_mat) <- meta$forof
+
+#ransformación recomendada (muy importante) Epífitas tienen muchos ceros → usa Hellinger (estándar en ecología)
+library(vegan)
+comm_hel <- decostand(comm_mat, method = "hellinger")
+
+#NMDS
+set.seed(123)
+nmds <- metaMDS(comm_hel, distance = "chao", k = 2, trymax = 100)
+
+nmds
+
+#grafico set.seed(123)
+library(ggplot2)
+
+scores_nmds <- as.data.frame(scores(nmds, display = "sites"))
+
+scores_nmds$elevation <- factor(meta$elevation)
+
+ggplot(scores_nmds, aes(x = NMDS1, y = NMDS2, color = elevation)) +
+  geom_point(size = 3, alpha = 0.7) +
+  theme_classic() +
+  labs(color = "Elevation (m)", title = "NMDS of epiphyte community composition")
+
+#PERMANOVA 
+meta$elev_f <- factor(meta$elevation)
+
+adonis_res <- adonis2(comm_hel ~ elev_f, data = meta, method = "bray", permutations = 999)
+adonis_res
+##test de dispersion
+disp <- betadisper(vegdist(comm_hel, method="chao"), meta$elev_f)
+anova(disp)
+
+
+#TURNOVER (beta diversity)
+meta <- comm %>% 
+  dplyr::select(forof, elevation) %>% 
+  distinct()
+meta <- meta[match(rownames(comm_mat), meta$forof), ]
+
+meta$elev_f <- factor(meta$elevation)
+
+dist_chao <- vegdist(comm_mat, method="chao")
+beta <- betadisper(dist_bray, meta$elev_f)
+anova(beta)
+
+#conclusion: La composición cambia con la elevación, pero también cambia la heterogeneidad entre forófitos.
+
+
+#grafico 
+boxplot(beta, 
+        xlab = "Elevation (m)", 
+        ylab = "Distance to centroid (chao)")
+
+#turnover y nestedness
+#matriz-ausencia
+library(betapart)
+library(dplyr)
+# comm_mat = matriz especies (186 x spp)
+comm_pa <- comm_mat
+comm_pa[comm_pa > 0] <- 1
+# Beta diversity partitioning (Sørensen)
+beta_core <- betapart.core(comm_pa)
+beta_pair <- beta.pair(beta_core, index.family = "sorensen")
+
+# Componentes
+beta_sim <- beta_pair$beta.sim   # turnover
+beta_sne <- beta_pair$beta.sne   # nestedness
+beta_sor <- beta_pair$beta.sor   # beta total
+
+#MULTI-SITE BETA (valores globales para Results)
+beta_multi <- beta.multi(comm_pa, index.family = "sorensen")
+beta_multi
+
+# PERMANOVA por elevBETA TOTAL
+adonis_sor <- adonis2(beta_sor ~ elev_f, data = meta, permutations = 999)
+adonis_sor
+
+#grafico
+library(reshape2)
+library(ggplot2)
+beta_df <- data.frame(
+  turnover = as.vector(as.dist(beta_sim)),
+  nestedness = as.vector(as.dist(beta_sne)),
+  elev = meta$elev_f[combn(1:nrow(meta),2)[1,]]
+)
+ggplot(beta_df, aes(elev, turnover)) +
+  geom_boxplot() +
+  theme_bw() +
+  ylab("Turnover (βSIM)")
+
+
+summary(m_rich)
+summary(m_abund)
+beta_multi
+
+
+```
+
+
+OB.2: Evaluar la influencia de la estructura (DAP y altura) y la identidad taxonómica (género) del árbol hospedero sobre la riqueza y abundancia de epífitas, controlando el efecto de la elevación.
+
+base datos: ojo todos los arboles
+```{r}
+#########primero la base de datos que posee a todos los arboles incleyendo loos que no tuvieron epifitas
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+#FOROFITOS
+data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+hospepi <- data %>% ###TABLA DE DATOS POBLACIONALES
+  dplyr::select(plot, elevation, forof,morphospe, family, genera_tree, dap, height)
+str(hospepi)
+#ARBOLES
+trees <- read.csv("treealtu.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+tree <- trees %>% ###TABLA DE DATOS POBLACIONALES
+  dplyr::select(plot, elevation, tagtree,family, genus, NC, DBH, H)
+str(tree)
+
+#resumir epifitas por forofito
+library(dplyr)
+
+epi_por_arbol <- hospepi %>%
+  group_by(forof, plot, elevation, genera_tree, dap, height) %>%
+  summarise(
+    presencia_epifitas = 1,
+    riqueza = n_distinct(morphospe),
+    abundancia_total = n(),
+    .groups = "drop"
+  )
+#unificar nombres tree
+library(dplyr)
+
+tree2 <- tree %>%
+  rename(
+    forof = tagtree,
+    genera_tree = genus,
+    dap = DBH,
+    height = H
+  )
+epi_por_arbol <- hospepi %>%
+  group_by(forof) %>%
+  summarise(
+    presencia_epifitas = 1,
+    riqueza = n_distinct(morphospe),
+    abundancia_total = n(),
+    .groups = "drop"
+  )
+#unir tablas 
+arboles <- tree2 %>%
+  left_join(epi_por_arbol, by = "forof") %>%
+  mutate(
+    presencia_epifitas = ifelse(is.na(presencia_epifitas), 0, presencia_epifitas),
+    riqueza = ifelse(is.na(riqueza), 0, riqueza),
+    abundancia_total = ifelse(is.na(abundancia_total), 0, abundancia_total)
+  )
+nrow(arboles)                 # debe ser 193
+table(arboles$presencia_epifitas)
+table(arboles$plot, arboles$presencia_epifitas)
+
+
+# riqueza 
+arboles$genera_tree <- as.factor(arboles$genera_tree)
+arboles$plot <- as.factor(arboles$plot)#factores
+
+library(dplyr)
+
+riqueza_arbol <- hospepi %>%
+  group_by(forof, plot, elevation, genera_tree, dap, height) %>%
+  summarise(
+    riqueza = n_distinct(morphospe),
+    .groups = "drop"
+  )
+str(riqueza_arbol)
+
+#abundancia
+abund_arbol <- hospepi %>%
+  group_by(forof, plot, elevation, genera_tree, dap, height) %>%
+  summarise(
+    abundancia = n(),
+    .groups = "drop"
+  )
+str(abund_arbol)
+
+```
+
+
+abundancia/riqueza => caracteristicas hospedero
+```{r}
+#preparacion de datos escalar var numericas y genero como factor 
+riqueza_arbol$genera_tree <- as.factor(riqueza_arbol$genera_tree)
+abund_arbol$genera_tree  <- as.factor(abund_arbol$genera_tree)
+riqueza_arbol$dap_z     <- scale(riqueza_arbol$dap)
+riqueza_arbol$height_z  <- scale(riqueza_arbol$height)
+riqueza_arbol$elev_z    <- scale(riqueza_arbol$elevation)
+
+abund_arbol$dap_z       <- scale(abund_arbol$dap)
+abund_arbol$height_z    <- scale(abund_arbol$height)
+abund_arbol$elev_z      <- scale(abund_arbol$elevation)
+#Modelo para riqueza de epífitas
+#poison
+m_ric_pois <- glm(
+  riqueza ~ dap_z + height_z + genera_tree + elev_z,
+  family = poisson,
+  data = riqueza_arbol
+)
+library(performance)
+check_overdispersion(m_ric_pois)##confirmada la sobredispersion
+##modelo Binomial negativo
+library(MASS)
+m_ric_nb <- glm.nb(
+  riqueza ~ dap_z + height_z + genera_tree + elev_z,
+  data = riqueza_arbol
+)
+summary(m_ric_nb)
+library(car)
+Anova(m_ric_nb, type = "II")#importancia de cada variable 
+#Modelo para abundancia de epífitas
+#modelo binomial negativo
+m_ab_nb <- glm.nb(
+  abundancia ~ dap_z + height_z + genera_tree + elev_z,
+  data = abund_arbol
+)
+summary(m_ab_nb)
+Anova(m_ab_nb, type = "II")
+
+summary(m_ric_nb)
+summary(m_ab_nb)
+```
+graficos
+```{r}
+#Gráfico 1. Riqueza de epífitas vs DAP del hospedero
+library(ggplot2)
+library(MASS)
+library(dplyr)
+#preparacion de datos
+#variables como numericas
+riqueza_arbol <- riqueza_arbol %>%
+  mutate(
+    dap_z = as.numeric(scale(dap)),
+    height_z = as.numeric(scale(height)),
+    elev_z = as.numeric(scale(elevation))
+  )
+#ajustar el modelo binomial negativo
+m_ric_nb <- glm.nb(
+  riqueza ~ dap_z + height_z + genera_tree + elev_z,
+  data = riqueza_arbol
+)
+#dataframe
+new_dap <- data.frame(
+  dap_z = seq(min(riqueza_arbol$dap_z),
+              max(riqueza_arbol$dap_z),
+              length.out = 100),
+  height_z = 0,   # valor promedio
+  elev_z   = 0,   # valor promedio
+  genera_tree = levels(riqueza_arbol$genera_tree)[1]
+)
+
+#predicciones del modelo
+pred <- predict(
+  m_ric_nb,
+  newdata = new_dap,
+  type = "link",
+  se.fit = TRUE
+)
+new_dap <- new_dap %>%
+  mutate(
+    fit = exp(pred$fit),
+    lwr = exp(pred$fit - 1.96 * pred$se.fit),
+    upr = exp(pred$fit + 1.96 * pred$se.fit)
+  )
+
+#grafico 
+ggplot(riqueza_arbol, aes(x = dap, y = riqueza)) +
+
+  # datos observados
+  geom_point(alpha = 0.6, size = 2, color = "black") +
+
+  # línea del modelo
+  geom_line(
+    data = new_dap,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(riqueza_arbol$dap) + mean(riqueza_arbol$dap),
+      y = fit
+    ),
+    linewidth = 1
+  ) +
+
+  # intervalo de confianza
+  geom_ribbon(
+    data = new_dap,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(riqueza_arbol$dap) + mean(riqueza_arbol$dap),
+      ymin = lwr,
+      ymax = upr
+    ),
+    alpha = 0.25
+  ) +
+
+  labs(
+    x = "DAP del árbol hospedero (cm)",
+    y = "Riqueza de epífitas vasculares"
+  ) +
+
+  theme_classic(base_size = 13)
+ggsave(
+  filename = "Fig_Riqueza_DAP.png",
+  width = 18,      # ancho en cm
+  height = 14,     # alto en cm
+  units = "cm",
+  dpi = 300
+)
+
+#Gráfico 2. Abundancia de epífitas vs DAP y altura
+library(patchwork)   # para unir paneles
+abund_arbol <- abund_arbol %>%#preparacion de datos
+  mutate(
+    dap_z    = as.numeric(scale(dap)),
+    height_z = as.numeric(scale(height)),
+    elev_z   = as.numeric(scale(elevation)),
+    genera_tree = as.factor(genera_tree)
+  )
+m_ab_nb <- glm.nb(#ajustar modelo
+  abundancia ~ dap_z + height_z + genera_tree + elev_z,
+  data = abund_arbol
+)
+#prediccioneds Dap
+new_dap_ab <- data.frame(
+  dap_z = seq(min(abund_arbol$dap_z),
+              max(abund_arbol$dap_z),
+              length.out = 100),
+  height_z = 0,
+  elev_z   = 0,
+  genera_tree = levels(abund_arbol$genera_tree)[1]
+)
+
+pred_dap <- predict(
+  m_ab_nb,
+  newdata = new_dap_ab,
+  type = "link",
+  se.fit = TRUE
+)
+
+new_dap_ab <- new_dap_ab %>%
+  mutate(
+    fit = exp(pred_dap$fit),
+    lwr = exp(pred_dap$fit - 1.96 * pred_dap$se.fit),
+    upr = exp(pred_dap$fit + 1.96 * pred_dap$se.fit)
+  )
+#predicciones para altura
+new_h_ab <- data.frame(
+  height_z = seq(min(abund_arbol$height_z),
+                 max(abund_arbol$height_z),
+                 length.out = 100),
+  dap_z  = 0,
+  elev_z = 0,
+  genera_tree = levels(abund_arbol$genera_tree)[1]
+)
+
+pred_h <- predict(
+  m_ab_nb,
+  newdata = new_h_ab,
+  type = "link",
+  se.fit = TRUE
+)
+
+new_h_ab <- new_h_ab %>%
+  mutate(
+    fit = exp(pred_h$fit),
+    lwr = exp(pred_h$fit - 1.96 * pred_h$se.fit),
+    upr = exp(pred_h$fit + 1.96 * pred_h$se.fit)
+  )
+#GRAFICO
+#A
+p_dap <- ggplot(abund_arbol, aes(x = dap, y = abundancia)) +
+
+  geom_point(alpha = 0.6, size = 2, color = "black") +
+
+  geom_line(
+    data = new_dap_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(abund_arbol$dap) + mean(abund_arbol$dap),
+      y = fit
+    ),
+    linewidth = 1
+  ) +
+
+  geom_ribbon(
+    data = new_dap_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(abund_arbol$dap) + mean(abund_arbol$dap),
+      ymin = lwr,
+      ymax = upr
+    ),
+    alpha = 0.25
+  ) +
+
+  labs(
+    x = "DBH Host tree (cm)",
+    y = "Abundance"
+  ) +
+
+  theme_classic(base_size = 13)
+#B
+p_h <- ggplot(abund_arbol, aes(x = height, y = abundancia)) +
+
+  geom_point(alpha = 0.6, size = 2, color = "black") +
+
+  geom_line(
+    data = new_h_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = height_z * sd(abund_arbol$height) + mean(abund_arbol$height),
+      y = fit
+    ),
+    linewidth = 1
+  ) +
+
+  geom_ribbon(
+    data = new_h_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = height_z * sd(abund_arbol$height) + mean(abund_arbol$height),
+      ymin = lwr,
+      ymax = upr
+    ),
+    alpha = 0.25
+  ) +
+
+  labs(
+    x = "Height (m)",
+    y = "Abundance"
+  ) +
+
+  theme_classic(base_size = 13)
+p_dap + p_h#UNIR LOS GRAFICOS
+
+ggsave(
+  filename = "Fig_Abundancia_DAP y altura.png",
+  width = 18,      # ancho en cm
+  height = 14,     # alto en cm
+  units = "cm",
+  dpi = 300
+)
+
+#OPCION B UN SOLO GRAFICO PARA EL DAP Y LA ABUNDANCIA
+library(dplyr)
+library(ggplot2)
+library(MASS)
+abund_arbol <- abund_arbol %>%
+  mutate(
+    dap_z    = as.numeric(scale(dap)),
+    height_z = as.numeric(scale(height)),
+    elev_z   = as.numeric(scale(elevation)),
+    genera_tree = as.factor(genera_tree)
+  )
+m_ab_nb <- glm.nb(
+  abundancia ~ dap_z + height_z + genera_tree + elev_z,
+  data = abund_arbol
+)
+new_dap_ab <- data.frame(
+  dap_z = seq(min(abund_arbol$dap_z),
+              max(abund_arbol$dap_z),
+              length.out = 100),
+  height_z = 0,
+  elev_z   = 0,
+  genera_tree = levels(abund_arbol$genera_tree)[1]
+)
+
+pred_dap <- predict(
+  m_ab_nb,
+  newdata = new_dap_ab,
+  type = "link",
+  se.fit = TRUE
+)
+
+new_dap_ab <- new_dap_ab %>%
+  mutate(
+    fit = exp(pred_dap$fit),
+    lwr = exp(pred_dap$fit - 1.96 * pred_dap$se.fit),
+    upr = exp(pred_dap$fit + 1.96 * pred_dap$se.fit)
+  )
+ggplot(abund_arbol, aes(x = dap, y = abundancia)) +
+
+  # puntos observados (tamaño = altura)
+  geom_point(
+    aes(size = height),
+    alpha = 0.6,
+    color = "black"
+  ) +
+
+  # línea del modelo
+  geom_line(
+    data = new_dap_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(abund_arbol$dap) + mean(abund_arbol$dap),
+      y = fit
+    ),
+    linewidth = 1
+  ) +
+
+  # intervalo de confianza
+  geom_ribbon(
+    data = new_dap_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(abund_arbol$dap) + mean(abund_arbol$dap),
+      ymin = lwr,
+      ymax = upr
+    ),
+    alpha = 0.25
+  ) +
+
+  scale_size_continuous(
+    name = "Altura del árbol (m)",
+    range = c(2, 7)
+  ) +
+
+  labs(
+    x = "DBH (cm)",
+    y = "Abundance"
+  ) +
+
+  theme_classic(base_size = 13)
+#Guardar la imagen
+ggsave(
+  filename = "Fig_Abundancia_DAP_altura.png",
+  width = 18,      # ancho en cm
+  height = 14,     # alto en cm
+  units = "cm",
+  dpi = 300
+)
+
+#Gráfico 3. Abundancia de epífitas por género del hospedero
+library(dplyr)
+library(ggplot2)
+abund_plot <- abund_arbol %>%#preparar datos
+  group_by(genera_tree) %>%
+  mutate(mean_ab = mean(abundancia, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(genera_tree = reorder(genera_tree, mean_ab))
+#grafico boxplot de todos los generos
+ggplot(abund_plot, aes(x = genera_tree, y = abundancia)) +
+
+  # boxplot
+  geom_boxplot(
+    outlier.shape = NA,
+    fill = "grey80",
+    color = "black"
+  ) +
+
+  # puntos individuales
+  geom_jitter(
+    width = 0.2,
+    alpha = 0.5,
+    size = 1
+  ) +
+  scale_y_log10() +
+  labs(
+    x = "Género del árbol hospedero",
+    y = "Abundancia de epífitas"
+  ) +
+
+  theme_classic(base_size = 13) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+#grafico de solo los generos significativos
+generos_sig <- c("Ilex", "Myrsine", "Oreopanax", "Weinmannia")
+#filtrar los datos 
+abund_sig <- abund_arbol %>%
+  filter(genera_tree %in% generos_sig) %>%
+  group_by(genera_tree) %>%
+  mutate(mean_ab = mean(abundancia, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(genera_tree = reorder(genera_tree, mean_ab))
+#grafico
+ggplot(abund_sig, aes(x = genera_tree, y = abundancia)) +
+
+  geom_boxplot(
+    outlier.shape = NA,
+    fill = "grey80",
+    color = "black"
+  ) +
+
+  geom_jitter(
+    width = 0.2,
+    alpha = 0.6,
+    size = 1.5
+  ) +
+
+  scale_y_log10() +
+
+  labs(
+    x = "Host tree genera",
+    y = "Abundance (log)"
+  ) +
+
+  theme_classic(base_size = 13)
+ggsave(
+  filename = "Fig_Abundancia_Generos_significativos.png",
+  width = 18,      # ancho en cm
+  height = 14,     # alto en cm
+  units = "cm",
+  dpi = 300
+)
+
+
+
+```
+
+
+OB.3: Determinar la sobrevivencia de epífitas vasculares translocadas desde el treeline hacia la puna adyacente como prueba experimental de los límites climáticos para su persistencia.
+
+Data Epis
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+expdata <- read.csv("relocadata.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+str(expdata)      # Estructura de la base de datos
+head(expdata)
+colnames(expdata)
+
+#corregir datos extraños
+library(dplyr)
+library(stringi)
+expdata <- expdata %>%
+  # Convierte todas las columnas tipo texto a UTF-8
+  mutate(across(where(is.character), ~ stri_encode(.x, from = "", to = "UTF-8"))) %>%
+  # Quita espacios en blanco y reemplaza vacíos por NA
+  mutate(across(everything(), ~ na_if(trimws(as.character(.x)), "")))
+###colocar NA en las celdas vacias
+expdata <- expdata %>%
+  mutate(across(where(is.character), ~iconv(.x, from = "", to = "UTF-8"))) %>%  # 🔧 corrige codificación
+  mutate(across(everything(), ~na_if(trimws(.x), "")))  # 🔄 reemplaza vacíos por NA
+str(expdata)
+colSums(is.na(expdata))
+expdata <- expdata %>%
+  mutate(across(everything(), ~na_if(trimws(.x), "")))
+
+```
+
+Data Clima
+```{r}
+# 1. Cargar archivo con separador ";"
+clima <- read_delim("dataclima.csv",
+                    delim = ";",
+                    col_types = cols(.default = "c"))  # leer todo como texto primero
+
+# 2. Convertir columnas numéricas correctamente
+num_cols <- c("t_puna", "ilum_puna", "t_forest", "ilum_forest",
+              "temp_forest", "hr_forest", "temp_puna", "hr_puna")
+
+clima <- clima %>%
+  mutate(across(all_of(num_cols), ~ parse_number(.)))
+
+# 3. Convertir la fecha-hora (formato dmy_hm)
+clima <- clima %>%
+  mutate(
+    date_hour = dmy_hm(date_hour),
+    date = as.Date(date_hour)
+  )
+
+# 4. Crear la tabla diaria
+clima_daily <- clima %>%
+  group_by(date) %>%
+  summarise(
+    light_max_puna   = if (all(is.na(ilum_puna))) NA else max(ilum_puna, na.rm = TRUE),
+    temp_max_puna    = if (all(is.na(temp_puna))) NA else max(temp_puna, na.rm = TRUE),
+    temp_min_puna    = if (all(is.na(temp_puna))) NA else min(temp_puna, na.rm = TRUE),
+    rh_min_puna      = if (all(is.na(hr_puna)))   NA else min(hr_puna,   na.rm = TRUE),
+
+    light_max_forest = if (all(is.na(ilum_forest))) NA else max(ilum_forest, na.rm = TRUE),
+    temp_max_forest  = if (all(is.na(temp_forest))) NA else max(temp_forest, na.rm = TRUE),
+    temp_min_forest  = if (all(is.na(temp_forest))) NA else min(temp_forest, na.rm = TRUE),
+    rh_min_forest    = if (all(is.na(hr_forest)))   NA else min(hr_forest,   na.rm = TRUE)
+  )
+```
+UNIR TABLAS Y CUANTIFICAR LAS VARIABLES EN FUNCION A LOS DATALOGGERS para las evaluaciones
+```{r}
+library(dplyr)
+library(lubridate)
+expdata$date <- as.Date(expdata$date)
+#Revisar y convertir fechas en tus dos tablas
+clima_daily$date <- as.Date(clima_daily$date)
+#Crear tabla SOLO clima puna
+clima_puna <- clima_daily %>%
+  dplyr::select(date, temp_min_puna, temp_max_puna, rh_min_puna, light_max_puna)
+#3. Crear tabla con fechas de censos (T1–T4)
+census_dates <- expdata %>%
+  distinct(time, date) %>%
+  arrange(date)
+#Calcular clima promedio + extremos por intervalo
+climate_intervals <- census_dates %>%
+  mutate(start = lag(date),
+         end   = date) %>%
+  filter(!is.na(start)) %>%
+  rowwise() %>%
+  mutate(
+    # PROMEDIOS
+    Tmin_mean  = mean(clima_puna$temp_min_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+    Tmax_mean  = mean(clima_puna$temp_max_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+    RHmin_mean = mean(clima_puna$rh_min_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+    Light_mean = mean(clima_puna$light_max_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+
+    # EXTREMOS ABSOLUTOS (ecológicamente más importantes)
+    Tmin_abs   = min(clima_puna$temp_min_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+    RHmin_abs  = min(clima_puna$rh_min_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+    Light_abs  = max(clima_puna$light_max_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE)
+  ) %>%
+  ungroup()
+#Unir clima con epífitas
+expdata2 <- left_join(expdata, climate_intervals, by = "time")
+str(expdata2)
+names(expdata2)
+#Chequear que T1 no tenga clima
+expdata2 %>% distinct(time, Tmin_mean, Tmin_abs)
+
+```
+modelo  sobrevivencia en funcion al clima
+```{r}
+#Preparar la base SOLO PUNA (porque en bosque no hay variación)
+puna_data <- expdata2 %>%
+  filter(relocation == "true")   # solo ramas llevadas a puna
+names(puna_data)
+#Convertir alive a binaria
+puna_data$alive <- ifelse(puna_data$dead_alive == "alive", 1,
+                          ifelse(puna_data$dead_alive == "dead", 0, NA))
+puna_data$alive <- as.integer(puna_data$alive)
+table(puna_data$alive)
+sum(is.na(puna_data$alive))
+
+#Escalar clima (muy importante para GLMM)
+puna_data <- puna_data %>%
+  mutate(
+    Tmin_abs_s  = scale(Tmin_abs),
+    RHmin_abs_s = scale(RHmin_abs),
+    Light_abs_s = scale(Light_abs)
+  )
+
+#Modelo completo
+m1 <- glmer(alive ~ Tmin_abs_s + RHmin_abs_s + Light_abs_s +
+              (1|branch_ID) + (1|genus),
+            family = binomial,
+            data = puna_data)
+summary(m1)
+#modelo Solo extremos térmicos e hídricos
+m_final <- glmer(alive ~ Tmin_abs_s + RHmin_abs_s + 
+                 (1|branch_ID),
+                 family=binomial, data=puna_data,
+                 control=glmerControl(optimizer="bobyqa"))
+summary(m_final)
+
+```
+OPCIONES PARA EL MODELO
+```{r}
+m_temp <- glmer(alive ~ Tmin_abs_s + (1|branch_ID),
+                family = binomial,
+                data = puna_data,
+                control = glmerControl(optimizer="bobyqa"))
+summary(m_temp)
+#GRAFICO
+library(ggeffects)
+library(ggplot2)
+
+pred <- ggpredict(m_temp, terms = "Tmin_abs_s")
+
+ggplot(pred, aes(x = x, y = predicted)) +
+  geom_line(size=1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha=0.2) +
+  geom_point(data=puna_data, aes(x=Tmin_abs_s, y=alive), alpha=0.4) +
+  labs(x="Minimum absolute temperature (scaled)",
+       y="Predicted survival probability") +
+  theme_classic()
+
+#Código para comparar AIC DE DIFERENTES MODELOS  
+m_rh <- glmer(alive ~ RHmin_abs_s + (1|branch_ID),
+              family=binomial, data=puna_data)
+
+m_both <- glmer(alive ~ Tmin_abs_s + RHmin_abs_s + (1|branch_ID),
+                family=binomial, data=puna_data)
+
+AIC(m_temp, m_rh, m_both)
+```
+

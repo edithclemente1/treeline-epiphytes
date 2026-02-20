@@ -112,7 +112,8 @@ ggplot(
     labels = c(
       "T1" = "April",
       "T2" = "June",
-      "T3" = "August"
+      "T3" = "August",
+      "T4" = "December"
     )
   ) +
   scale_y_continuous(
@@ -130,64 +131,91 @@ ggplot(
     plot.title = element_text(face = "bold", hjust = 0.5, size = 14)
   )
 
+##GRAFICO MEJORADO
+# GRAFICO EVITANDO LA SOBREPOSICIÓN Y SIN LEYENDA
+library(ggplot2)
 
-
-#grafico supervivencia por epifita
-# Tabla de conteo de individuos por morphospecies cuando relocated = TRUE
-tabla_relocated <- expdata %>%
-  filter(relocation == "true") %>%
-  group_by(morphospecies) %>%
-  summarise(
-    n_individuos = n_distinct(epi_ID)
-  ) %>%
-  arrange(desc(n_individuos))
-
-# Mostrar tabla
-tabla_relocated
-unique(expdata$relocation)
-
-
-##grafico de barras
-ggplot(survival_summary, aes(x = time, y = survival, fill = branch_ID)) +
-  geom_col(position = position_dodge(width = 0.8)) +
+ggplot(
+  survival_summary,
+  aes(
+    x = time,
+    y = survival,
+    color = branch_ID,
+    group = branch_ID
+  )
+) +
+  geom_line(
+    position = position_dodge2(width = 0.3),
+    size = 1
+  ) +
+  geom_point(
+    position = position_dodge2(width = 0.3),
+    size = 2
+  ) +
   facet_wrap(
     ~ relocation,
     ncol = 1,
     labeller = labeller(
-      relocation = c(`TRUE` = "Reubicados", `FALSE` = "No reubicados")
+      relocation = c(
+        `TRUE` = "Treeline",
+        `FALSE` = "Puna"
+      )
     )
   ) +
   scale_x_discrete(
     labels = c(
       "T1" = "April",
       "T2" = "June",
-      "T3" = "August"
+      "T3" = "August",
+      "T4" = "December"
     )
   ) +
-  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  scale_y_continuous(
+    labels = scales::percent_format(scale = 1)
+  ) +
+  scale_color_viridis_d(option = "D", end = 0.9) +  # Paleta más armónica
   theme_bw() +
   labs(
     title = "Survival (%) over time by branch",
     x = "Time",
-    y = "Survival (%)",
-    fill = "Branch ID"
+    y = "Survival (%)"
   ) +
   theme(
+    legend.position = "none",  # Eliminar la leyenda
     strip.text = element_text(face = "bold"),
     plot.title = element_text(face = "bold", hjust = 0.5, size = 14)
   )
 
+ggsave(
+  "survival_plot.png",
+  plot = last_plot(),
+  width = 6,        # en pulgadas
+  height = 6,
+  dpi = 300         # alta resolución
+)
+```
 
 
 
-
+```{r}
+install.packages("ggeffects")
+install.packages("sjPlot")
+install.packages("broom.mixed")
+install.packages("glmmTMB")
+library(tidyverse)
+library(lubridate)
+library(glmmTMB)
+library(lme4)
+library(broom.mixed)
+library(dplyr)
+library(ggeffects)
+library(ggplot2)
+library(sjPlot)
+library(patchwork)
 ```
 
 INFLUENCIA DEL CLIMA EN LA SOBREVIVENCIA DE EPIFITAS
 ```{r}
-
-library(tidyverse)
-library(lubridate)
 
 # 1. Cargar archivo con separador ";"
 clima <- read_delim("dataclima.csv",
@@ -223,10 +251,20 @@ clima_daily <- clima %>%
     rh_min_forest    = if (all(is.na(hr_forest)))   NA else min(hr_forest,   na.rm = TRUE)
   )
 clima_daily
-####preparar tabla de epifitas
-library(tidyverse)
+str(clima_daily)
+
+library(dplyr)
 library(lubridate)
 
+expdata$date <- dmy(expdata$date)  # formato día.mes.año
+str(expdata$date)
+
+expdata %>%
+  distinct(time, date) %>%
+  arrange(date)
+
+
+####preparar tabla de epifitas
 # --- 1. Cargar tabla ---
 surv <- read.csv("relocadata.csv", sep = ";", stringsAsFactors = FALSE)
 
@@ -264,16 +302,17 @@ surv <- surv %>%
   )
 surv
 
-####MODELO DE CLIMA Y SOBREVIVENCIA SOLO PARA PUNA PORQUE LAS DEL BOSQUE NO VARIARON 
-mod <- glmer(
-  alive ~ light_max_puna + temp_min_puna + relocation + (1 | branch_ID),
-  family = binomial,
-  data = df_model
-)
+####MODELO DE CLIMA Y SOBREVIVENCIA SOLO PARA PUNA PORQUE LAS DEL BOSQUE NO VARIARON
 
+df_model <- surv %>%
+  left_join(clima_daily, by = "date")
+df_model <- df_model %>%
+  mutate(
+    light_z = scale(light_max_puna),
+    tempmin_z = scale(temp_min_puna)
+  )
+df_puna <- df_model %>% filter(relocation == "true")
 
-install.packages("glmmTMB")
-library(glmmTMB)
 df_puna <- df_puna %>%
   mutate(
     tempmin_z = scale(temp_min_puna),
@@ -288,20 +327,11 @@ mod_puna <- glmmTMB(
 )
 mod_puna
 
-
 ###Tabla de resultados 
-library(lme4)
-install.packages("broom.mixed")
-library(broom.mixed)
-library(dplyr)
-
 # Extraer tabla de coeficientes (efectos fijos)
 tabla_fx <- tidy(mod_puna, effects = "fixed", conf.int = TRUE)
 tabla_fx
 ###Tabla lista para paper con sjPlot
-install.packages("sjPlot")
-library(sjPlot)
-
 tab_model(mod_puna,
           show.re.var = TRUE,
           show.icc = TRUE,
@@ -315,14 +345,9 @@ tab_model(mod_puna,
                           "RH min (z)")
           )
 ###Graficos
-install.packages("ggeffects")
-library(ggeffects)
-library(ggplot2)
 eff_temp   <- ggpredict(mod_puna, terms = "tempmin_z")
 eff_light  <- ggpredict(mod_puna, terms = "light_z")
 eff_rh     <- ggpredict(mod_puna, terms = "rhmin_z")
-
-library(patchwork)
 
 p1 <- plot(eff_temp)  +
   labs(x = "Minimum temperature (z)",
@@ -343,8 +368,6 @@ p1 | p2 | p3   # Los coloca en una fila
 
 
 ##Código para el gráfico parcial (solo tempmin_z)
-library(ggeffects)
-library(ggplot2)
 
 # Obtener efecto marginal de la variable significativa
 eff_temp <- ggpredict(mod_puna, terms = "tempmin_z")
@@ -364,4 +387,223 @@ ggplot(eff_temp, aes(x = x, y = predicted)) +
 
 
 ```
+Correccion analisis de los datos CLIMA ACUMULADO
+```{r}
+library(dplyr)
+library(lubridate)
+
+# Fechas del experimento
+T1_date <- as.Date("2025-04-21")
+T2_date <- as.Date("2025-06-21")
+T3_date <- as.Date("2025-08-26")
+
+library(readr)
+
+clima <- read_delim(
+  "dataclima.csv",
+  delim = ";",
+  col_types = cols(
+    n = col_double(),
+    date_hour = col_character(),
+    t_puna = col_double(),
+    ilum_puna = col_double(),
+    t_forest = col_double(),
+    ilum_forest = col_double(),
+    temp_forest = col_double(),
+    hr_forest = col_double(),
+    temp_puna = col_double(),
+    hr_puna = col_double()
+  )
+)
+##INTERVALOS DEL CLIMA 
+library(lubridate)
+
+clima <- clima %>%
+  mutate(
+    date_hour = dmy_hm(date_hour),
+    date = as.Date(date_hour)
+  )
+
+clima_intervals <- clima %>%
+  mutate(
+    intervalo = case_when(
+      date >= as.Date("2025-04-21") & date <  as.Date("2025-06-21") ~ "T1_T2",
+      date >= as.Date("2025-06-21") & date <= as.Date("2025-08-26") ~ "T2_T3",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(intervalo))
+table(clima_intervals$intervalo)
+
+clima_intervalos <- clima_intervals %>%
+  group_by(intervalo) %>%
+  summarise(
+    # Temperatura PUNA
+    temp_min_mean   = mean(temp_puna, na.rm = TRUE),
+    temp_min_abs    = min(temp_puna, na.rm = TRUE),
+    temp_max_abs    = max(temp_puna, na.rm = TRUE),
+    temp_mean_mean  = mean(t_puna, na.rm = TRUE),
+    temp_range      = max(temp_puna, na.rm = TRUE) - min(temp_puna, na.rm = TRUE),
+
+    # Humedad PUNA
+    rh_min_mean     = mean(hr_puna, na.rm = TRUE),
+    rh_min_abs      = min(hr_puna, na.rm = TRUE),
+    rh_max_abs      = max(hr_puna, na.rm = TRUE),
+    rh_range        = max(hr_puna, na.rm = TRUE) - min(hr_puna, na.rm = TRUE),
+
+    # Luz PUNA
+    light_max_mean  = mean(ilum_puna, na.rm = TRUE),
+    light_max_abs   = max(ilum_puna, na.rm = TRUE),
+    light_min_abs   = min(ilum_puna, na.rm = TRUE),
+    light_range     = max(ilum_puna, na.rm = TRUE) - min(ilum_puna, na.rm = TRUE),
+
+    # Conteos de estrés (eventos extremos)
+    days_below_5C    = sum(temp_puna < 5, na.rm = TRUE),
+    days_below_3C    = sum(temp_puna < 3, na.rm = TRUE),
+    days_RH_below_60 = sum(hr_puna < 60, na.rm = TRUE)
+  )
+
+clima_intervalos
+###evaluar colinearidad
+clima_vars <- clima_intervalos %>%
+  select(
+    temp_min_mean, temp_min_abs, temp_max_abs, temp_mean_mean, temp_range,
+    rh_min_mean, rh_min_abs, rh_max_abs, rh_range,
+    light_max_mean, light_max_abs, light_min_abs, light_range,
+    days_below_5C, days_below_3C, days_RH_below_60
+  )
+cor(clima_vars, use = "complete.obs")
+
+surv_intervals <- surv %>%
+  mutate(
+    intervalo = case_when(
+      time == "T2" ~ "T1_T2",
+      time == "T3" ~ "T2_T3",
+      TRUE ~ NA_character_  # T1 no tiene intervalo previo
+    )
+  ) %>%
+  filter(!is.na(intervalo))   # Quitamos T1 porque no tiene intervalo asociado
+df_model <- surv_intervals %>%
+  left_join(clima_intervalos, by = "intervalo")
+colnames(df_model)
+df_model <- df_model %>%
+  mutate(
+    temp_min_abs_z = scale(temp_min_abs),
+    days_below_3C_z = scale(days_below_3C)
+  )
+##MODELO 
+library(glmmTMB)
+
+mod_final <- glmmTMB(
+  alive ~ temp_min_abs_z + days_below_3C_z + (1 | branch_ID),
+  family = binomial,
+  data = df_model
+)
+summary(mod_final)
+
+
+##OTRO MODELO 
+df_model <- df_model %>%
+  mutate(
+    days_RH_below_60_z = scale(days_RH_below_60)
+  )
+
+mod_alt <- glmmTMB(
+  alive ~ temp_min_abs_z + days_RH_below_60_z + (1 | branch_ID),
+  family = binomial,
+  data = df_model
+)
+summary(mod_alt)
+
+##OTRO MODELO
+df_model <- df_model %>%
+  mutate(
+    light_max_abs_z = scale(light_max_abs)
+  )
+mod_light <- glmmTMB(
+  alive ~ temp_min_abs_z + light_max_abs_z + (1 | branch_ID),
+  family = binomial,
+  data = df_model
+)
+summary(mod_light)
+
+###EL MEJOR MODELO alive ~ temp_min_abs_z + (1 | branch_ID)
+library(glmmTMB)
+
+mod_final_simple <- glmmTMB(
+  alive ~ temp_min_abs_z + (1 | branch_ID),
+  family = binomial,
+  data = df_model
+)
+
+summary(mod_final_simple)
+install.packages("")
+library(gtsummary)
+tbl_model <- tbl_regression(mod_final_simple)
+tbl_model
+
+
+
+
+```
+TEST DE KAPLAN-MEIER o analisis de supervivencia  se usa para estimar y comparar la probabilidad de supervivencia en el tiempo
+responde a:
+¿Cuál es la probabilidad de que un individuo siga vivo después de cierto tiempo?
+y
+¿La supervivencia difiere entre grupos? (por ejemplo, sustratos, especies, hábitats)
+```{r}
+#preparar datos 
+library(dplyr)
+
+supervivencia <- supervivencia %>%
+  mutate(
+    relocation = as.logical(relocation),
+    dead_alive = as.character(dead_alive)
+  )
+surv_data <- supervivencia %>%#tabla de supervivencia
+  arrange(epi_ID, time) %>%
+  group_by(epi_ID) %>%
+  summarise(
+    group = first(relocation),               # TRUE = puna, FALSE = bosque
+    time_to_event = max(time),                # último tiempo observado
+    event = ifelse(any(dead_alive == "dead"), 1, 0)
+  )
+surv_data <- surv_data %>%#T1 conviene transformarlo a número:
+  mutate(
+    time_num = as.numeric(gsub("T", "", time_to_event))
+  )
+#Crear el objeto de supervivencia
+library(survival)
+
+S <- Surv(
+  time  = surv_data$time_num,
+  event = surv_data$event
+)
+#Ajustar Kaplan–Meier por grupo (Puna vs Bosque)
+km_fit <- survfit(S ~ group, data = surv_data)
+#6️⃣ Test estadístico: Log-rank test
+logrank <- survdiff(S ~ group, data = surv_data)
+logrank
+#graficar curvas
+#install.packages("survminer")
+library(survminer)
+remove.packages("xfun")
+install.packages("xfun")
+install.packages("survminer")
+ggsurvplot(
+  km_fit,
+  data = surv_data,
+  risk.table = TRUE,
+  pval = TRUE,
+  conf.int = FALSE,
+  legend.labs = c("Bosque", "Puna"),
+  xlab = "Tiempo",
+  ylab = "Probabilidad de supervivencia"
+)
+
+remove.packages(c("xfun", "rmarkdown", "knitr", "survminer"))
+
+
+```
+
 
