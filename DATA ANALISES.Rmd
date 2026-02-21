@@ -9,7 +9,9 @@ OB.1: Cuantificar la variación en la riqueza, abundancia y composición de epí
 
 Data Epis treeline
 ```{r}
-setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+#setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+# NO NECESITAS SETWD PORQUE ESTAS USANDO PROYECTOS, TODO LO QUE ESTA DENTRO DEL FOLDER SE PUEDE ACCEDER
+
 #FOROFITOS
 data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
 str(data)
@@ -904,7 +906,7 @@ OB.3: Determinar la sobrevivencia de epífitas vasculares translocadas desde el 
 
 Data SOBREVIVENCIA
 ```{r}
-setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+#setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
 expdata <- read.csv("relocadata.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
 str(expdata)      # Estructura de la base de datos
 head(expdata)
@@ -1322,6 +1324,57 @@ g <- ggsurvplot(
 png("KaplanMeier_epiphyte_survival.png",
     width = 2000, height = 1600, res = 300)
 print(g)
+
+
+
+
+
+### eXAMPLE:
+
+# Install and load necessary packages
+if(!require(lme4)) install.packages("lme4")
+if(!require(ggplot2)) install.packages("ggplot2")
+library(lme4)
+library(ggplot2)
+
+# --- Create Example Dataset ---
+set.seed(123)
+n_sites <- 10
+n_per_site <- 30
+total_obs <- n_sites * n_per_site
+
+data <- data.frame(
+  site = rep(1:n_sites, each = n_per_site),
+  treatment = rep(c("Control", "Pesticide"), each = n_per_site * n_sites / 2)
+)
+
+str(data)
+head(data)
+# Simulate survival: lower probability in Pesticide group
+# logit-linear relationship: intercept -0.5, pesticide effect -1.5
+data$logit_p <- -0.5 - 1.5 * (data$treatment == "Pesticide") + rnorm(n_sites, 0, 0.5)[data$site]
+data$prob <- 1 / (1 + exp(-data$logit_p))
+data$survive <- rbinom(total_obs, 1, data$prob)
+
+# --- Fit the Binomial GLMM ---
+# Using glmer() with family = binomial
+# (1 | site) allows for a random intercept for each site
+model <- glmer(survive ~ treatment + (1 | site), 
+               data = data, 
+               family = binomial)
+
+# --- View Results ---
+summary(model)
+
+# --- Plot the Results ---
+# Visualize the probability of survival by treatment
+ggplot(data, aes(x = treatment, y = survive, color = treatment)) +
+  geom_jitter(width = 0.2, height = 0.05, alpha = 0.5) +
+  stat_summary(fun = mean, geom = "point", size = 4, color = "black") +
+  labs(title = "Caterpillar Survival by Treatment",
+       y = "Survival Probability (1=Alive, 0=Dead)",
+       x = "Treatment Group") +
+  theme_minimal()
 
 
 ```
