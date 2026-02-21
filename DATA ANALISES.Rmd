@@ -285,6 +285,7 @@ abun_el <- ggplot(abundance, aes(elev_f, abundance)) +
   xlab("Elevation (m)")
 
 abun_el
+#caption : Boxplots show epiphyte abundance per tree (log scale). Asterisks indicate a significant pairwise difference based on Tukey-adjusted estimated marginal means from a Poisson GLMM.
 ```
 
 Comparando el efecto de la elevacion con la riq y abund
@@ -1242,6 +1243,7 @@ library(dplyr)
 library(survival)
 library(survminer)
 #preparar datos 
+supervivencia <- expdata %>% arrange(epi_ID, time, branch_ID)
 supervivencia <- supervivencia %>%
   mutate(
     relocation = as.logical(relocation),
