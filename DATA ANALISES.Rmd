@@ -32,7 +32,9 @@ library(MASS)
 library(patchwork)
 library(readr)
 library(lubridate)
-library(lme4)
+library(emmeans)
+library(ggpubr)
+
 ```
 
 riqueza
@@ -56,7 +58,7 @@ richness <- comm %>%
   dplyr::select(forof, elevation, richness)
 
 #MODELOS A LO LARGO DEL GRADIENTE ELEVACIONAL
-#Riqueza mejor fit con elevacion como factor y hacer anova con grafico de boxplot con resultados de pairwise
+#Riqueza mejor fit con elevacion como factor y hacer anova con grafico de boxplot con resultados de pairwise. 20FEB
 str(richness)
 richness$elev_f <- factor(richness$elevation)
 
@@ -64,11 +66,13 @@ m_rich <- glmer(richness ~ elev_f + (1|forof),
                 family=poisson, data=richness)
 summary(m_rich)
 Anova(m_rich)
+check_model(m_rich)###valuar de forma rápida y visual si un modelo estadístico está bien especificado y si cumple los supuestos.1. linealidad, 2. homocedasticidad, 3. Normalidad de residuos, 4. Valores atipicos e influencia, 4. Colinearidad, Ajuste general del modelo
+library(performance)##cuando no muestra el plot hace otra ventana
+dev.new()
 check_model(m_rich)
-plot(m_rich)
 #comparacion por pares
 emmeans(m_rich, list(pairwise ~ elev_f), adjust = "tukey")
-
+#revisar overdispersion
 check_overdispersion(m_rich)#sin overdispercion
 
 #regresion
@@ -78,7 +82,7 @@ m_richz <- glmer(richness ~ elev_z + (1|forof),
 summary(m_richz)
 Anova(m_richz)
 plot(richness$elevation, richness$richness)
-check_model(m_richz)
+check_model(m_richz)#
 plot(m_richz)
 #comparacion por pares
 emmeans(m_richz, list(pairwise ~ elev_z), adjust = "tukey")
@@ -88,12 +92,73 @@ terms = "elev_z")
 
 ###La elevación se trató como una variable categórica debido a que solo se muestrearon cuatro niveles discretos, lo que impide el uso de enfoques de suavizamiento continuo como los GAM
 #grafico
-ggplot(richness, aes(elev_f, richness)) +
+riq_el<- ggplot(richness, aes(elev_f, richness)) +
   geom_boxplot() +
   geom_jitter(width=0.1, alpha=0.4) +
   theme_classic() +
   ylab("Epiphyte species richness per tree") +
   xlab("Elevation (m)")
+```
+RIQUEZA grafico completo con comparaciones
+```{r}
+#Extraer las comparaciones de emmeans como data frame
+emm <- emmeans(m_rich, ~ elev_f)
+pairs_df <- pairs(emm, adjust = "tukey") %>%
+  as.data.frame()
+#data frame para ggplot
+pairs_df <- pairs_df %>%
+  separate(contrast, into = c("group1", "group2"), sep = " - ") %>%
+  mutate(
+    group1 = gsub("elev_f", "", group1),
+    group2 = gsub("elev_f", "", group2),
+    y.position = max(richness$richness) + 
+                 seq(0.2, by = 0.2, length.out = n())
+  )
+
+#GRAFICO con asteriscos
+colnames(pairs_df)
+pairs_df <- pairs_df %>%
+  mutate(
+    p.signif = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*",
+      TRUE            ~ "ns"
+    )
+  )
+riq_el <- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1, alpha = 0.4) +
+  stat_pvalue_manual(
+    pairs_df,
+    label = "p.signif",
+    tip.length = 0.01
+  ) +
+  theme_classic() +
+  ylab("Epiphyte species richness per tree") +
+  xlab("Elevation (m)")
+riq_el
+#corregir visualmente
+pairs_sig <- pairs_df %>%
+  filter(p.value < 0.05)
+pairs_sig <- pairs_sig %>%
+  mutate(
+    y.position = max(richness$richness, na.rm = TRUE) +
+                 seq(2, by = 2, length.out = n())
+  )
+riq_el <- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot(width = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.5, size = 1.8) +
+  stat_pvalue_manual(
+    pairs_sig,
+    label = "p.signif",
+    tip.length = 0.01
+  ) +
+  theme_classic(base_size = 14) +
+  ylab("Epiphyte species richness per tree") +
+  xlab("Elevation (m)")
+riq_el
+#caption grafico: Boxes show median and interquartile range. Points represent individual trees.Asterisks indicate significant pairwise differences among elevations based on Tukey-adjusted estimated marginal means derived from the GLMM (* p < 0.05, ** p < 0.01).
 ```
 
 ABUNDANCIA
@@ -106,19 +171,120 @@ abundance <- comm %>%
 abund <- data %>%
   group_by(forof, elevation) %>%
   summarise(abundance = n(), .groups="drop")
-abund$elev_f <- factor(abund$elevation)
 #modelo 
 m_abund <- glmer(abundance ~ elev_f + (1|forof),
                  family = poisson, data = abund)
 summary(m_abund)
-#grafico
-ggplot(abund, aes(elev_f, abundance)) +
+#modelo elegido###################################
+abundance$elev_f <- factor(abundance$elevation)
+
+m_abun <- glmer(abundance ~ elev_f + (1|forof),
+                family=poisson, data=abundance)
+summary(m_abun)
+Anova(m_abun)
+
+check_model(m_abun)###valuar de forma rápida y visual si un modelo estadístico está bien especificado y si cumple los supuestos.1. linealidad, 2. homocedasticidad, 3. Normalidad de residuos, 4. Valores atipicos e influencia, 4. Colinearidad, Ajuste general del modelo
+#comparacion por pares
+library(performance)##cuando no muestra el plot hace otra ventana
+dev.new()
+check_model(m_abun)
+#revisar overdispersion
+check_overdispersion(m_abun)#sin overdispercion
+emmeans(m_abun, list(pairwise ~ elev_f), adjust = "tukey")#comparando pares
+
+#regresion PEOR AJUSTE
+abundance$elev_z <- scale(abundance$elevation)
+abundance$elev_z <- as.numeric(abundance$elev_z)
+m_abunz <- glmer(abundance ~ elev_z + (1|forof),
+                family=poisson, data=abundance)
+summary(m_abunz)
+Anova(m_abunz)
+check_model(m_abunz)#
+library(performance)##cuando no muestra el plot hace otra ventana
+dev.new()
+check_model(m_abunz)
+
+#grafico solo
+ggplot(abundance, aes(elev_f, abundance)) +
   geom_boxplot() +
   geom_jitter(width=0.1, alpha=0.4) +
   theme_classic() +
   ylab("Epiphyte abundance per tree") +
   xlab("Elevation (m)")
+```
+Grafico ABUNDANCE completo con las comparaciones
+```{r}
+############################################
+## MODELO DE ABUNDANCIA (GLMM POISSON)
+############################################
+m_abun <- glmer(
+  abundance ~ elev_f + (1 | forof),
+  family = poisson,
+  data = abundance
+)
 
+############################################
+## EMMEANS Y COMPARACIONES (Tukey)
+############################################
+emm_abun <- emmeans(m_abun, ~ elev_f)
+pairs_abun <- pairs(emm_abun, adjust = "tukey") |> as.data.frame()
+
+# (solo informativo, no se usa más abajo)
+pairs_abun
+# Comparación significativa:
+# elev_f3402 - elev_f3537  p = 0.0001
+
+############################################
+## GRÁFICO FINAL CON ANOTACIÓN MANUAL
+############################################
+
+# Posiciones X de los niveles del factor:
+# levels(abundance$elev_f)
+# 1 = 3261
+# 2 = 3402
+# 3 = 3537
+# 4 = 3625
+
+abun_el <- ggplot(abundance, aes(elev_f, abundance)) +
+
+  # boxplots y puntos
+  geom_boxplot(width = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.5, size = 1.8) +
+
+  # línea horizontal de comparación (3402 vs 3537)
+  geom_segment(
+    aes(x = 2, xend = 3, y = 450, yend = 450),
+    inherit.aes = FALSE
+  ) +
+
+  # "patitas" verticales
+  geom_segment(
+    aes(x = 2, xend = 2, y = 420, yend = 450),
+    inherit.aes = FALSE
+  ) +
+  geom_segment(
+    aes(x = 3, xend = 3, y = 420, yend = 450),
+    inherit.aes = FALSE
+  ) +
+
+  # asteriscos de significancia
+  annotate(
+    "text",
+    x = 2.5, y = 480,
+    label = "***",
+    size = 6
+  ) +
+
+  # escala log SOLO visual
+  scale_y_log10() +
+  coord_cartesian(ylim = c(1, 650)) +
+
+  # estética final
+  theme_classic(base_size = 14) +
+  ylab("Epiphyte abundance per tree (log scale)") +
+  xlab("Elevation (m)")
+
+abun_el
 ```
 
 Comparando el efecto de la elevacion con la riq y abund
@@ -1064,9 +1230,12 @@ AIC(m_Tmin_abs, m_two)
 
 TEST DE KAPLAN-MEIER o analisis de supervivencia  se usa para estimar y comparar la probabilidad de supervivencia en el tiempo
 responde a:
-¿Cuál es la probabilidad de que un individuo siga vivo después de cierto tiempo?
-y
-¿La supervivencia difiere entre grupos? (por ejemplo, sustratos, especies, hábitats)
+¿Cuál es la probabilidad de supervivencia después de cierto tiempo?
+En el bosque, la probabilidad de supervivencia se mantiene en 1 durante todo el experimento.
+En la puna, la probabilidad disminuye rápidamente, con una caída abrupta alrededor del mes 5 y una mediana de supervivencia de 5 meses.
+¿Son diferentes las probabilidades de supervivencia entre puna vs bosque a lo largo del tiempo? test de log-rank
+Sí, son drásticamente diferentes.
+
 ```{r}
 #paquetes
 library(dplyr)
@@ -1095,8 +1264,8 @@ surv_data <- supervivencia %>%
   )
 #convertir censo a tiempo real 
 surv_data <- surv_data %>%
-  mutate(
-    time_months = recode(
+  dplyr:: mutate(
+    time_months = dplyr:: recode(
       time_event,
       `1` = 0,
       `2` = 2,
@@ -1104,6 +1273,7 @@ surv_data <- surv_data %>%
       `4` = 8
     )
   )
+table(surv_data$epi_ID, surv_data$time_months)##tabla del evento mortalidad x nepi y time(#mes)
 #Crear el objeto de supervivencia
 #library(survival)
 S <- Surv(
@@ -1150,9 +1320,11 @@ g <- ggsurvplot(
 png("KaplanMeier_epiphyte_survival.png",
     width = 2000, height = 1600, res = 300)
 print(g)
-dev.off()
+
 
 ```
+Kaplan–Meier survival analysis showed that the probability of survival remained at 1.0 for forest controls throughout the study, whereas epiphytes translocated to the puna experienced a sharp decline in survival probability, with median survival of five months.
+
 
 grafico de Sobrevivencia
 ```{r}
