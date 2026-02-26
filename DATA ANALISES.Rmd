@@ -204,7 +204,7 @@ library(performance)##cuando no muestra el plot hace otra ventana
 dev.new()
 check_model(m_abunz)
 
-#grafico solo
+#grafico solo sin log
 ggplot(abundance, aes(elev_f, abundance)) +
   geom_boxplot() +
   geom_jitter(width=0.1, alpha=0.4) +
@@ -530,7 +530,6 @@ abund_arbol$genera_tree  <- as.factor(abund_arbol$genera_tree)
 riqueza_arbol$dap_z     <- scale(riqueza_arbol$dap)
 riqueza_arbol$height_z  <- scale(riqueza_arbol$height)
 riqueza_arbol$elev_z    <- scale(riqueza_arbol$elevation)
-
 abund_arbol$dap_z       <- scale(abund_arbol$dap)
 abund_arbol$height_z    <- scale(abund_arbol$height)
 abund_arbol$elev_z      <- scale(abund_arbol$elevation)
@@ -542,6 +541,7 @@ m_ric_pois <- glm(
   data = riqueza_arbol
 )
 summary(m_ric_pois)
+Anova(m_ric_pois, type = "II")
 check_overdispersion(m_ric_pois)##confirmada la sobredispersion
 ##modelo Binomial negativo sugerido 
 m_ric_nb <- glm.nb(
@@ -566,13 +566,24 @@ m_ab_nb <- glm.nb(
 summary(m_ab_nb)
 Anova(m_ab_nb, type = "II")
 
+
+
+riqueza_arbol$genera_tree <- as.factor(riqueza_arbol$genera_tree)
+abund_arbol$genera_tree  <- as.factor(abund_arbol$genera_tree)
+riqueza_arbol$dap_z     <- scale(riqueza_arbol$dap)
+riqueza_arbol$height_z  <- scale(riqueza_arbol$height)
+riqueza_arbol$elev_z    <- scale(riqueza_arbol$elevation)
+abund_arbol$dap_z       <- scale(abund_arbol$dap)
+abund_arbol$height_z    <- scale(abund_arbol$height)
+abund_arbol$elev_f      <- as.factor(abund_arbol$elevation)
+riqueza_arbol$elev_f <- as.factor(riqueza_arbol$elevation)
 #modelos solo el efecto del hospedero
 m_ricnb_h <- glm.nb(
-  riqueza ~ dap_z + height_z  + (1/elev_z),
+  riqueza ~ dap_z + height_z  + (1/elev_f),
   data = riqueza_arbol
 )
 m_abnb_h <- glm.nb(
-  abundancia ~ dap_z + height_z + (1/elev_z),
+  abundancia ~ dap_z + height_z + (1/elev_f),
   data = abund_arbol
 )
 summary(m_ricnb_h)
