@@ -7,6 +7,14 @@ editor: visual
 
 ## Relocación Epifitas a la puna
 
+```{r}
+#| warning: false
+#| message: false
+
+library(car)
+library(dplyr)
+```
+
 Base de datos y preparacion de las variables para los modelos.
 
 Quite los individuos despues de muertos
@@ -14,16 +22,6 @@ Quite los individuos despues de muertos
 ```{r}
 expdata <- read.csv("relocadata.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
 str(expdata)      # Estructura de la base de datos
-#corregir datos extraños
-expdata <- expdata %>%
-  # Convierte todas las columnas tipo texto a UTF-8
-  mutate(across(where(is.character), ~ stri_encode(.x, from = "", to = "UTF-8"))) %>%
-  # Quita espacios en blanco y reemplaza vacíos por NA
-  mutate(across(everything(), ~ na_if(trimws(as.character(.x)), "")))
-###colocar NA en las celdas vacias
-expdata <- expdata %>%
-  mutate(across(where(is.character), ~iconv(.x, from = "", to = "UTF-8"))) %>%  # 🔧 corrige codificación
-  mutate(across(everything(), ~na_if(trimws(.x), "")))  # 🔄 reemplaza vacíos por NA
 
 ##Preparar tabla de datos 
 data_model <- expdata[, c("epi_ID", "dead_alive", "relocation", "time", "branch_ID")]
@@ -37,7 +35,6 @@ data_model$branch_ID <- factor(data_model$branch_ID)
 data_model$epi_ID <- factor(data_model$epi_ID)
 
 #QUITA LOS MUERTOS
-library(dplyr)
 data_model <- data_model %>%
   arrange(epi_ID, time) %>%
   group_by(epi_ID) %>%
@@ -96,13 +93,6 @@ model_glm_int <- glm(
 )
 summary(model_glm_int)
 Anova(model_glm_int)
-
-#modelo interaccion con rama aleatorio 
-model_glm_intba <- glmer(
-  survive ~ relocation*time + (1|branch_ID),
-  family = binomial,
-  data = data_model
-)#demasiado complejo para la información disponible, modelo no funciona
 
 
 #modelo interaccion con rama fijo
