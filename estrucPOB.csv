@@ -1228,7 +1228,7 @@ TRU-01;3402;1;17;TRU-01_17;Weinmannia cochensis;Weinmannia;27.1;10;V;1226;Maxill
 TRU-01;3402;1;17;TRU-01_17;Weinmannia cochensis;Weinmannia;27.1;10;IV;1227;Cavendisha 1;Thibaudia yungensis;Thibaudia ;Ericaceae;Angiosperma;7.5;juvenil;25;7;esteril;2
 TRU-01;3402;1;17;TRU-01_17;Weinmannia cochensis;Weinmannia;27.1;10;IV;1228;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;9;adulto;9.8;12;reproductivo;0
 TRU-01;3402;1;17;TRU-01_17;Weinmannia cochensis;Weinmannia;27.1;10;IV;1229;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;7.5;adulto;8;12;esteril;0
-TRU-01;3402;1;17;TRU-01_17;Weinmannia cochensis;Weinmannia;27.1;10;IV;1230;Peperomia 1;Stelis simplex;Stelis;Piperaceae;Angiosperma;7.5;adulto;4;4;reproductivo;0
+TRU-01;3402;1;17;TRU-01_17;Weinmannia cochensis;Weinmannia;27.1;10;IV;1230;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;7.5;adulto;4;4;reproductivo;0
 TRU-01;3402;1;16;TRU-01_16;Weinmannia cochensis;Weinmannia;32.5;10;I;1231;Lepanthes 2;Lepanthes sp2;Lepanthes;Orchidaceae;Angiosperma;3;adulto;5;22;esteril;0
 TRU-01;3402;1;16;TRU-01_16;Weinmannia cochensis;Weinmannia;32.5;10;V;1232;Stelis 1;Stelis simplex;Stelis;Orchidaceae;Angiosperma;9;juvenil;7;47;reproductivo;1
 TRU-01;3402;1;16;TRU-01_16;Weinmannia cochensis;Weinmannia;32.5;10;V;1233;Cavendisha 1;Thibaudia yungensis;Thibaudia ;Ericaceae;Angiosperma;9;juvenil;33;6;esteril;1
@@ -2352,7 +2352,7 @@ APK-01;3625;5;108;APK-01_108;Gynoxys pillahuatensis;Gynoxys;29.35;9;III;2350;Mel
 APK-01;3625;5;108;APK-01_108;Gynoxys pillahuatensis;Gynoxys;29.35;9;III;2351;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;5.5;adulto;13;29;reproductivo;0
 APK-01;3625;5;108;APK-01_108;Gynoxys pillahuatensis;Gynoxys;29.35;9;III;2352;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;5;juvenil;8;11;esteril;1
 APK-01;3625;5;108;APK-01_108;Gynoxys pillahuatensis;Gynoxys;29.35;9;III;2353;Trichomanes 1;Asplenium fragans;Asplenium;Aspleniaceae;Pteridophyta;5;adulto;13;5;esteril;0
-APK-01;3625;5;108;APK-01_108;Gynoxys pillahuatensis;Gynoxys;29.35;9;III;2354;Ribes 1;Ribes 1;Ribes;Grosulariaceae;Angiosperma;5;juvenil;28;1;esteril;0
+APK-01;3625;5;108;APK-01_108;Gynoxys pillahuatensis;Gynoxys;29.35;9;III;2354;Ribes 1;Ribes sp1;Ribes;Grossulariaceae;Angiosperma;5;juvenil;28;1;esteril;0
 APK-01;3625;5;108;APK-01_108;Gynoxys pillahuatensis;Gynoxys;29.35;9;III;2355;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;5;adulto;13;13;reproductivo;0
 APK-01;3625;5;108;APK-01_108;Gynoxys pillahuatensis;Gynoxys;29.35;9;III;2356;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;4;adulto;9;82;reproductivo;0
 APK-01;3625;5;108;APK-01_108;Gynoxys pillahuatensis;Gynoxys;29.35;9;III;2357;Microgramma 1;Campyloneurum densifolium;Campyloneurum;Polypodiaceae;Pteridophyta;4;adulto;42;6;reproductivo;1
@@ -2373,7 +2373,7 @@ APK-01;3625;5;108;APK-01_108;Gynoxys pillahuatensis;Gynoxys;29.35;9;I;2371;Melpo
 APK-01;3625;5;108;APK-01_108;Gynoxys pillahuatensis;Gynoxys;29.35;9;I;2372;Melpomene peludo;Alansmia lanigera;Alansmia;Polypodiaceae;Pteridophyta;1.5;adulto;28;2;reproductivo;0
 APK-01;3625;5;108;APK-01_108;Gynoxys pillahuatensis;Gynoxys;29.35;9;I;2373;Fucsia 1;Fuchsia sp1;Fuchsia;Onagraceae;Angiosperma;2;juvenil;14;4;esteril;0
 APK-01;3625;5;109;APK-01_109;Symplocos baehnii;Symplocos;16.62;8;I;2374;Elaphoglossum 7;Elaphoglossum rimbachii;Elaphoglossum;Dryopteridaceae;Pteridophyta;1.3;adulto;53;25;esteril;2
-APK-01;3625;5;109;APK-01_109;Symplocos baehnii;Symplocos;16.62;8;V;2375;Ribes 2;Ribes 1;Ribes;Grosulariaceae;Angiosperma;7.5;adulto;155;3;reproductivo;0
+APK-01;3625;5;109;APK-01_109;Symplocos baehnii;Symplocos;16.62;8;V;2375;Ribes 2;Ribes sp1;Ribes;Grossulariaceae;Angiosperma;7.5;adulto;155;3;reproductivo;0
 APK-01;3625;5;109;APK-01_109;Symplocos baehnii;Symplocos;16.62;8;V;2376;Epidendrum bleparichillum;Epidendrum bleparichillum;Epidendrum;Orchidaceae;Angiosperma;7;adulto;29;1;esteril;0
 APK-01;3625;5;109;APK-01_109;Symplocos baehnii;Symplocos;16.62;8;V;2377;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;7;adulto;16;11;reproductivo;0
 APK-01;3625;5;109;APK-01_109;Symplocos baehnii;Symplocos;16.62;8;V;2378;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;7;adulto;6.5;6;esteril;0
@@ -2492,7 +2492,7 @@ APK-01;3625;5;116;APK-01_116;Miconia alpina;Miconia;25.5;8;IV;2490;Melpomene 1;A
 APK-01;3625;5;116;APK-01_116;Miconia alpina;Miconia;25.5;8;IV;2491;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;6.5;adulto;18;4;reproductivo;0
 APK-01;3625;5;116;APK-01_116;Miconia alpina;Miconia;25.5;8;IV;2492;Trichomanes 1;Asplenium fragans;Asplenium;Aspleniaceae;Pteridophyta;6.5;juvenil;7;15;esteril;0
 APK-01;3625;5;116;APK-01_116;Miconia alpina;Miconia;25.5;8;IV;2493;Elaphoglossum 7;Elaphoglossum rimbachii;Elaphoglossum;Dryopteridaceae;Pteridophyta;5.5;adulto;21;30;esteril;2
-APK-01;3625;5;116;APK-01_116;Miconia alpina;Miconia;25.5;8;IV;2494;Ribes 1;Ribes 1;Ribes;Grosulariaceae;Angiosperma;5.5;juvenil;74;3;esteril;0
+APK-01;3625;5;116;APK-01_116;Miconia alpina;Miconia;25.5;8;IV;2494;Ribes 1;Ribes sp1;Ribes;Grossulariaceae;Angiosperma;5.5;juvenil;74;3;esteril;0
 APK-01;3625;5;116;APK-01_116;Miconia alpina;Miconia;25.5;8;IV;2495;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;5.5;juvenil;10;15;reproductivo;1
 APK-01;3625;5;116;APK-01_116;Miconia alpina;Miconia;25.5;8;III;2496;Trichomanes 1;Asplenium fragans;Asplenium;Aspleniaceae;Pteridophyta;4.7;adulto;16;17;esteril;0
 APK-01;3625;5;116;APK-01_116;Miconia alpina;Miconia;25.5;8;III;2497;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;4.7;adulto;15;17;reproductivo;0
@@ -2503,7 +2503,7 @@ APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;V;2501;Peperomia 1
 APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;V;2502;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;7.8;adulto;11;10;reproductivo;0
 APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;V;2503;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;7.8;adulto;10.5;8;reproductivo;0
 APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;V;2504;Trichomanes 1;Asplenium fragans;Asplenium;Aspleniaceae;Pteridophyta;7.8;adulto;11;20;reproductivo;0
-APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;V;2505;Ribes 1;Ribes 1;Ribes;Grosulariaceae;Angiosperma;7.8;juvenil;13;3;esteril;0
+APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;V;2505;Ribes 1;Ribes sp1;Ribes;Grossulariaceae;Angiosperma;7.8;juvenil;13;3;esteril;0
 APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;III;2506;Trichomanes 1;Asplenium fragans;Asplenium;Aspleniaceae;Pteridophyta;6.8;adulto;19;26;esteril;0
 APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;III;2507;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;6.8;adulto;22;15;reproductivo;0
 APK-01;3625;5;115;APK-01_115;Saracha punctata;Saracha;18.52;8;I;2508;Melpomene 3;Alansmia lanigera;Alansmia;Polypodiaceae;Pteridophyta;2.1;juvenil;8.5;3;esteril;0
@@ -2515,7 +2515,7 @@ APK-01;3625;5;118;APK-01_118;Oreopanax ruizii;Oreopanax;22.38;10;V;2513;Elaphogl
 APK-01;3625;5;118;APK-01_118;Oreopanax ruizii;Oreopanax;22.38;10;V;2514;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;7;adulto;13;6;reproductivo;0
 APK-01;3625;5;118;APK-01_118;Oreopanax ruizii;Oreopanax;22.38;10;V;2515;Trichomanes 1;Asplenium fragans;Asplenium;Aspleniaceae;Pteridophyta;7;juvenil;7;12;esteril;0
 APK-01;3625;5;118;APK-01_118;Oreopanax ruizii;Oreopanax;22.38;10;V;2516;Pleurothalis 10;Pleurothallis cassidis;Pleurothallis;Orchidaceae;Angiosperma;7;juvenil;17;11;esteril;0
-APK-01;3625;5;118;APK-01_118;Oreopanax ruizii;Oreopanax;22.38;10;V;2517;Epidendrum 21;Epidendrum sp12;Epidendrum;Dryopteridaceae;Pteridophyta;7;adulto;13;2;reproductivo;0
+APK-01;3625;5;118;APK-01_118;Oreopanax ruizii;Oreopanax;22.38;10;V;2517;Epidendrum 21;Epidendrum sp12;Epidendrum;Orchidaceae;Angiosperma;7;adulto;13;2;reproductivo;0
 APK-01;3625;5;118;APK-01_118;Oreopanax ruizii;Oreopanax;22.38;10;V;2518;Erica 1;Demosthenesia buxifolia;Demosthenesia;Ericaceae;Angiosperma;7;adulto;19;22;esteril;0
 APK-01;3625;5;118;APK-01_118;Oreopanax ruizii;Oreopanax;22.38;10;V;2519;Melpomene 1;Ascogrammitis athyrioides;Ascogrammitis;Polypodiaceae;Pteridophyta;7;adulto;21;11;reproductivo;0
 APK-01;3625;5;118;APK-01_118;Oreopanax ruizii;Oreopanax;22.38;10;V;2520;Elaphoglossum 7;Elaphoglossum rimbachii;Elaphoglossum;Dryopteridaceae;Pteridophyta;6.8;adulto;21;127;esteril;0
@@ -2751,7 +2751,7 @@ APK-01;3625;5;128;APK-01_128;Miconia alpina;Miconia;36.51;8;IV;2749;Serpocaulon 
 APK-01;3625;5;128;APK-01_128;Miconia alpina;Miconia;36.51;8;IV;2750;Melpomene 3;Alansmia lanigera;Alansmia;Polypodiaceae;Pteridophyta;6;adulto;20;2;reproductivo;0
 APK-01;3625;5;128;APK-01_128;Miconia alpina;Miconia;36.51;8;IV;2751;Melpomene 1;Ascogrammitis athyrioides;Ascogrammitis;Polypodiaceae;Pteridophyta;6.5;adulto;23;21;esteril;0
 APK-01;3625;5;128;APK-01_128;Miconia alpina;Miconia;36.51;8;IV;2752;Trichomanes 1;Asplenium fragans;Asplenium;Aspleniaceae;Pteridophyta;6.5;adulto;16;16;esteril;0
-APK-01;3625;5;128;APK-01_128;Miconia alpina;Miconia;36.51;8;IV;2753;Ribes 1;Ribes 1;Ribes;Grosulariaceae;Angiosperma;6.5;juvenil;66;5;esteril;0
+APK-01;3625;5;128;APK-01_128;Miconia alpina;Miconia;36.51;8;IV;2753;Ribes 1;Ribes sp1;Ribes;Grossulariaceae;Angiosperma;6.5;juvenil;66;5;esteril;0
 APK-01;3625;5;128;APK-01_128;Miconia alpina;Miconia;36.51;8;IV;2754;Melpomene 10;Lellingeria subsessilis;Lellingeria;Polypodiaceae;Pteridophyta;6.5;adulto;18;22;reproductivo;0
 APK-01;3625;5;128;APK-01_128;Miconia alpina;Miconia;36.51;8;III;2755;Melpomene 10;Lellingeria subsessilis;Lellingeria;Polypodiaceae;Pteridophyta;5;adulto;42;60;reproductivo;0
 APK-01;3625;5;128;APK-01_128;Miconia alpina;Miconia;36.51;8;III;2756;Microgramma 1;Campyloneurum densifolium;Campyloneurum;Polypodiaceae;Pteridophyta;5;adulto;16;25;esteril;0
@@ -2873,7 +2873,7 @@ APK-01;3625;14;308;APK-01_308;Saracha punctata;Saracha;21.26;12;V;2871;Melpomene
 APK-01;3625;14;308;APK-01_308;Saracha punctata;Saracha;21.26;12;V;2872;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;11.5;juvenil;9.5;14;esteril;0
 APK-01;3625;14;308;APK-01_308;Saracha punctata;Saracha;21.26;12;V;2873;Epidendrum bleparichillum;Epidendrum bleparichillum;Epidendrum;Orchidaceae;Angiosperma;11.5;juvenil;13;2;esteril;0
 APK-01;3625;14;308;APK-01_308;Saracha punctata;Saracha;21.26;12;V;2874;Erica 1;Demosthenesia buxifolia;Demosthenesia;Ericaceae;Angiosperma;11.5;juvenil;2.2;26;esteril;0
-APK-01;3625;14;308;APK-01_308;Saracha punctata;Saracha;21.26;12;V;2875;Ribes 2;Ribes 1;Ribes;Grosulariaceae;Angiosperma;11.5;adulto;120;19;reproductivo;0
+APK-01;3625;14;308;APK-01_308;Saracha punctata;Saracha;21.26;12;V;2875;Ribes 2;Ribes sp1;Ribes;Grossulariaceae;Angiosperma;11.5;adulto;120;19;reproductivo;0
 APK-01;3625;14;308;APK-01_308;Saracha punctata;Saracha;21.26;12;V;2876;Epidendrum ardens;Epidendrum ardens;Epidendrum;Orchidaceae;Angiosperma;11.5;juvenil;20;2;esteril;0
 APK-01;3625;14;308;APK-01_308;Saracha punctata;Saracha;21.26;12;V;2877;Cavendisha 10;Thibaudia sp1;Thibaudia ;Ericaceae;Angiosperma;10.5;adulto;7.2;11;esteril;1
 APK-01;3625;14;308;APK-01_308;Saracha punctata;Saracha;21.26;12;V;2878;Elaphoglossum 10;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;10.5;adulto;14;97;reproductivo;0
@@ -2895,7 +2895,7 @@ APK-01;3625;14;307;APK-01_307;Gynoxys pillahuatensis;Gynoxys;33.42;12.5;IV;2893;
 APK-01;3625;14;307;APK-01_307;Gynoxys pillahuatensis;Gynoxys;33.42;12.5;IV;2894;Cavendisha 10;Thibaudia sp1;Thibaudia ;Ericaceae;Angiosperma;7.5;adulto;6;4;esteril;1
 APK-01;3625;14;307;APK-01_307;Gynoxys pillahuatensis;Gynoxys;33.42;12.5;IV;2895;Trichomanes 1;Asplenium fragans;Asplenium;Aspleniaceae;Pteridophyta;7.5;adulto;8;7;esteril;0
 APK-01;3625;14;307;APK-01_307;Gynoxys pillahuatensis;Gynoxys;33.42;12.5;IV;2896;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;7.5;adulto;6;22;esteril;0
-APK-01;3625;14;307;APK-01_307;Gynoxys pillahuatensis;Gynoxys;33.42;12.5;IV;2897;Ribes 2;Ribes 1;Ribes;Grosulariaceae;Angiosperma;7.5;adulto;35;5;esteril;0
+APK-01;3625;14;307;APK-01_307;Gynoxys pillahuatensis;Gynoxys;33.42;12.5;IV;2897;Ribes 2;Ribes sp1;Ribes;Grossulariaceae;Angiosperma;7.5;adulto;35;5;esteril;0
 APK-01;3625;14;307;APK-01_307;Gynoxys pillahuatensis;Gynoxys;33.42;12.5;IV;2898;Melpomene 1;Ascogrammitis athyrioides;Ascogrammitis;Polypodiaceae;Pteridophyta;7.5;adulto;76;68;reproductivo;0
 APK-01;3625;14;307;APK-01_307;Gynoxys pillahuatensis;Gynoxys;33.42;12.5;IV;2899;Trichomanes 1;Asplenium fragans;Asplenium;Aspleniaceae;Pteridophyta;7.5;adulto;8;26;esteril;0
 APK-01;3625;14;307;APK-01_307;Gynoxys pillahuatensis;Gynoxys;33.42;12.5;IV;2900;Elaphoglossum 10;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;7.5;juvenil;7;5;esteril;0
@@ -2938,7 +2938,7 @@ APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;2936;
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;2937;Pleurothalis 10;Pleurothallis sp7;Pleurothallis;Orchidaceae;Angiosperma;10;adulto;25;98;reproductivo;0
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;2938;Siphonandra 1;Demosthenesia spectabilis;Demosthenesia;Ericaceae;Angiosperma;10;adulto;31;10;esteril;1
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;V;2939;Epidendrum 20;Epidendrum soratae;Epidendrum;Orchidaceae;Angiosperma;12.5;adulto;18;31;reproductivo;0
-APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;V;2940;Ribes 1;Ribes 1;Ribes;Grosulariaceae;Angiosperma;12.5;juvenil;78;4;esteril;0
+APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;V;2940;Ribes 1;Ribes sp1;Ribes;Grossulariaceae;Angiosperma;12.5;juvenil;78;4;esteril;0
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;V;2941;Melpomene 4;Melpomene moniliformis ;Melpomene;Polypodiaceae;Pteridophyta;12.5;adulto;13;15;reproductivo;0
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;V;2942;Pleurothalis 10;Pleurothallis sp7;Pleurothallis;Orchidaceae;Angiosperma;12;adulto;20.5;64;reproductivo;0
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;V;2943;Epidendrum 22;Epidendrum sp13;Epidendrum;Orchidaceae;Angiosperma;12;juvenil;25;3;esteril;0
@@ -3014,7 +3014,7 @@ APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;3012;
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;3013;Melpomene 4;Melpomene moniliformis ;Melpomene;Polypodiaceae;Pteridophyta;9.5;adulto;9.5;17;reproductivo;1
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;3014;Siphonandra 2;Siphonandra elliptica;Siphonandra;Ericaceae;Angiosperma;9.5;adulto;34;13;esteril;1
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;3015;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;10;adulto;16.5;87;reproductivo;1
-APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;3016;Ribes 2;Ribes 1;Ribes;Grosulariaceae;Angiosperma;9.5;adulto;89;1;esteril;1
+APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;3016;Ribes 2;Ribes sp1;Ribes;Grossulariaceae;Angiosperma;9.5;adulto;89;1;esteril;1
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;3017;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;9;adulto;17;64;esteril;1
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;3018;Siphonandra 2;Siphonandra elliptica;Siphonandra;Ericaceae;Angiosperma;9;adulto;37;11;esteril;1
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;3019;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;9;adulto;22.5;59;esteril;1
@@ -3037,7 +3037,7 @@ APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3035
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3036;Siphonandra 1;Demosthenesia spectabilis;Demosthenesia;Ericaceae;Angiosperma;7;adulto;31;3;esteril;1
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3037;Erica 1*;Disterigma alaternoides;Disterigma;Ericaceae;Angiosperma;7;adulto;23;19;reproductivo;1
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3038;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;7;adulto;20.5;48;reproductivo;0
-APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3039;Ribes 2;Ribes 1;Ribes;Grosulariaceae;Angiosperma;7;adulto;64;3;esteril;0
+APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3039;Ribes 2;Ribes sp1;Ribes;Grossulariaceae;Angiosperma;7;adulto;64;3;esteril;0
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3040;Pleurothalis 10;Pleurothallis sp7;Pleurothallis;Orchidaceae;Angiosperma;7;adulto;11.5;5;esteril;0
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3041;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;7;adulto;12;2;esteril;0
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3042;Cavendisha 10;Thibaudia sp1;Thibaudia ;Ericaceae;Angiosperma;7;adulto;27;8;esteril;1
@@ -3100,10 +3100,10 @@ APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3098
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3099;Lepanthes 2;Lepanthes sp3;Lepanthes;Orchidaceae;Angiosperma;6;adulto;12;10;reproductivo;1
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3100;Stelis 1;Stelis simplex;Stelis;Orchidaceae;Angiosperma;6;adulto;12;10;esteril;0
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3101;Pleurothalis 10;Pleurothallis sp7;Pleurothallis;Orchidaceae;Angiosperma;6;juvenil;22;9;esteril;1
-APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;3102;Ribes 2;Ribes 1;Ribes;Grosulariaceae;Angiosperma;10;adulto;83;11;reproductivo;0
+APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;3102;Ribes 2;Ribes sp1;Ribes;Grossulariaceae;Angiosperma;10;adulto;83;11;reproductivo;0
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;IV;3103;Melpomene 4;Melpomene moniliformis ;Melpomene;Polypodiaceae;Pteridophyta;10;adulto;10;20;reproductivo;0
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3104;Melpomene 4;Melpomene moniliformis ;Melpomene;Polypodiaceae;Pteridophyta;7;adulto;13;15;reproductivo;0
-APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3105;Ribes 2;Ribes 1;Ribes;Grosulariaceae;Angiosperma;7;adulto;65;14;reproductivo;0
+APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3105;Ribes 2;Ribes sp1;Ribes;Grossulariaceae;Angiosperma;7;adulto;65;14;reproductivo;0
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3106;Microgramma 1;Campyloneurum densifolium;Campyloneurum;Polypodiaceae;Pteridophyta;6;juvenil;18;6;esteril;0
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3107;Trichomanes 1;Asplenium fragans;Asplenium;Aspleniaceae;Pteridophyta;6;juvenil;16;6;esteril;0
 APK-01;3625;14;315;APK-01_315;Weinmannia fagaroides;Weinmannia;58.88;14;III;3108;Serpocaulon 1;Serpocaulon lasiopus;Serpocaulon;Polypodiaceae;Pteridophyta;6;juvenil;17;3;esteril;0
@@ -3161,7 +3161,7 @@ APK-01;3625;14;311;APK-01_311;Symplocos baehnii;Symplocos;29.03;17;IV;3159;Peper
 APK-01;3625;14;311;APK-01_311;Symplocos baehnii;Symplocos;29.03;17;IV;3160;Hymenophyllum 1;Hymenophyllum sp1;Hymenophyllum;Hymenophyllaceae;Pteridophyta;12.5;adulto;5.5;12;esteril;0
 APK-01;3625;14;311;APK-01_311;Symplocos baehnii;Symplocos;29.03;17;IV;3161;Melpomene 10;Lellingeria subsessilis;Lellingeria;Polypodiaceae;Pteridophyta;12.5;adulto;22;5;reproductivo;0
 APK-01;3625;14;311;APK-01_311;Symplocos baehnii;Symplocos;29.03;17;III;3162;Melpomene 1;Ascogrammitis athyrioides;Ascogrammitis;Polypodiaceae;Pteridophyta;12;adulto;26;8;reproductivo;0
-APK-01;3625;14;311;APK-01_311;Symplocos baehnii;Symplocos;29.03;17;III;3163;Ribes 1;Ribes 1;Ribes;Grosulariaceae;Angiosperma;11.5;juvenil;11;1;esteril;0
+APK-01;3625;14;311;APK-01_311;Symplocos baehnii;Symplocos;29.03;17;III;3163;Ribes 1;Ribes sp1;Ribes;Grossulariaceae;Angiosperma;11.5;juvenil;11;1;esteril;0
 APK-01;3625;14;311;APK-01_311;Symplocos baehnii;Symplocos;29.03;17;III;3164;Microgramma 1;Campyloneurum densifolium;Campyloneurum;Polypodiaceae;Pteridophyta;11.5;adulto;33;30;reproductivo;1
 APK-01;3625;14;311;APK-01_311;Symplocos baehnii;Symplocos;29.03;17;III;3165;Trichomanes 1;Asplenium fragans;Asplenium;Aspleniaceae;Pteridophyta;11.5;juvenil;14;5;esteril;0
 APK-01;3625;14;311;APK-01_311;Symplocos baehnii;Symplocos;29.03;17;IV;3166;Elaphoglossum 1;Elaphoglossum vulcanicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;14;juvenil;12.5;7;esteril;0
@@ -3206,7 +3206,7 @@ APK-01;3625;14;314;APK-01_314;Weinmannia fagaroides;Weinmannia;24.86;14;IV;3204;
 APK-01;3625;14;314;APK-01_314;Weinmannia fagaroides;Weinmannia;24.86;14;IV;3205;Pleurothalis 10;Pleurothallis sp7;Pleurothallis;Orchidaceae;Angiosperma;12;juvenil;25;17;esteril;0
 APK-01;3625;14;314;APK-01_314;Weinmannia fagaroides;Weinmannia;24.86;14;IV;3206;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;12;adulto;17.5;25;esteril;0
 APK-01;3625;14;314;APK-01_314;Weinmannia fagaroides;Weinmannia;24.86;14;IV;3207;Melpomene 4;Melpomene moniliformis ;Melpomene;Polypodiaceae;Pteridophyta;12;adulto;18;30;reproductivo;0
-APK-01;3625;14;314;APK-01_314;Weinmannia fagaroides;Weinmannia;24.86;14;IV;3208;Ribes 1;Ribes 1;Ribes;Grosulariaceae;Angiosperma;12;juvenil;24;3;esteril;0
+APK-01;3625;14;314;APK-01_314;Weinmannia fagaroides;Weinmannia;24.86;14;IV;3208;Ribes 1;Ribes sp1;Ribes;Grossulariaceae;Angiosperma;12;juvenil;24;3;esteril;0
 APK-01;3625;14;314;APK-01_314;Weinmannia fagaroides;Weinmannia;24.86;14;IV;3209;Serpocaulon 1;Serpocaulon sp2;Serpocaulon;Polypodiaceae;Pteridophyta;12;juvenil;14;5;esteril;0
 APK-01;3625;14;314;APK-01_314;Weinmannia fagaroides;Weinmannia;24.86;14;IV;3210;Melpomene 2;Melpomene personata;Melpomene;Polypodiaceae;Pteridophyta;12;adulto;13;6;esteril;0
 APK-01;3625;14;314;APK-01_314;Weinmannia fagaroides;Weinmannia;24.86;14;IV;3211;Erica 1*;Disterigma alaternoides;Disterigma;Ericaceae;Angiosperma;12;adulto;7.1;6;reproductivo;1
@@ -3229,7 +3229,7 @@ APK-01;3625;14;314;APK-01_314;Weinmannia fagaroides;Weinmannia;24.86;14;III;3227
 APK-01;3625;14;314;APK-01_314;Weinmannia fagaroides;Weinmannia;24.86;14;III;3228;Melpomene 4;Melpomene moniliformis ;Melpomene;Polypodiaceae;Pteridophyta;6;adulto;11;50;esteril;0
 APK-01;3625;14;314;APK-01_314;Weinmannia fagaroides;Weinmannia;24.86;14;III;3229;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;6;adulto;18;32;reproductivo;1
 APK-01;3625;14;314;APK-01_314;Weinmannia fagaroides;Weinmannia;24.86;14;III;3230;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;6;juvenil;7;5;esteril;0
-APK-01;3625;14;314;APK-01_314;Weinmannia fagaroides;Weinmannia;24.86;14;III;3231;Ribes 1;Ribes 1;Ribes;Grosulariaceae;Angiosperma;4;juvenil;16;4;esteril;0
+APK-01;3625;14;314;APK-01_314;Weinmannia fagaroides;Weinmannia;24.86;14;III;3231;Ribes 1;Ribes sp1;Ribes;Grossulariaceae;Angiosperma;4;juvenil;16;4;esteril;0
 APK-01;3625;14;312;APK-01_312;Weinmannia fagaroides;Weinmannia;29.63;11;V;3232;Peperomia 1;Peperomia sp1;Peperomia;Piperaceae;Angiosperma;10;adulto;12;170;reproductivo;0
 APK-01;3625;14;312;APK-01_312;Weinmannia fagaroides;Weinmannia;29.63;11;V;3233;Trichomanes 1;Asplenium fragans;Asplenium;Aspleniaceae;Pteridophyta;10;adulto;12;43;esteril;0
 APK-01;3625;14;312;APK-01_312;Weinmannia fagaroides;Weinmannia;29.63;11;IV;3234;Elaphoglossum 8;Elaphoglossum metallicum;Elaphoglossum;Dryopteridaceae;Pteridophyta;9;adulto;18;10;esteril;0
