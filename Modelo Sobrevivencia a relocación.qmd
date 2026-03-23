@@ -13,6 +13,9 @@ editor: visual
 
 library(car)
 library(dplyr)
+library(performance)
+library(DHARMa)
+library(emmeans)
 ```
 
 Base de datos y preparacion de las variables para los modelos.
@@ -73,10 +76,12 @@ Todas las muertes se dieron en la puna y ninguna en el bosque, ¿produce separac
 
 los datos en los diferentes tiempos se van reduciendo porque solo quedan los vivos.
 
-Modelos
+## Modelos
+
+modelo rama efecto fijo
 
 ```{r}
-#modelo rama fijo
+
 model_glm_bra <- glm(
   survive ~ relocation + time + branch_ID,
   family = binomial,
@@ -84,8 +89,12 @@ model_glm_bra <- glm(
 )
 summary(model_glm_bra)
 Anova(model_glm_bra)
+```
 
-#modelo interaccion 
+Modelo interacción
+
+```{r}
+
 model_glm_int <- glm(
   survive ~ relocation*time,
   family = binomial,
@@ -93,9 +102,21 @@ model_glm_int <- glm(
 )
 summary(model_glm_int)
 Anova(model_glm_int)
+#SOBREDISPERSION
+check_overdispersion(model_glm_int)
+#DIAGNOSTICO GENERAL
+sim_res <- simulateResiduals(model_glm_int)
+plot(sim_res)
+#PostHOC
+emmeans(model_glm_int, pairwise ~ time)
+#interaccion 
+emmeans(model_glm_int, pairwise ~ relocation | time)
 
+```
 
-#modelo interaccion con rama fijo
+modelo interaccion con rama fijo
+
+```{r}
 model_glm_intb <- glm(
   survive ~ relocation*time + branch_ID,
   family = binomial,
@@ -103,4 +124,13 @@ model_glm_intb <- glm(
 )
 summary(model_glm_intb)
 Anova(model_glm_intb)
+#SOBREDISPERSION
+check_overdispersion(model_glm_intb)
+##DIAGNOSTICO GENERAL
+sim_resb <- simulateResiduals(model_glm_intb)
+plot(sim_resb)
+#PostHOC
+emmeans(model_glm_int, pairwise ~ time)
+#interaccion 
+emmeans(model_glm_int, pairwise ~ relocation | time)
 ```

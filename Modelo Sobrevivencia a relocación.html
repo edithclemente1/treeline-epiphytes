@@ -109,7 +109,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="relocación-epifitas-a-la-puna">Relocación Epifitas a la puna</h2>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(car)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(performance)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DHARMa)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(emmeans)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Base de datos y preparacion de las variables para los modelos.</p>
 <p>Quite los individuos despues de muertos</p>
@@ -343,14 +346,16 @@ BE33 BE34 BE35 BE36 BE37 BE38
 <p>Nota:</p>
 <p>Todas las muertes se dieron en la puna y ninguna en el bosque, ¿produce separación?</p>
 <p>los datos en los diferentes tiempos se van reduciendo porque solo quedan los vivos.</p>
-<p>Modelos</p>
+</section>
+<section id="modelos" class="level2">
+<h2 class="anchored" data-anchor-id="modelos">Modelos</h2>
+<p>modelo rama efecto fijo</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">#modelo rama fijo</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>model_glm_bra <span class="ot">&lt;-</span> <span class="fu">glm</span>(</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  survive <span class="sc">~</span> relocation <span class="sc">+</span> time <span class="sc">+</span> branch_ID,</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> binomial,</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> data_model</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>model_glm_bra <span class="ot">&lt;-</span> <span class="fu">glm</span>(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  survive <span class="sc">~</span> relocation <span class="sc">+</span> time <span class="sc">+</span> branch_ID,</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> binomial,</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> data_model</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</code></pre>
 </div>
@@ -402,13 +407,15 @@ branch_ID     3.719  8     0.8815
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">#modelo interaccion </span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>model_glm_int <span class="ot">&lt;-</span> <span class="fu">glm</span>(</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  survive <span class="sc">~</span> relocation<span class="sc">*</span>time,</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> binomial,</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> data_model</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_glm_int)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Modelo interacción</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>model_glm_int <span class="ot">&lt;-</span> <span class="fu">glm</span>(</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  survive <span class="sc">~</span> relocation<span class="sc">*</span>time,</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> binomial,</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> data_model</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_glm_int)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 Call:
@@ -451,13 +458,112 @@ relocation:time    0.000  3          1
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">#modelo interaccion con rama fijo</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>model_glm_intb <span class="ot">&lt;-</span> <span class="fu">glm</span>(</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  survive <span class="sc">~</span> relocation<span class="sc">*</span>time <span class="sc">+</span> branch_ID,</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> binomial,</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> data_model</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_glm_intb)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">#SOBREDISPERSION</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="fu">check_overdispersion</span>(model_glm_int)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># Overdispersion test
+
+ dispersion ratio = 1.012
+          p-value =     1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>No overdispersion detected.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">#DIAGNOSTICO GENERAL</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>sim_res <span class="ot">&lt;-</span> <span class="fu">simulateResiduals</span>(model_glm_int)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(sim_res)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Modelo-Sobrevivencia-a-relocación_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">#PostHOC</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="fu">emmeans</span>(model_glm_int, pairwise <span class="sc">~</span> time)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>NOTE: Results may be misleading due to involvement in interactions</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$emmeans
+ time emmean   SE  df asymp.LCL asymp.UCL
+ T1    20.57 2890 Inf     -5648      5689
+ T2    11.78 2150 Inf     -4202      4226
+ T3     9.86 2150 Inf     -4204      4224
+ T4    10.63 2150 Inf     -4204      4225
+
+Results are averaged over the levels of: relocation 
+Results are given on the logit (not the response) scale. 
+Confidence level used: 0.95 
+
+$contrasts
+ contrast estimate   SE  df z.ratio p.value
+ T1 - T2      8.79 3600 Inf   0.002  1.0000
+ T1 - T3     10.71 3600 Inf   0.003  1.0000
+ T1 - T4      9.94 3600 Inf   0.003  1.0000
+ T2 - T3      1.92 3040 Inf   0.001  1.0000
+ T2 - T4      1.15 3040 Inf   0.000  1.0000
+ T3 - T4     -0.77 3040 Inf   0.000  1.0000
+
+Results are averaged over the levels of: relocation 
+Results are given on the log odds ratio (not the response) scale. 
+P value adjustment: tukey method for comparing a family of 4 estimates </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co">#interaccion </span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="fu">emmeans</span>(model_glm_int, pairwise <span class="sc">~</span> relocation <span class="sc">|</span> time)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$emmeans
+time = T1:
+ relocation emmean       SE  df asymp.LCL asymp.UCL
+ bosque     20.566 4300.000 Inf -8407.762  8448.894
+ puna       20.566 3870.000 Inf -7562.699  7603.831
+
+time = T2:
+ relocation emmean       SE  df asymp.LCL asymp.UCL
+ bosque     20.566 4300.000 Inf -8407.762  8448.894
+ puna        2.996    1.020 Inf     0.987     5.004
+
+time = T3:
+ relocation emmean       SE  df asymp.LCL asymp.UCL
+ bosque     20.566 4300.000 Inf -8407.762  8448.894
+ puna       -0.847    0.488 Inf    -1.804     0.109
+
+time = T4:
+ relocation emmean       SE  df asymp.LCL asymp.UCL
+ bosque     20.566 4300.000 Inf -8407.762  8448.894
+ puna        0.693    0.866 Inf    -1.004     2.391
+
+Results are given on the logit (not the response) scale. 
+Confidence level used: 0.95 
+
+$contrasts
+time = T1:
+ contrast      estimate   SE  df z.ratio p.value
+ bosque - puna      0.0 5780 Inf   0.000  1.0000
+
+time = T2:
+ contrast      estimate   SE  df z.ratio p.value
+ bosque - puna     17.6 4300 Inf   0.004  0.9967
+
+time = T3:
+ contrast      estimate   SE  df z.ratio p.value
+ bosque - puna     21.4 4300 Inf   0.005  0.9960
+
+time = T4:
+ contrast      estimate   SE  df z.ratio p.value
+ bosque - puna     19.9 4300 Inf   0.005  0.9963
+
+Results are given on the log odds ratio (not the response) scale. </code></pre>
+</div>
+</div>
+<p>modelo interaccion con rama fijo</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>model_glm_intb <span class="ot">&lt;-</span> <span class="fu">glm</span>(</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  survive <span class="sc">~</span> relocation<span class="sc">*</span>time <span class="sc">+</span> branch_ID,</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> binomial,</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> data_model</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_glm_intb)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 Call:
@@ -492,7 +598,7 @@ AIC: 68.394
 
 Number of Fisher Scoring iterations: 20</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Anova</span>(model_glm_intb)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Anova</span>(model_glm_intb)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
 Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
@@ -510,6 +616,103 @@ branch_ID          3.719  8     0.8815
 relocation:time    0.000  3     1.0000    
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co">#SOBREDISPERSION</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="fu">check_overdispersion</span>(model_glm_intb)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># Overdispersion test
+
+ dispersion ratio = 1.007
+          p-value = 0.888</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>No overdispersion detected.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="do">##DIAGNOSTICO GENERAL</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>sim_resb <span class="ot">&lt;-</span> <span class="fu">simulateResiduals</span>(model_glm_intb)</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(sim_resb)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Modelo-Sobrevivencia-a-relocación_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="co">#PostHOC</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="fu">emmeans</span>(model_glm_int, pairwise <span class="sc">~</span> time)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>NOTE: Results may be misleading due to involvement in interactions</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$emmeans
+ time emmean   SE  df asymp.LCL asymp.UCL
+ T1    20.57 2890 Inf     -5648      5689
+ T2    11.78 2150 Inf     -4202      4226
+ T3     9.86 2150 Inf     -4204      4224
+ T4    10.63 2150 Inf     -4204      4225
+
+Results are averaged over the levels of: relocation 
+Results are given on the logit (not the response) scale. 
+Confidence level used: 0.95 
+
+$contrasts
+ contrast estimate   SE  df z.ratio p.value
+ T1 - T2      8.79 3600 Inf   0.002  1.0000
+ T1 - T3     10.71 3600 Inf   0.003  1.0000
+ T1 - T4      9.94 3600 Inf   0.003  1.0000
+ T2 - T3      1.92 3040 Inf   0.001  1.0000
+ T2 - T4      1.15 3040 Inf   0.000  1.0000
+ T3 - T4     -0.77 3040 Inf   0.000  1.0000
+
+Results are averaged over the levels of: relocation 
+Results are given on the log odds ratio (not the response) scale. 
+P value adjustment: tukey method for comparing a family of 4 estimates </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co">#interaccion </span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="fu">emmeans</span>(model_glm_int, pairwise <span class="sc">~</span> relocation <span class="sc">|</span> time)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$emmeans
+time = T1:
+ relocation emmean       SE  df asymp.LCL asymp.UCL
+ bosque     20.566 4300.000 Inf -8407.762  8448.894
+ puna       20.566 3870.000 Inf -7562.699  7603.831
+
+time = T2:
+ relocation emmean       SE  df asymp.LCL asymp.UCL
+ bosque     20.566 4300.000 Inf -8407.762  8448.894
+ puna        2.996    1.020 Inf     0.987     5.004
+
+time = T3:
+ relocation emmean       SE  df asymp.LCL asymp.UCL
+ bosque     20.566 4300.000 Inf -8407.762  8448.894
+ puna       -0.847    0.488 Inf    -1.804     0.109
+
+time = T4:
+ relocation emmean       SE  df asymp.LCL asymp.UCL
+ bosque     20.566 4300.000 Inf -8407.762  8448.894
+ puna        0.693    0.866 Inf    -1.004     2.391
+
+Results are given on the logit (not the response) scale. 
+Confidence level used: 0.95 
+
+$contrasts
+time = T1:
+ contrast      estimate   SE  df z.ratio p.value
+ bosque - puna      0.0 5780 Inf   0.000  1.0000
+
+time = T2:
+ contrast      estimate   SE  df z.ratio p.value
+ bosque - puna     17.6 4300 Inf   0.004  0.9967
+
+time = T3:
+ contrast      estimate   SE  df z.ratio p.value
+ bosque - puna     21.4 4300 Inf   0.005  0.9960
+
+time = T4:
+ contrast      estimate   SE  df z.ratio p.value
+ bosque - puna     19.9 4300 Inf   0.005  0.9963
+
+Results are given on the log odds ratio (not the response) scale. </code></pre>
 </div>
 </div>
 </section>
