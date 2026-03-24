@@ -1,0 +1,7 @@
+"0","DIVERFORO <- data %>%"
+"0","  group_by(forof) %>%"
+"0","  summarise("
+"0","    RIQUEZA    = n_distinct(morphospe),  # especies únicas"
+"0","    ABUNDANCIA = n()                     # número de individuos (filas)"
+"0","  )"
+"0","DIVERFORO"

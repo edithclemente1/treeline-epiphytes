@@ -1,0 +1,132 @@
+---
+title: "filtro hospedero"
+author: "Edith"
+date: "2026-01-26"
+output: html_document
+---
+
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+#FOROFITOS
+data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+hospepi <- data %>% ###TABLA DE DATOS POBLACIONALES
+  select(plot, elevation, forof,morphospe, family, genera_tree, dap, height)
+str(hospepi)
+#ARBOLES
+trees <- read.csv("treealtu.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+tree <- trees %>% ###TABLA DE DATOS POBLACIONALES
+  select(plot, elevation, tagtree,family, genus, NC, DBH, H)
+str(tree)
+
+
+#resumir epifitas por forofito
+library(dplyr)
+
+epi_por_arbol <- hospepi %>%
+  group_by(forof, plot, elevation, genera_tree, dap, height) %>%
+  summarise(
+    presencia_epifitas = 1,
+    riqueza = n_distinct(morphospe),
+    abundancia_total = n(),
+    .groups = "drop"
+  )
+#unificar nombres tree
+library(dplyr)
+
+tree2 <- tree %>%
+  rename(
+    forof = tagtree,
+    genera_tree = genus,
+    dap = DBH,
+    height = H
+  )
+epi_por_arbol <- hospepi %>%
+  group_by(forof) %>%
+  summarise(
+    presencia_epifitas = 1,
+    riqueza = n_distinct(morphospe),
+    abundancia_total = n(),
+    .groups = "drop"
+  )
+#unir tablas 
+arboles <- tree2 %>%
+  left_join(epi_por_arbol, by = "forof") %>%
+  mutate(
+    presencia_epifitas = ifelse(is.na(presencia_epifitas), 0, presencia_epifitas),
+    riqueza = ifelse(is.na(riqueza), 0, riqueza),
+    abundancia_total = ifelse(is.na(abundancia_total), 0, abundancia_total)
+  )
+nrow(arboles)                 # debe ser 193
+table(arboles$presencia_epifitas)
+table(arboles$plot, arboles$presencia_epifitas)
+
+
+```
+1️⃣ Riqueza de epífitas por árbol
+```{r}
+
+arboles$genera_tree <- as.factor(arboles$genera_tree)
+arboles$plot <- as.factor(arboles$plot)#factores
+
+library(dplyr)
+
+riqueza_arbol <- hospepi %>%
+  group_by(forof, plot, elevation, genera_tree, dap, height) %>%
+  summarise(
+    riqueza = n_distinct(morphospe),
+    .groups = "drop"
+  )
+summary(riqueza_arbol$riqueza)
+hist(riqueza_arbol$riqueza)
+riqueza_arbol <- riqueza_arbol %>%
+  mutate(
+    dap_s = scale(dap),
+    height_s = scale(height)
+  )
+m1 <- glm(riqueza ~ elevation + dap_s + height_s + genera_tree,
+          family = poisson,
+          data = riqueza_arbol)
+
+summary(m1)
+deviance(m1) / df.residual(m1)
+library(MASS)
+
+m_nb <- glm.nb(riqueza ~ elevation + dap_s + height_s + genera_tree,
+               data = riqueza_arbol)
+
+summary(m_nb)
+
+
+```
+ABUNDANCIA DE EPIFITAS
+```{r}
+library(dplyr)
+
+abund_arbol <- hospepi %>%
+  group_by(forof, plot, elevation, genera_tree, dap, height) %>%
+  summarise(
+    abundancia = n(),
+    .groups = "drop"
+  )
+summary(abund_arbol$abundancia)
+hist(abund_arbol$abundancia)
+
+abund_arbol <- abund_arbol %>%
+  mutate(
+    dap_s = scale(dap),
+    height_s = scale(height)
+  )
+m_pois <- glm(abundancia ~ elevation + dap_s + height_s + genera_tree,#Modelo base (Poisson, solo para probar)
+              family = poisson,
+              data = abund_arbol)
+
+deviance(m_pois) / df.residual(m_pois)
+library(MASS)
+
+m_ab_nb <- glm.nb(abundancia ~ elevation + dap_s + height_s + genera_tree,
+                  data = abund_arbol)
+
+summary(m_ab_nb)
+
+```
+

@@ -1,0 +1,7 @@
+"0",""
+"0",""
+"0","ggsave(""dbRDA_epifitas.png"","
+"0","       plot = last_plot(),     # o reemplaza por el nombre de tu objeto ggplot"
+"0","       width = 8,              # ancho en pulgadas"
+"0","       height = 6,             # alto en pulgadas"
+"0","       dpi = 300)              # resolución (300 = publicación)"

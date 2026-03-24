@@ -1,0 +1,8 @@
+"0","pop_mean_elev <- EPIDATA %>%"
+"0","  group_by(elevation, morphospe) %>%"
+"0","  summarise(n_ind = n(), .groups = ""drop"") %>%"
+"0","  group_by(elevation) %>%"
+"0","  summarise(mean_pop_size = mean(n_ind),"
+"0","            sd_pop_size = sd(n_ind))"
+"0",""
+"0","pop_mean_elev"

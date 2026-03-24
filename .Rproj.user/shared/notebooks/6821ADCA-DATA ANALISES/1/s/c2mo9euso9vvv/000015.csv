@@ -1,0 +1,14 @@
+"0","m_vif_abund <- lm(abundancia ~ dap_z + height_z + elev_z,
+                  data = abund_arbol)
+vif(m_vif_abund)
+"
+"1","   dap_z "
+"1","height_z "
+"1","  elev_z "
+"1","
+"
+"1","1.812059 "
+"1","1.854299 "
+"1","1.071240 "
+"1","
+"

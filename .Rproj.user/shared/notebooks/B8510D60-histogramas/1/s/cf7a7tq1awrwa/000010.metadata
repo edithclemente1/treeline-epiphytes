@@ -1,0 +1,1 @@
+{"height":274.4128553770086,"width":444.0,"dpi":-1.0,"size_behavior":0,"conditions":[[1,"Warning :\u001B[38;5;232mGroups with fewer than two data points have been\ndropped.\u001B[39m\n"],[1,"Warning :\u001B[38;5;232mRemoved 1 row containing missing values or values\noutside the scale range (`geom_density()`).\u001B[39m\n"]]}

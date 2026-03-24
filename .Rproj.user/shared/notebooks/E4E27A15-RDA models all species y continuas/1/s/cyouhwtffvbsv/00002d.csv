@@ -1,0 +1,7 @@
+"0",""
+"0","# flechas ambientales (X)"
+"0","arrows(0, 0,"
+"0","       env[,1], env[,2],"
+"0","       col = ""blue"","
+"0","       lwd = 2,"
+"0","       length = 0.08)"

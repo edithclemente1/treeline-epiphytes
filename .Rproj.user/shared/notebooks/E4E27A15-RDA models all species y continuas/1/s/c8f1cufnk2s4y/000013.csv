@@ -1,0 +1,5 @@
+"0",""
+"0","# Flechas de rasgos (Y)"
+"0","arrows(0, 0,"
+"0","       scores_Y[,1], scores_Y[,2],"
+"0","       length = 0.12, col = ""red"", lwd = 2)"

@@ -1,0 +1,138 @@
+---
+title: "modelo SUPERVIVENCIA EPIFITAS"
+author: "Edith"
+format: html
+editor: visual
+---
+
+## Relocación Epifitas a la puna
+
+```{r}
+#| warning: false
+#| message: false
+
+library(car)
+library(dplyr)
+library(performance)
+library(DHARMa)
+library(emmeans)
+```
+
+Base de datos y preparacion de las variables para los modelos.
+
+Quite los individuos despues de muertos
+
+```{r}
+expdata <- read.csv("relocadata.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+str(expdata)      # Estructura de la base de datos
+
+##Preparar tabla de datos 
+data_model <- expdata[, c("epi_ID", "dead_alive", "relocation", "time", "branch_ID")]
+data_model$time <- factor(data_model$time)
+#recodificar variables 
+data_model$survive <- ifelse(data_model$dead_alive == "alive", 1, 0)
+data_model$relocation[data_model$relocation == "true"] <- "puna"
+data_model$relocation[data_model$relocation == "false"] <- "bosque"
+data_model$relocation <- factor(data_model$relocation)
+data_model$branch_ID <- factor(data_model$branch_ID)
+data_model$epi_ID <- factor(data_model$epi_ID)
+
+#QUITA LOS MUERTOS
+data_model <- data_model %>%
+  arrange(epi_ID, time) %>%
+  group_by(epi_ID) %>%
+  mutate(dead_seen_before = lag(cumany(dead_alive == "dead"), default = FALSE)) %>%
+  filter(!dead_seen_before) %>%
+  ungroup() %>%
+  dplyr::select(-dead_seen_before)
+#Verificacion
+data_model %>%
+  arrange(epi_ID, time) %>%
+    dplyr::select(epi_ID, time, dead_alive, survive) %>%
+  print(n = 150)
+table(data_model$epi_ID)#cuenta cuantas observaciones por individuo
+table(data_model$time, data_model$survive)#ver los vivos o muertos por tiempos
+write.csv(data_model, "data_model.csv", row.names = FALSE)
+#Cambiar el nombre de la rama 
+data_model <- data_model %>%
+  mutate(branch_ID = case_when(
+    branch_ID == "B01" ~ "PU01",
+    branch_ID == "B02" ~ "PU02",
+    branch_ID == "B03" ~ "PU03",
+    branch_ID == "B04" ~ "PU04",
+    branch_ID == "B05" ~ "PU05",
+    branch_ID == "B06" ~ "BO06",
+    branch_ID == "B07" ~ "BO07",
+    branch_ID == "B08" ~ "BO08",
+    branch_ID == "B09" ~ "BO09",
+    branch_ID == "B10" ~ "BO10"
+  )) %>%
+  mutate(branch_ID = factor(branch_ID))
+```
+
+Nota:
+
+Todas las muertes se dieron en la puna y ninguna en el bosque, ¿produce separación?
+
+los datos en los diferentes tiempos se van reduciendo porque solo quedan los vivos.
+
+## Modelos
+
+modelo rama efecto fijo
+
+```{r}
+
+model_glm_bra <- glm(
+  survive ~ relocation + time + branch_ID,
+  family = binomial,
+  data = data_model
+)
+summary(model_glm_bra)
+Anova(model_glm_bra)
+```
+
+Modelo interacción
+
+```{r}
+
+model_glm_int <- glm(
+  survive ~ relocation*time,
+  family = binomial,
+  data = data_model
+)
+summary(model_glm_int)
+Anova(model_glm_int)
+#SOBREDISPERSION
+check_overdispersion(model_glm_int)
+#DIAGNOSTICO GENERAL
+sim_res <- simulateResiduals(model_glm_int)
+plot(sim_res)
+#PostHOC
+emmeans(model_glm_int, pairwise ~ time)
+#interaccion 
+emmeans(model_glm_int, pairwise ~ relocation | time)
+
+```
+
+modelo interaccion con rama fijo
+
+```{r}
+model_glm_intb <- glm(
+  survive ~ relocation*time + branch_ID,
+  family = binomial,
+  data = data_model
+)
+summary(model_glm_intb)
+Anova(model_glm_intb)
+#SOBREDISPERSION
+check_overdispersion(model_glm_intb)
+##DIAGNOSTICO GENERAL
+sim_resb <- simulateResiduals(model_glm_intb)
+plot(sim_resb)
+#PostHOC
+emmeans(model_glm_int, pairwise ~ time)
+#interaccion 
+emmeans(model_glm_int, pairwise ~ relocation | time)
+```
+
+hgjhjhghjhkjhjkshdjkhkjggk

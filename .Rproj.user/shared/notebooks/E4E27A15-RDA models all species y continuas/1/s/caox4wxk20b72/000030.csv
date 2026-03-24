@@ -1,0 +1,4 @@
+"0","plot(mod_rda2, scaling = 1)
+plot(mod_rda2, scaling = 2)
+"
+"0","plot(mod_rda2, scaling = 3)"

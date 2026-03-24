@@ -1,0 +1,251 @@
+---
+title: "individual variables"
+author: "Edith"
+date: "2025-11-28"
+output: html_document
+---
+
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+library(stringi)
+library(dplyr)
+library(janitor)
+
+# 1. Limpiar nombres con janitor
+data <- data %>% janitor::clean_names()
+# 2. Convertir todo a ASCII (borra caracteres raros y <a0>)
+names(data) <- iconv(names(data), from = "", to = "ASCII//TRANSLIT")
+# 3. Eliminar todo lo que no sea letras, números o _
+names(data) <- gsub("[^A-Za-z0-9_]", "", names(data))
+names(data)
+names(data) <- stri_replace_all_regex(names(data), "[^A-Za-z0-9_]", "")
+names(data)
+
+
+library(ggplot2)
+
+ggplot(data, aes(x = l_leaf_stem)) +
+  geom_histogram(binwidth = 1, color = "black", fill = "lightblue") +
+  labs(
+    title = "Histograma de longitud de hoja/tallo (l_leaf_stem)",
+    x = "l_leaf_stem",
+    y = "Frecuencia"
+  ) +
+  theme_minimal()
+
+
+
+
+```
+Elaphoglossum vulcanicum
+```{r}
+library(dplyr)
+library(ggplot2)
+
+data_elapho <- data %>% 
+  filter(morphospe == "Elaphoglossum vulcanicum")
+
+ggplot(data_elapho, aes(x = l_leaf_stem)) +
+  geom_histogram(binwidth = 1, color = "black", fill = "lightgreen") +
+  labs(
+    title = "Histograma de l_leaf_stem para Elaphoglossum vulcanicum",
+    x = "l_leaf_stem",
+    y = "Frecuencia"
+  ) +
+  theme_minimal()
+
+```
+Elaphoglossum vulcanicum
+```{r}
+library(dplyr)
+library(ggplot2)
+
+data_elapho <- data %>% 
+  filter(morphospe == "Elaphoglossum vulcanicum")
+
+ggplot(data_elapho, aes(x = l_leaf_stem)) +
+  geom_histogram(binwidth = 1, color = "black", fill = "lightgreen") +
+  facet_wrap(~ plot, scales = "free_y") +
+  labs(
+    title = "Distribución de l_leaf_stem por plot\nElaphoglossum vulcanicum",
+    x = "l_leaf_stem",
+    y = "Frecuencia"
+  ) +
+  theme_minimal()
+
+```
+Elaphoglossum vulcanicum
+```{r}
+library(dplyr)
+library(ggplot2)
+
+data_elapho <- data %>% 
+  filter(morphospe == "Elaphoglossum vulcanicum")
+
+ggplot(data_elapho, aes(x = life_stage, y = l_leaf_stem)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(
+    title = "Relación entre l_leaf_stem y life_stage\nElaphoglossum vulcanicum",
+    x = "Estado ontogénico (life_stage)",
+    y = "Longitud de hoja/tallo (l_leaf_stem)"
+  ) +
+  theme_minimal()
+
+```
+
+Elaphoglossum vulcanicum
+```{r}
+ggplot(data_elapho, aes(x = life_stage, y = l_leaf_stem)) +
+  geom_violin(fill = "lightgreen") +
+  geom_boxplot(width = 0.15, outlier.shape = NA) +
+  labs(
+    title = "Distribución de l_leaf_stem por estado ontogénico",
+    x = "life_stage",
+    y = "l_leaf_stem"
+  ) +
+  theme_minimal()
+
+```
+Elaphoglossum vulcanicum
+```{r}
+ggplot(data_elapho, aes(x = l_leaf_stem, fill = life_stage)) +
+  geom_histogram(alpha = 0.6, position = "identity", binwidth = 1) +
+  labs(
+    title = "Histograma de l_leaf_stem por estado ontogénico\nElaphoglossum vulcanicum",
+    x = "l_leaf_stem",
+    y = "Frecuencia"
+  ) +
+  theme_minimal()
+
+```
+
+Elaphoglossum vulcanicum
+```{r}
+ggplot(data_elapho, aes(x = l_leaf_stem, color = life_stage, fill = life_stage)) +
+  geom_density(alpha = 0.3) +
+  labs(
+    title = "Densidad de l_leaf_stem por estado ontogénico",
+    x = "l_leaf_stem",
+    y = "Densidad"
+  ) +
+  theme_minimal()
+
+```
+Elaphoglossum vulcanicum
+```{r}
+ggplot(data_elapho, aes(x = l_leaf_stem, color = life_stage, fill = life_stage)) +
+  geom_density(alpha = 0.25) +
+  facet_wrap(~ plot, scales = "free_y") +
+  labs(
+    title = "Densidad de l_leaf_stem por life_stage en cada plot\nElaphoglossum vulcanicum",
+    x = "l_leaf_stem",
+    y = "Densidad"
+  ) +
+  theme_minimal()
+
+```
+Hymenophyllum sp1
+```{r}
+library(dplyr)
+library(ggplot2)
+
+data_hymeno <- data %>% 
+  filter(morphospe == "Hymenophyllum sp1")
+
+ggplot(data_hymeno, aes(x = l_leaf_stem, color = life_stage, fill = life_stage)) +
+  geom_density(alpha = 0.25) +
+  facet_wrap(~ plot, scales = "free_y") +
+  labs(
+    title = "Densidad de l_leaf_stem por life_stage en cada plot\nHymenophyllum sp1",
+    x = "l_leaf_stem",
+    y = "Densidad"
+  ) +
+  theme_minimal()
+
+```
+Elaphoglossum metallicum
+```{r}
+library(dplyr)
+library(ggplot2)
+
+data_metal <- data %>% 
+  filter(morphospe == "Elaphoglossum metallicum")
+
+ggplot(data_metal, aes(x = l_leaf_stem, color = life_stage, fill = life_stage)) +
+  geom_density(alpha = 0.25) +
+  facet_wrap(~ plot, scales = "free_y") +
+  labs(
+    title = "Densidad de l_leaf_stem por life_stage en cada plot\nElaphoglossum metallicum",
+    x = "l_leaf_stem",
+    y = "Densidad"
+  ) +
+  theme_minimal()
+
+```
+Melpomene personata
+```{r}
+library(dplyr)
+library(ggplot2)
+
+data_melpomene <- data %>% 
+  filter(morphospe == "Melpomene personata")
+
+ggplot(data_melpomene, aes(x = l_leaf_stem, color = life_stage, fill = life_stage)) +
+  geom_density(alpha = 0.25) +
+  facet_wrap(~ plot, scales = "free_y") +
+  labs(
+    title = "Densidad de l_leaf_stem por life_stage en cada plot\nMelpomene personata",
+    x = "l_leaf_stem",
+    y = "Densidad"
+  ) +
+  theme_minimal()
+
+```
+Peperomia sp1
+```{r}
+library(dplyr)
+library(ggplot2)
+
+data_peperomia <- data %>% 
+  filter(morphospe == "Peperomia sp1")
+
+ggplot(data_peperomia, aes(x = l_leaf_stem, color = life_stage, fill = life_stage)) +
+  geom_density(alpha = 0.25) +
+  facet_wrap(~ plot, scales = "free_y") +
+  labs(
+    title = "Densidad de l_leaf_stem por life_stage en cada plot\nPeperomia sp1",
+    x = "l_leaf_stem",
+    y = "Densidad"
+  ) +
+  theme_minimal()
+
+```
+
+reprod_stage y life_stage
+Elaphoglossum vulcanicum
+```{r}
+ggplot(data_elapho, aes(x = l_leaf_stem, fill = reprod_stage, color = reprod_stage)) +
+  geom_density(alpha = 0.25) +
+  facet_grid(life_stage ~ reprod_stage, scales = "free_y") +
+  labs(
+    title = "Densidad de l_leaf_stem por life_stage y reprod_stage",
+    x = "l_leaf_stem",
+    y = "Densidad"
+  ) +
+  theme_minimal()
+
+```
+Elaphoglossum vulcanicum reprod_stage y life_stage
+```{r}
+ggplot(data_elapho, aes(x = l_leaf_stem, color = reprod_stage, fill = reprod_stage)) +
+  geom_density(alpha = 0.25) +
+  facet_wrap(~ life_stage, scales = "free_y") +
+  labs(
+    title = "l_leaf_stem por estados ontogénicos y reproductivos",
+    x = "l_leaf_stem",
+    y = "Densidad"
+  ) +
+  theme_minimal()
+
+```

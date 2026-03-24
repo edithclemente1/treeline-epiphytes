@@ -1,0 +1,34 @@
+"0","###da la escala a cada variable"
+"0","ggplot(num_summary_species,"
+"0","       aes(x = elevation, y = mean, color = morphospe, group = morphospe)) +"
+"0","  geom_line(size = 1) +"
+"0","  geom_point(size = 2) +"
+"0","  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.1) +"
+"0","  facet_wrap(~ morphospe + variable, scales = ""free_y"", ncol = 2) +"
+"0","  theme_bw() +"
+"0","  labs("
+"0","    title = ""Quantitative variables per species along the altitudinal gradient"","
+"0","    x = ""Elevation (m.a.s.l.)"","
+"0","    y = ""Mean ± Standard deviation"","
+"0","    color = ""Specie"""
+"0","  ) +"
+"0","  theme("
+"0","    strip.text = element_text(face = ""bold"", size = 9),"
+"0","    legend.position = ""bottom"""
+"0","  )"
+"1","[1m[33mError[39m in `combine_vars()`:[22m
+[38;5;232m[33m![38;5;232m At least one layer must contain all faceting variables: `morphospe` and `variable`
+[31m✖[38;5;232m Plot is missing `variable`
+[31m✖[38;5;232m Layer 1 is missing `variable`
+[31m✖[38;5;232m Layer 2 is missing `variable`
+[31m✖[38;5;232m Layer 3 is missing `variable`[39m
+Backtrace:
+[90m 1. [39m[1mbase[22m (local) `<fn>`(x)
+[90m 2. [39mggplot2 (local) `print.ggplot2::ggplot`(x)
+[90m 4. [39mggplot2 (local) `ggplot_build.ggplot2::ggplot`(x)
+[90m 5. [39mlayout$setup(data, plot@data, plot@plot_env)
+[90m 6. [39mggplot2 (local) setup(..., self = self)
+[90m 7. [39mself$facet$compute_layout(data, self$facet_params)
+[90m 8. [39mggplot2 (local) compute_layout(..., self = self)
+[90m 9. [39m[1m[94mggplot2::combine_vars([39m[22mdata, params$plot_env, vars, drop = params$drop[1m[94m)[39m[22m
+"

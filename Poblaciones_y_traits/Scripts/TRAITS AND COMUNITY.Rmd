@@ -1,0 +1,119 @@
+---
+title: "TRAITS/COMUNITY"
+author: "Edith"
+date: "2026-01-20"
+output: html_document
+---
+base de datos
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+POBSTRU <- data %>% ###TABLA DE DATOS POBLACIONALES
+  select(elevation,subplot, forof,morphospe, family, dap, height, elevation, tree_str,  life_stage, l_leaf_stem, n_shoots_leaf, reprod_stage)
+str(POBSTRU)
+```
+Pregunta: ¿La elevación estructura la composición funcional de las comunidades de epífitas a nivel de hospedero?
+Paso 1: matriz funcional a nivel individuo
+MATRIZ DE RASGOS con distancia de Gower
+```{r}
+#Seleccionar SOLO los rasgos funcionales
+traits_ind <- POBSTRU[, c("l_leaf_stem", "n_shoots_leaf")]
+str(traits_ind)
+summary(traits_ind)
+colSums(is.na(traits_ind))# Revisar valores problemáticos
+##Construir la matriz de distancias funcionales
+library(vegan)
+dist_fun_ind <- vegdist(traits_ind, method = "gower")
+dist_fun_ind
+class(dist_fun_ind)
+length(dist_fun_ind)
+summary(dist_fun_ind)
+as.matrix(dist_fun_ind)[1:5, 1:5]
+
+```
+Paso 2: comunidades de epífitas por hospedero
+matriz comunidad (hospedero × individuos)
+```{r}
+POBSTRU$ind_id <- paste0("ind_", seq_len(nrow(POBSTRU)))#Crear un ID único para cada individuo
+head(POBSTRU$ind_id)
+#Construir la matriz hospedero × individuo
+comm_host_ind <- table(POBSTRU$forof, POBSTRU$ind_id)
+comm_host_ind <- as.matrix(comm_host_ind)# Convierte a matriz:
+dim(comm_host_ind)#Verificar que la matriz está bien construida
+range(comm_host_ind)
+rowSums(comm_host_ind)[1:10]
+#Chequeo crítico de coherencia---cada individuo pertenece a un solo hospedero
+all(colSums(comm_host_ind) == 1)
+
+```
+Paso 3: disimilitud funcional ENTRE hospederos
+matriz de disimilitud funcional entre hospederos (usando la matriz funcional de individuos + la matriz comunitaria) PCoA+ euclidiana
+```{r}
+#PCoA sobre rasgos individuales
+pcoa_fun <- cmdscale(dist_fun_ind, k = 2, eig = TRUE)
+pcoa_fun$eig
+#3B. Coordenadas funcionales por individuo
+fun_axes <- as.data.frame(pcoa_fun$points)
+colnames(fun_axes) <- c("F1", "F2")
+#3C. Asociar individuos a hospederos
+fun_axes$forof <- POBSTRU$forof
+#3D. Promediar por hospedero (comunidad funcional)
+library(dplyr)
+
+fun_host <- fun_axes %>%
+  group_by(forof) %>%
+  summarise(
+    F1 = mean(F1),
+    F2 = mean(F2)
+  )
+#3E. Matriz funcional hospedero × ejes
+row.names(fun_host) <- fun_host$forof
+fun_host <- fun_host[, -1]
+#3F. Distancia funcional ENTRE hospederos
+dist_fun_host <- dist(fun_host, method = "euclidean")
+
+```
+Paso 4: matriz ambiental a nivel hospedero
+Construir env_host
+```{r}
+library(dplyr)
+env_host <- as.data.frame(env_host)
+row.names(env_host) <- env_host$forof
+env_host$forof <- NULL
+str(env_host)
+all(row.names(env_host) == labels(dist_fun_host))
+```
+Paso 5: análisis para probar efecto de la elevación
+dbRDA y PERMANOVA funcional
+Solo explico el 7,6 %de la variacion funcional entre las comunidades de epis a nivel de forofitos
+```{r}
+library(vegan)
+dbrda_fun <- capscale(
+  dist_fun_host ~ elevation + dap + height,
+  data = env_host
+)
+summary(dbrda_fun)
+anova(dbrda_fun, permutations = 999)#modelo global
+anova(dbrda_fun, by = "terms", permutations = 999) #Por variable
+RsquareAdj(dbrda_fun)#R² ajustado
+```
+dbRDA parcial solo efecto de la elevation
+no fue significativo por lo q la elevacion no tiene un efecto independiente sobre la estructura funcional de las comunidades de epis a nivel de hospederos 
+```{r}
+dbrda_elev <- capscale(
+  dist_fun_host ~ elevation + Condition(dap + height),
+  data = env_host
+)
+
+anova(dbrda_elev, permutations = 999)
+
+```
+
+```{r}
+summary(lm(dap ~ elevation, data = env_host))
+summary(lm(height ~ elevation, data = env_host))
+
+```
+Conclusión
+La elevación no estuvo asociada con variaciones en el diámetro del hospedero (p = 0.49), pero mostró una relación negativa y débil con la altura del árbol (p = 0.023). Sin embargo, solo el diámetro del hospedero explicó significativamente la variación funcional entre comunidades de epífitas, mientras que la altura no tuvo efectos detectables.
+

@@ -1,0 +1,5 @@
+"0",""
+"0","##solo especie que estan en tods los plots"
+"0","tabla_presentes_todos <- tabla_indiv_por_plot %>%"
+"0","  filter(if_all(-morphospe, ~ .x > 0))"
+"0","tabla_presentes_todos"

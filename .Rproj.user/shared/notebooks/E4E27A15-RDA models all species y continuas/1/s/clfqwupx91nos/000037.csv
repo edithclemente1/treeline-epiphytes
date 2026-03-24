@@ -1,0 +1,8 @@
+"0",""
+"0","text("
+"0","  scores_Y[,1],"
+"0","  scores_Y[,2],"
+"0","  labels = rownames(scores_Y),"
+"0","  col = ""red"","
+"0","  pos = 4"
+"0",")"

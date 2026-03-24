@@ -1,0 +1,4 @@
+"0",""
+"0","# Centroides de especies"
+"0","points(centroides_sp$RDA1, centroides_sp$RDA2,"
+"0","       pch = 21, bg = ""darkgreen"", col = ""black"", cex = 1)"

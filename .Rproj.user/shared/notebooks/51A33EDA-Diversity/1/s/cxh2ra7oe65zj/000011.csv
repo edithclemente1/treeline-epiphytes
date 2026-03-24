@@ -1,0 +1,4 @@
+"0","ABUNDPLOT <- data %>%"
+"0","  group_by(plot, elevation) %>%"
+"0","  summarise(ABUNDANCIA = n())     #Cuenta numero de individuos"
+"0","ABUNDPLOT"

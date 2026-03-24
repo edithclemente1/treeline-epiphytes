@@ -1,0 +1,6 @@
+"0",""
+"0","# Flechas ambientales (X)"
+"0","arrows(0, 0,"
+"0","       scores(mod_rda, display = ""bp"", scaling = 2)[,1],"
+"0","       scores(mod_rda, display = ""bp"", scaling = 2)[,2],"
+"0","       length = 0.08, col = ""blue"", lwd = 2)"

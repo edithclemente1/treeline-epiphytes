@@ -1,0 +1,4 @@
+"0","ggplot(nmds_points, aes(NMDS1, NMDS2, color = plot)) +"
+"0","  geom_point(size = 2, alpha = 0.6) +"
+"0","  stat_ellipse(level = 0.95) +"
+"0","  theme_minimal()"

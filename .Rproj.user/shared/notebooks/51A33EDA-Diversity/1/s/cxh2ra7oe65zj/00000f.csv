@@ -1,0 +1,4 @@
+"0","RIQPLOT <- data %>%"
+"0","  group_by(plot, elevation) %>%              # Agrupa por árbol"
+"0","  summarise(RIQUEZA = n_distinct(morphospe)) # Cuenta especies únicas"
+"0","RIQPLOT"

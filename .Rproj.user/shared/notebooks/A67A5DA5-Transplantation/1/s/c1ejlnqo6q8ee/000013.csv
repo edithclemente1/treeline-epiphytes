@@ -1,0 +1,8 @@
+"0","transplant_data <- read_delim(
+  transplant_data,
+  delim = "";"",
+  locale = locale(decimal_mark = "","")
+)
+"
+"2","Error: 'C:/Users/berte/Documents/1Masterarbeit/R_Git/treeline-epiphyte-experiment/data/02_processed/transplantation_merged.csv' does not exist.
+"

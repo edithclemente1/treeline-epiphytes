@@ -1,0 +1,4 @@
+"0",""
+"0","DIVERFORO <- DIVERFORO %>%          #juntar"
+"0","  left_join(data_tree, by = ""forof"")"
+"0","DIVERFORO"

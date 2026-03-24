@@ -1,0 +1,21 @@
+"0","png(""species_accumulation_curve.png"",
+    width = 2500, height = 1400, res = 300)
+
+curva <- specaccum(matriz_sol, method = ""random"")
+
+plot(curva,
+     xlab = ""Host trees"",
+     ylab = ""Cumulative species richness"",
+     main = ""Species accumulation curve"",
+     col = ""blue"", lwd = 2,
+     ci.type = ""polygon"",
+     ci.col = ""lightblue"")
+
+dev.off()
+"
+"1","null device "
+"1","
+"
+"1","          1 "
+"1","
+"

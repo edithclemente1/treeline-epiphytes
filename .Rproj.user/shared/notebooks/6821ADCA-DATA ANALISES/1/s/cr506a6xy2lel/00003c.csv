@@ -1,0 +1,7 @@
+"0","ggsave("
+"0","  filename = ""Fig_Riqueza_DAP.png"","
+"0","  width = 18,      # ancho en cm"
+"0","  height = 14,     # alto en cm"
+"0","  units = ""cm"","
+"0","  dpi = 300"
+"0",")"

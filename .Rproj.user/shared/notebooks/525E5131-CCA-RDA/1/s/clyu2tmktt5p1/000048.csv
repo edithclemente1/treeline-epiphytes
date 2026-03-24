@@ -1,0 +1,2 @@
+"0","text(env[,1], env[,2], labels = rownames(env), "
+"0","     col = ""red"", pos = 3, cex = 1)"

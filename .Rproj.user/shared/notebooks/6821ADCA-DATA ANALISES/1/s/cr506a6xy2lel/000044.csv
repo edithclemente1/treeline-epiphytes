@@ -1,0 +1,8 @@
+"0","#Guardar la imagen"
+"0","ggsave("
+"0","  filename = ""Fig_Abundancia_DAP_altura.png"","
+"0","  width = 18,      # ancho en cm"
+"0","  height = 16,     # alto en cm"
+"0","  units = ""cm"","
+"0","  dpi = 300"
+"0",")"

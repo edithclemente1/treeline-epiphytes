@@ -1,0 +1,6 @@
+"0",""
+"0","conteo_forof <- data %>%"
+"0","  distinct(forof, .keep_all = TRUE) %>%  # elimina duplicados si los hubiera"
+"0","  group_by(plot) %>%"
+"0","  summarise(n_forofitos = n())"
+"0","conteo_forof"

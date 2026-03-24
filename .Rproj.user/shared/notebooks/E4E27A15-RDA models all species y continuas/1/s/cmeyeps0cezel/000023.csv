@@ -1,0 +1,7 @@
+"0",""
+"0","# nombres de flechas"
+"0","text(env[,1], env[,2],"
+"0","     labels = rownames(env),"
+"0","     col = ""blue"","
+"0","     font = 2,"
+"0","     pos = 3)"

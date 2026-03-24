@@ -1,0 +1,5 @@
+"0",""
+"0","data_tree <- data %>%            #Tabla con datos del forofito "
+"0","  group_by(forof) %>%"
+"0","  distinct(forof, dap, plot, genera_tree, elevation)"
+"0","data_tree"

@@ -1,0 +1,7 @@
+"0","ggsave("
+"0","  filename = ""Hill_profile.png"","
+"0","  plot = last_plot(),       # o el nombre de tu objeto ggplot si lo guardaste"
+"0","  width = 8,                # ancho en pulgadas"
+"0","  height = 6,               # alto en pulgadas"
+"0","  dpi = 300                 # resolución recomendada para revistas"
+"0",")"

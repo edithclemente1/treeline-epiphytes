@@ -1,0 +1,8 @@
+"0","ggsave("
+"0","  filename = ""Fig_DBH_epiphytes_by_elevation.png"","
+"0","  width = 18,"
+"0","  height = 10,"
+"0","  units = ""cm"","
+"0","  dpi = 300"
+"0",")"
+"0",""

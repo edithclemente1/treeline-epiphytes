@@ -1,0 +1,6 @@
+"0","# Combinar ambos gráficos con un título general"
+"0","(g1 + g2) +"
+"0","  plot_annotation("
+"0","    title = ""Comparison of species abundance"","
+"0","    subtitle = ""Left: most abundant species overall | Right: species present at all elevations"""
+"0","  )"

@@ -1,0 +1,4 @@
+"0","points(coords$CAP1, coords$CAP2,"
+"0","       pch = 21,"
+"0","       bg = as.numeric(as.factor(coords$plot)),"
+"0","       cex = 1.2)"

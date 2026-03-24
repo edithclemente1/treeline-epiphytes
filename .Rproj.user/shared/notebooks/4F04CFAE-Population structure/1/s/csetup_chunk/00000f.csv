@@ -1,0 +1,51 @@
+"0","knitr::opts_chunk$set(echo = TRUE)"
+"0","library(dplyr)"
+"0","library(ggplot2)"
+"0","library(vegan)"
+"0","library(patchwork)"
+"0","library(tidyr)"
+"0","library(scales)"
+"0","library(FSA)"
+"0","install.packages(c(""rcompanion""))"
+"0","library(rcompanion)"
+"0","install.packages(""janitor"")"
+"2","G3;Installing package into ‘C:/Users/edith clemente arena/AppData/Local/R/win-library/4.4’
+(as ‘lib’ is unspecified)
+g"
+"2","probando la URL 'https://cran.rstudio.com/bin/windows/contrib/4.4/janitor_2.2.1.zip'
+"
+"2","Content type 'application/zip'"
+"2"," length 292954 bytes (286 KB)
+"
+"2","downloaded 286 KB
+
+"
+"1","package ‘janitor’ successfully unpacked and MD5 sums checked
+"
+"1","
+"
+"1",""
+"1","The downloaded binary packages are in
+	C:\Users\edith clemente arena\AppData\Local\Temp\RtmpOCGSWw\downloaded_packages"
+"1",""
+"1","
+"
+"0","install.packages(c(""rcompanion""))"
+"2","Aviso:"
+"2"," package ‘rcompanion’ is in use and will not be installed
+"
+"0","install.packages(""stringi"")"
+"0","library(dplyr)"
+"0","library(janitor)"
+"2","G3;
+Adjuntando el paquete: ‘janitor’
+
+g"
+"2","G3;The following objects are masked from ‘package:stats’:
+
+    chisq.test, fisher.test
+
+g"
+"0","library(stringi)"
+"0","library(dplyr)"
+"0","library(janitor)"

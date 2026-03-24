@@ -1,0 +1,7 @@
+"0",""
+"0","# centroides de elevación"
+"0","text("
+"0","  scores(mod_rda_sp, display = ""cn"", scaling = 2),"
+"0","  col = ""blue"","
+"0","  cex = 1.1"
+"0",")"

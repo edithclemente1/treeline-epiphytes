@@ -1,0 +1,5 @@
+"0",""
+"0","#############################nombres del plot"
+"0","coords <- as.data.frame(scores(mod, display = ""sites""))"
+"0","coords$plot <- env$plot"
+"0","plot(mod, type = ""n"")   # gráfico vacío"

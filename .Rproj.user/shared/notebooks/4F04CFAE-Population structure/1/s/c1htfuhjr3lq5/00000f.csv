@@ -1,0 +1,3 @@
+"0","#PARA l_leaf_steam"
+"0","# 1. Mira la distribución de tus datos"
+"0","hist(POBSTRU$l_leaf_stem)"

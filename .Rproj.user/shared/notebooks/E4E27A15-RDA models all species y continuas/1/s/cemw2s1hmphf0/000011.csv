@@ -1,0 +1,4 @@
+"0",""
+"0","points(centroides$RDA1, centroides$RDA2,"
+"0","       pch = 21, bg = cols[centroides$elevation],"
+"0","       cex = 2)"

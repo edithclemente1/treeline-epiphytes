@@ -1,0 +1,964 @@
+---
+title: "Analisis por objetivo"
+author: "Edith"
+date: "2026-02-21"
+output: html_document
+---
+OB.1: Cuantificar la variación en la riqueza, abundancia y composición de epífitas vasculares a lo largo del gradiente elevacional hacia el treeline.
+
+Data EPIFITAS/ARBOLES treeline
+```{r pressure, echo=FALSE}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+#FOROFITOS
+data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+hospepi <- data %>% ###TABLA DE DATOS POBLACIONALES
+  dplyr::select(plot, elevation, forof,morphospe, family, genera_tree, dap, height)
+str(hospepi)
+#ARBOLES
+trees <- read.csv("treealtu.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+tree <- trees %>% ###TABLA DE DATOS POBLACIONALES
+  dplyr::select(plot, elevation, tagtree,family, genus, NC, DBH, H)
+str(tree)
+
+#resumir epifitas por forofito
+epi_por_arbol <- hospepi %>%
+  group_by(forof, plot, elevation, genera_tree, dap, height) %>%
+  summarise(
+    presencia_epifitas = 1,
+    riqueza = n_distinct(morphospe),
+    abundancia_total = n(),
+    .groups = "drop"
+  )
+#unificar nombres tree
+tree2 <- tree %>%
+  rename(
+    forof = tagtree,
+    genera_tree = genus,
+    dap = DBH,
+    height = H
+  )
+epi_por_arbol <- hospepi %>%
+  group_by(forof) %>%
+  summarise(
+    presencia_epifitas = 1,
+    riqueza = n_distinct(morphospe),
+    abundancia = n(),
+    .groups = "drop"
+  )
+#unir tablas 
+arboles <- tree2 %>%
+  left_join(epi_por_arbol, by = "forof") %>%
+  mutate(
+    presencia_epifitas = ifelse(is.na(presencia_epifitas), 0, presencia_epifitas),
+    riqueza = ifelse(is.na(riqueza), 0, riqueza),
+    abundancia = ifelse(is.na(abundancia), 0, abundancia)
+  )
+nrow(arboles)                 # debe ser 193
+table(arboles$presencia_epifitas)# arboles con y sin epifitas
+table(arboles$plot, arboles$presencia_epifitas)#para ver cuantos arboles estan con epifitas POR PLOT
+```
+paquetes
+```{r}
+library(dplyr)
+library(tidyr)
+library(car)
+library(stringi)
+library(lme4)
+library(performance)
+library(emmeans)
+library(sjmisc)
+library(sjPlot)
+library(ggplot2)
+library(vegan)
+library(betapart)
+library(MASS)
+library(patchwork)
+library(readr)
+library(lubridate)
+library(emmeans)
+library(ggpubr)
+library(glmmTMB)
+library(ggeffects)
+#install.packages("DHARMa")
+library(DHARMa)
+```
+1.- RIQUEZA 
+```{r}
+#Riqueza mejor fit con elevacion como factor y hacer anova con grafico de boxplot con resultados de pairwise. 20FEB
+arboles$elev_f <- factor(arboles$elevation)
+
+m_riq <- glmer(riqueza ~ elev_f + (1|forof),
+                family=poisson, data=arboles)
+summary(m_riq)
+Anova(m_riq)
+check_model(m_riq)###valuar de forma rápida y visual si un modelo estadístico está bien especificado y si cumple los supuestos.1. linealidad, 2. homocedasticidad, 3. Normalidad de residuos, 4. Valores atipicos e influencia, 4. Colinearidad, Ajuste general del modelo
+library(performance)##cuando no muestra el plot hace otra ventana
+dev.new()
+check_model(m_riq)
+#################Modelo Binomial Negativo
+m_ri <- glmmTMB(
+  riqueza ~ elev_f + (1 | forof),
+  family = nbinom2,
+  data = arboles
+)
+library(performance)##cuando no muestra el plot hace otra ventana
+dev.new()
+check_model(m_ri)
+summary(m_ri)
+Anova(m_ri)
+#comparacion por pares
+emmeans(m_riq, list(pairwise ~ elev_f), adjust = "tukey")
+#revisar overdispersion
+check_overdispersion(m_riq)#sin overdispercion
+```
+Grafico BOXPLOT CON COMPARACIONES TUKEY
+```{r}
+#Extraer las comparaciones de emmeans como data frame
+em <- emmeans(m_riq, ~ elev_f)
+pairs_dif <- pairs(em, adjust = "tukey") %>%
+  as.data.frame()
+#data frame para ggplot
+pairs_dif <- pairs_dif %>%
+  separate(contrast, into = c("group1", "group2"), sep = " - ") %>%
+  mutate(
+    group1 = gsub("elev_f", "", group1),
+    group2 = gsub("elev_f", "", group2),
+    y.position = max(arboles$riqueza) + 
+                 seq(0.2, by = 0.2, length.out = n())
+  )
+
+#GRAFICO con asteriscos
+colnames(pairs_dif)
+pairs_dif <- pairs_dif %>%
+  mutate(
+    p.signif = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*",
+      TRUE            ~ "ns"
+    )
+  )
+g_riqueza <- ggplot(arboles, aes(elev_f, riqueza)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1, alpha = 0.4) +
+  stat_pvalue_manual(
+    pairs_dif,
+    label = "p.signif",
+    tip.length = 0.01
+  ) +
+  theme_classic() +
+  ylab("Epiphyte species richness per tree") +
+  xlab("Elevation (m)")
+g_riqueza
+#corregir visualmente
+pairs_si <- pairs_dif %>%
+  filter(p.value < 0.05)
+pairs_si <- pairs_si %>%
+  mutate(
+    y.position = max(arboles$riqueza, na.rm = TRUE) +
+                 seq(2, by = 2, length.out = n())
+  )
+g_richness <- ggplot(arboles, aes(elev_f, riqueza)) +
+  geom_boxplot(width = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.5, size = 1.8) +
+  stat_pvalue_manual(
+    pairs_si,
+    label = "p.signif",
+    tip.length = 0.01
+  ) +
+  theme_classic(base_size = 14) +
+  ylab("Epiphyte species richness") +
+  xlab("Elevation (m)")
+g_richness
+#caption grafico: Boxes show median and interquartile range. Points represent individual trees.Asterisks indicate significant pairwise differences among elevations based on Tukey-adjusted estimated marginal means derived from the GLMM (* p < 0.05, ** p < 0.01).
+```
+
+2.- ABUNDANCIA
+```{r}
+arboles$elev_f <- factor(arboles$elevation)
+##############################################Modelos POISON 
+########modelo ELEV factor
+m_abu <- glmer(abundancia ~ elev_f + (1|forof),
+                family=poisson, data=arboles)
+summary(m_abu)
+Anova(m_abu)
+check_model(m_abu)###valuar de forma rápida y visual si un modelo estadístico está bien especificado y si cumple los supuestos.1. linealidad, 2. homocedasticidad, 3. Normalidad de residuos, 4. Valores atipicos e influencia, 4. Colinearidad, Ajuste general del modelo
+#comparacion por pares
+library(performance)##cuando no muestra el plot hace otra ventana
+dev.new()
+check_model(m_abu)
+#revisar overdispersion
+check_overdispersion(m_abu)#sin overdispercion
+emmeans(m_abu, list(pairwise ~ elev_f), adjust = "tukey")#comparando pares
+
+###########Modelo ELEV numerico escalado
+arboles$elev_z <- scale(arboles$elevation)
+arboles$elev_z <- as.numeric(arboles$elev_z)
+m_abuz <- glmer(abundancia ~ elev_z + (1|forof),
+                family=poisson, data=arboles)
+summary(m_abuz)
+Anova(m_abuz)
+check_model(m_abuz)#
+library(performance)##cuando no muestra el plot hace otra ventana
+dev.new()
+check_model(m_abuz)
+
+##########################################Modelo binomial negativo mixto
+#######modelo ELEV factor
+m_abund_nb_f <- glmmTMB(
+  abundancia ~ elev_f + (1 | forof),
+  family = nbinom2,
+  data = arboles
+)
+summary(m_abund_nb_f)
+library(performance)##cuando no muestra el plot hace otra ventana
+dev.new()
+check_model(m_abund_nb_f)
+
+###########Modelo ELEV numerico escalado 
+m_abund_nb_z <- glmmTMB(
+  abundancia ~ elev_z + (1 | forof),
+  family = nbinom2,
+  data = arboles
+)
+summary(m_abund_nb_z)
+library(performance)##cuando no muestra el plot hace otra ventana
+dev.new()
+check_model(m_abund_nb_z)
+######DIAGNOSTICO
+res_f <- simulateResiduals(m_abund_nb_f)
+plot(res_f)
+
+res_z <- simulateResiduals(m_abund_nb_z)
+plot(res_z)
+AIC(m_abund_nb_f, m_abund_nb_z)
+##(segun el FIT es mejor de check_model()es mejoe m_abund_nb_z pero segun AIC indica que mejor es m_abund_nb_f ) y Conclui que usare m_abund_nb_f porque el modelo con elev_f explica mucho mejor la variación en abundancia.
+```
+Modelo elegido 
+```{r}
+m_abund_nb_f <- glmmTMB(
+  abundancia ~ elev_f + (1 | forof),
+  family = nbinom2,
+  data = arboles
+)
+summary(m_abund_nb_f)
+Anova(m_abund_nb_f, type = "II")#importancia de cada variable 
+```
+Grafico CON COMPARACIONES
+```{r}
+############################################################
+## MODELO YA AJUSTADO:
+## m_abund_nb_f (binomial negativo mixto)
+############################################################
+## ORDENAR EL FACTOR DE ELEVACIÓN (importante)
+############################################################
+
+arboles$elev_f <- factor(
+  arboles$elev_f,
+  levels = c("3261", "3402", "3537", "3625")
+)
+
+############################################################
+## EMMEANS Y COMPARACIONES (Tukey) – ESCALA RESPUESTA
+############################################################
+
+emm_abun <- emmeans(
+  m_abund_nb_f,
+  ~ elev_f,
+  type = "response"   # abundancia real
+)
+
+pairs_abun <- pairs(emm_abun, adjust = "tukey") |> as.data.frame()
+
+# Ver resultados
+emm_abun
+pairs_abun
+
+############################################################
+## GRÁFICO FINAL CON ANOTACIÓN MANUAL
+############################################################
+
+g_abundance <- ggplot(arboles, aes(elev_f, abundancia)) +
+
+  # boxplots y puntos
+  geom_boxplot(width = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.5, size = 1.8) +
+
+  # comparación significativa (3402 vs 3537)
+  geom_segment(
+    aes(x = 2, xend = 3, y = 450, yend = 450),
+    inherit.aes = FALSE
+  ) +
+  geom_segment(
+    aes(x = 2, xend = 2, y = 420, yend = 450),
+    inherit.aes = FALSE
+  ) +
+  geom_segment(
+    aes(x = 3, xend = 3, y = 420, yend = 450),
+    inherit.aes = FALSE
+  ) +
+
+  # asteriscos de significancia
+  annotate(
+    "text",
+    x = 2.5, y = 480,
+    label = "***",
+    size = 6
+  ) +
+
+  # escala log SOLO visual
+  scale_y_log10() +
+  coord_cartesian(ylim = c(1, 650)) +
+
+  # estética final
+  theme_classic(base_size = 14) +
+  ylab("Epiphyte abundance (log scale)") +
+  xlab("Elevation (m)")
+
+g_abundance
+```
+
+GRAFICO FILTRO ELEVACION
+```{r}
+fig_ELEVATION <- g_richness + g_abundance +
+  plot_layout(ncol = 2) +
+  plot_annotation(tag_levels = "A")
+fig_ELEVATION
+ggsave(
+  "Fig_FILTRO ELEVATION.tiff",
+  plot = fig_ELEVATION,
+  width = 20,
+  height = 10,
+  units = "cm",
+  dpi = 600,
+  compression = "lzw"
+)
+ggsave(
+  "Fig_FILTRO ELEVATION.png",
+  plot = fig_ELEVATION,
+  width = 20,
+  height = 12,
+  units = "cm",
+  dpi = 600
+)
+##ESPAÑOL
+g_riqueza <- g_richness +labs(
+    x = "Elevación (m)",
+    y = "Riqueza de epífitas"
+  )
+  
+g_abundancia <- g_abundance+  labs(
+    x = "Elevación (m)",
+    y = "Abundancia de epífitas (escala log)"
+  )
+fig_ELEVACION <- g_riqueza + g_abundancia +
+  plot_layout(ncol = 2) +
+  plot_annotation(tag_levels = "A")
+fig_ELEVACION
+ggsave(
+  "Fig_FILTRO ELEVACION.png",
+  plot = fig_ELEVACION,
+  width = 20,
+  height = 10,
+  units = "cm",
+  dpi = 600
+)
+```
+Figure 5. Effects of elevation on epiphyte richness and abundance.
+Epiphyte species richness (A) and epiphyte abundance per tree (B) across four elevational bands. Boxplots show median and interquartile range, with whiskers indicating 1.5 × IQR, and points represent individual trees. Pairwise differences among elevational bands were assessed using post hoc Tukey comparisons; asterisks indicate significant contrasts (* p < 0.05, ** p < 0.01, *** p < 0.001). Abundance is shown on a logarithmic scale to improve visualization of the wide range of values.
+
+3.- COMPOSICION
+```{r}
+
+```
+
+OB.2: Evaluar la influencia de la estructura (DAP y altura) y la identidad taxonómica (género) del árbol hospedero sobre la riqueza y abundancia de epífitas, controlando el efecto de la elevación.
+
+1.- RIQUEZA
+```{r}
+#preparacion de datos escalar var numericas y elevacion como factor 
+arboles$dap_z     <- scale(arboles$dap)
+arboles$height_z  <- scale(arboles$height)
+arboles$elev_z    <- scale(arboles$elevation)
+arboles$elev_f      <- as.factor(arboles$elevation)
+m_ricnb_h <- glmmTMB(
+  riqueza ~ dap_z + height_z + (1 | elev_f),
+  family = nbinom2,
+  data = arboles
+)
+summary(m_ricnb_h)
+Anova(m_ricnb_h, type = "II")
+```
+Grafico
+```{r}
+######################DAP
+#GRAFICO con ejes reales pero usando la curva de prediccion
+dap_mean <- attr(arboles$dap_z, "scaled:center")
+dap_sd   <- attr(arboles$dap_z, "scaled:scale")
+pred_dap <- ggpredict(m_ricnb_h, terms = "dap_z")
+pred_dap$dap_real <- pred_dap$x * dap_sd + dap_mean
+
+G_RIQ_DAP<- ggplot() +
+  # Datos observados
+  geom_point(
+    data = arboles,
+    aes(dap, riqueza),
+    alpha = 0.4
+  ) +
+  # Predicción del modelo
+  geom_line(
+    data = pred_dap,
+    aes(dap_real, predicted),
+    size = 1
+  ) +
+  # Intervalo de confianza 95 %
+  geom_ribbon(
+    data = pred_dap,
+    aes(dap_real, ymin = conf.low, ymax = conf.high),
+    alpha = 0.25
+  ) +
+  # Etiquetas de ejes
+  xlab("DBH (cm)") +
+  ylab("Epiphyte species richness") +
+
+  # Estilo final
+  theme_classic(base_size = 14)
+G_RIQ_DAP
+
+###########ALTURA
+pred_height <- ggpredict(
+  m_ricnb_h,
+  terms = "height_z"
+)
+height_mean <- attr(arboles$height_z, "scaled:center")
+height_sd   <- attr(arboles$height_z, "scaled:scale")
+pred_height$height_real <- pred_height$x * height_sd + height_mean
+#GRAFICO
+G_RIQ_H <- ggplot() +
+
+  # Datos observados
+  geom_point(
+    data = arboles,
+    aes(height, riqueza),
+    alpha = 0.4
+  ) +
+
+  # Predicción del modelo
+  geom_line(
+    data = pred_height,
+    aes(height_real, predicted),
+    size = 1
+  ) +
+
+  # Intervalo de confianza 95 %
+  geom_ribbon(
+    data = pred_height,
+    aes(height_real, ymin = conf.low, ymax = conf.high),
+    alpha = 0.25
+  ) +
+
+  # Etiquetas
+  xlab("Tree height (m)") +
+  ylab("Epiphyte species richness") +
+
+  # Estilo final
+  theme_classic(base_size = 14)
+G_RIQ_H
+
+G_RIQ_H <- G_RIQ_H + #quita el eje del 2 plot
+  theme(
+    axis.title.y = element_blank(),
+    axis.text.y  = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+#grafico junto
+fig_riq_tree <- G_RIQ_DAP + G_RIQ_H +
+  plot_layout(ncol = 2) +
+  plot_annotation(tag_levels = "NULL")
+G_RIQ_DAP <- G_RIQ_DAP +
+  labs(tag = "A")
+
+fig_riq_tree <- G_RIQ_DAP + G_RIQ_H +
+  plot_layout(ncol = 2)
+
+ggsave(
+  filename = "Fig_riqueza_host_structure.tiff",
+  plot     = fig_riq_tree,
+  width    = 18,     # cm
+  height   = 9,      # cm
+  units    = "cm",
+  dpi      = 600,
+  compression = "lzw"
+)
+```
+Figure 4. Effects of host tree structure on epiphyte species richness.
+Predicted marginal effects of (A) diameter at breast height (DBH) and (B) tree height on epiphyte species richness per tree. Points represent observed richness values, and solid lines with shaded areas indicate predictions from negative binomial mixed-effects models and 95% confidence intervals. Elevational band was included as a random effect to account for variation associated with elevation.
+
+
+2.- ABUNDANCIA
+```{r}
+#MODELO
+m_abunb_h <- glmmTMB(
+  abundancia ~ dap_z + height_z + (1 | elev_f),
+  family = nbinom2,
+  data = arboles
+)
+summary(m_abunb_h)
+Anova(m_abunb_h, type = "II")
+```
+Graficos
+```{r}
+#####DAP
+#predicciones marginales
+pred_dap_abun <- ggpredict(
+  m_abunb_h,
+  terms = "dap_z"
+)
+#volver a DAP real 
+dap_mean <- attr(arboles$dap_z, "scaled:center")
+dap_sd   <- attr(arboles$dap_z, "scaled:scale")
+
+pred_dap_abun$dap_real <- pred_dap_abun$x * dap_sd + dap_mean
+#grafico dap con escala real en los ejes
+ ggplot() +
+  # Datos observados
+  geom_point(
+    data = arboles,
+    aes(dap, abundancia),
+    alpha = 0.35
+  ) +
+  # Predicción del modelo
+  geom_line(
+    data = pred_dap_abun,
+    aes(dap_real, predicted),
+    size = 1
+  ) +
+  # IC 95 %
+  geom_ribbon(
+    data = pred_dap_abun,
+    aes(dap_real, ymin = conf.low, ymax = conf.high),
+    alpha = 0.25
+  ) +
+  xlab("DBH (cm)") +
+  ylab("Epiphyte abundance per tree") +
+  theme_classic(base_size = 14)
+#grafico dap con scale_y_log10()
+G_ABU_DAP <- ggplot() +
+
+  geom_point(
+    data = arboles,
+    aes(dap, abundancia),
+    alpha = 0.35
+  ) +
+
+  geom_line(
+    data = pred_dap_abun,
+    aes(dap_real, predicted),
+    size = 1
+  ) +
+
+  geom_ribbon(
+    data = pred_dap_abun,
+    aes(dap_real, ymin = conf.low, ymax = conf.high),
+    alpha = 0.25
+  ) +
+
+  scale_y_log10() +   # SOLO VISUAL
+  xlab("DBH (cm)") +
+  ylab("Epiphyte abundance (log scale)") +
+  theme_classic(base_size = 14)
+#CAPTION DEL GRAFICO: Predicted marginal effect of host tree diameter (DBH) on epiphyte abundance. The y-axis is shown on a logarithmic scale to improve visualization of the wide range of abundance values. Points represent observed data, and the line and shaded area indicate model predictions and 95% confidence intervals.
+
+###########ALTURA
+#Predicciones marginales
+pred_height_abun <- ggpredict(
+  m_abunb_h,
+  terms = "height_z"
+)
+#Volver a altura real
+height_mean <- attr(arboles$height_z, "scaled:center")
+height_sd   <- attr(arboles$height_z, "scaled:scale")
+pred_height_abun$height_real <- pred_height_abun$x * height_sd + height_mean
+#grafico altura con escala real en los ejes
+ggplot() +
+  # Datos observados
+  geom_point(
+    data = arboles,
+    aes(height, abundancia),
+    alpha = 0.35
+  ) +
+  # Predicción del modelo
+  geom_line(
+    data = pred_height_abun,
+    aes(height_real, predicted),
+    size = 1
+  ) +
+  # IC 95 %
+  geom_ribbon(
+    data = pred_height_abun,
+    aes(height_real, ymin = conf.low, ymax = conf.high),
+    alpha = 0.25
+  ) +
+  xlab("Tree height (m)") +
+  ylab("Epiphyte abundance per tree") +
+  theme_classic(base_size = 14)
+
+#grafico altura con con scale_y_log10()
+## PREDICCIONES MARGINALES PARA ALTURA
+pred_height_abun <- ggpredict(
+  m_abunb_h,
+  terms = "height_z"
+)
+## VOLVER A ALTURA REAL (m)
+height_mean <- attr(arboles$height_z, "scaled:center")
+height_sd   <- attr(arboles$height_z, "scaled:scale")
+pred_height_abun$height_real <- pred_height_abun$x * height_sd + height_mean
+
+## GRÁFICO FINAL (ALTURA vs ABUNDANCIA, LOG)
+G_ABU_H <- ggplot() +
+  # Datos observados
+  geom_point(
+    data = arboles,
+    aes(height, abundancia),
+    alpha = 0.35
+  ) +
+  # Predicción del modelo
+  geom_line(
+    data = pred_height_abun,
+    aes(height_real, predicted),
+    size = 1
+  ) +
+  # Intervalo de confianza 95 %
+  geom_ribbon(
+    data = pred_height_abun,
+    aes(height_real, ymin = conf.low, ymax = conf.high),
+    alpha = 0.25
+  ) +
+  # Escala log SOLO visual
+  scale_y_log10(limits = c(1, NA)) +
+  # Etiquetas
+  xlab("Tree height (m)") +
+  ylab("Epiphyte abundance (log scale)") +
+  # Estilo
+  theme_classic(base_size = 14)
+
+G_ABU_H <- G_ABU_H +#QUITA EL EJE Y DEL GRAFICO B
+  theme(
+    axis.title.y = element_blank(),
+    axis.text.y  = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+#GRAFICO JUNTO 
+fig_abun_tree <- G_ABU_DAP + G_ABU_H +
+  plot_layout(ncol = 2) +
+  plot_annotation(tag_levels = "NULL")
+G_ABU_DAP <- G_ABU_DAP +
+  labs(tag = "B")
+fig_abun_tree <- G_ABU_DAP + G_ABU_H +
+  plot_layout(ncol = 2)
+
+ggsave(
+  filename = "Fig_abundance_host_structure.tiff",
+  plot     = fig_abun_tree,
+  width    = 18,     # cm
+  height   = 9,      # cm
+  units    = "cm",
+  dpi      = 600,
+  compression = "lzw"
+)
+```
+Figure 3. Effects of host tree structure on epiphyte abundance.
+Predicted marginal effects of (A) diameter at breast height (DBH) and (B) tree height on epiphyte abundance per tree. Points represent observed data, and solid lines with shaded areas indicate predictions from negative binomial mixed-effects models and 95% confidence intervals. Abundance is shown on a logarithmic scale to improve visualization of the wide range of values, while elevational band was included as a random effect.
+
+GRAFICO FILTRO HOSPEDERO 
+```{r}
+fig_riq_tree <- fig_riq_tree &
+  theme(
+    axis.title.x = element_blank(),
+    axis.text.x  = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+fig_HOST <- fig_riq_tree / fig_abun_tree +
+  plot_layout(heights = c(1, 1)) 
+
+ggsave(
+  filename = "Fig_FILTRO HOST TREE.tiff",
+  plot     = fig_HOST,
+  width    = 18,
+  height   = 18,
+  units    = "cm",
+  dpi      = 600,
+  compression = "lzw"
+)
+ggsave(
+  filename = "Fig_FILTRO HOST TREE.png",
+  plot     = fig_HOST,
+  width    = 18,
+  height   = 18,
+  units    = "cm",
+  dpi      = 600
+)
+
+#español
+#riqueza
+GR_RIQ_DAP <- G_RIQ_DAP +
+  labs(
+    x = "DAP (cm)",
+    y = "Riqueza de epífitas"
+  )
+
+GR_RIQ_H <- G_RIQ_H +
+  labs(
+    x = "Altura del árbol (m)",
+    y = "Riqueza de epífitas"
+  )
+#abundancia
+GR_ABU_DAP <- G_ABU_DAP +
+  labs(
+    x = "DAP (cm)",
+    y = "Abundancia de epífitas (escala log)"
+  )
+
+GR_ABU_H <- G_ABU_H +
+  labs(
+    x = "Altura del árbol (m)",
+    y = "Abundancia de epífitas (escala log)"
+  )
+#junte 
+fig_riq_arbol <- GR_RIQ_DAP + GR_RIQ_H +
+  plot_layout(ncol = 2) +
+  plot_annotation(tag_levels = "A")
+fig_riq_arbol <- fig_riq_arbol &
+  theme(
+    axis.title.x = element_blank(),
+    axis.text.x  = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+fig_abun_arbol <- GR_ABU_DAP + GR_ABU_H +
+  plot_layout(ncol = 2)
+fig_HOSP <- fig_riq_arbol / fig_abun_arbol +
+  plot_layout(heights = c(1, 1)) +
+  plot_annotation(tag_levels = "A")
+
+ggsave(
+  filename = "Fig_FILTRO HOSPEDERO.png",
+  plot     = fig_HOSP,
+  width    = 20,
+  height   = 14,
+  units    = "cm",
+  dpi      = 600
+)
+```
+Figure X. Effects of host tree structure on epiphyte richness and abundance. Predicted marginal effects of diameter at breast height (DBH) and tree height on epiphyte species richness (A, B) and epiphyte abundance (C, D). Points represent observed values, and solid lines with shaded areas indicate predictions from negative binomial mixed-effects models and 95% confidence intervals. Abundance is shown on a logarithmic scale, whereas richness is shown on a linear scale. Elevational band was included as a random effect in all models.
+
+3.- COMPOSICION
+```{r}
+
+```
+
+OB.3: Determinar la sobrevivencia de epífitas vasculares translocadas desde el treeline hacia la puna adyacente como prueba experimental de los límites climáticos para su persistencia.
+Data
+```{r}
+expdata <- read.csv("relocadata.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+str(expdata)      # Estructura de la base de datos
+head(expdata)
+colnames(expdata)
+#corregir datos extraños
+expdata <- expdata %>%
+  # Convierte todas las columnas tipo texto a UTF-8
+  mutate(across(where(is.character), ~ stri_encode(.x, from = "", to = "UTF-8"))) %>%
+  # Quita espacios en blanco y reemplaza vacíos por NA
+  mutate(across(everything(), ~ na_if(trimws(as.character(.x)), "")))
+###colocar NA en las celdas vacias
+expdata <- expdata %>%
+  mutate(across(where(is.character), ~iconv(.x, from = "", to = "UTF-8"))) %>%  # 🔧 corrige codificación
+  mutate(across(everything(), ~na_if(trimws(.x), "")))  # 🔄 reemplaza vacíos por NA
+str(expdata)
+
+##Preparar tabla de datos 
+data_model <- expdata[, c("epi_ID", "dead_alive", "relocation", "time", "branch_ID")]
+data_model$time <- factor(data_model$time)
+#recodificar variables 
+data_model$survive <- ifelse(data_model$dead_alive == "alive", 1, 0)
+data_model$relocation[data_model$relocation == "true"] <- "puna"
+data_model$relocation[data_model$relocation == "false"] <- "bosque"
+data_model$relocation <- factor(data_model$relocation)
+data_model$branch_ID <- factor(data_model$branch_ID)
+data_model$epi_ID <- factor(data_model$epi_ID)
+#QUITA LOS MUERTOS
+library(dplyr)
+data_model <- data_model %>%
+  arrange(epi_ID, time) %>%
+  group_by(epi_ID) %>%
+  mutate(dead_seen_before = lag(cumany(dead_alive == "dead"), default = FALSE)) %>%
+  filter(!dead_seen_before) %>%
+  ungroup() %>%
+  dplyr::select(-dead_seen_before)
+#Verificacion
+data_model %>%
+  arrange(epi_ID, time) %>%
+    dplyr::select(epi_ID, time, dead_alive, survive) %>%
+  print(n = 150)
+table(data_model$epi_ID)#cuenta cuantas observaciones por individuo
+table(data_model$time, data_model$survive)#ver los vivos o muertos por tiempos
+write.csv(data_model, "data_model.csv", row.names = FALSE)
+#Cambiar el nombre de la rama 
+library(dplyr)
+
+data_model <- data_model %>%
+  mutate(branch_ID = case_when(
+    branch_ID == "B01" ~ "PU01",
+    branch_ID == "B02" ~ "PU02",
+    branch_ID == "B03" ~ "PU03",
+    branch_ID == "B04" ~ "PU04",
+    branch_ID == "B05" ~ "PU05",
+    branch_ID == "B06" ~ "BO06",
+    branch_ID == "B07" ~ "BO07",
+    branch_ID == "B08" ~ "BO08",
+    branch_ID == "B09" ~ "BO09",
+    branch_ID == "B10" ~ "BO10"
+  )) %>%
+  mutate(branch_ID = factor(branch_ID))
+
+```
+el problema: es la variable relocation predice perfectamente el resultado y aparecen problemas como:
+coeficientes enormes
+errores estándar gigantes
+opciones:
+1. reportar solo la cantidad de vivos y muertos por tratamiento y hacer el modelo solo de la puna modelando solo el efecto del tiempo.
+2. Usar logistic regression penalizada (Firth). La regresión de Firth introduce una penalización en la verosimilitud para evitar que los coeficientes se vayan a infinito.
+3. Analizar la mortalidad solo dentro de puna.
+
+
+
+Modelo
+```{r}
+library(lme4)
+
+
+library(lme4)
+#modelo rama fijo
+model_glm_bra <- glm(
+  survive ~ relocation + time + branch_ID,
+  family = binomial,
+  data = data_model
+)
+summary(model_glm_bra)
+Anova(model_glm_bra)
+
+
+#modelo sin rama 
+model_glm_sra <- glm(
+  survive ~ relocation + time,
+  family = binomial,
+  data = data_model
+)
+summary(model_glm_sra)
+Anova(model_glm_sra)
+
+#modelo interaccion 
+model_glm_int <- glm(
+  survive ~ relocation*time,
+  family = binomial,
+  data = data_model
+)
+summary(model_glm_int)
+Anova(model_glm_int)
+
+
+str(data_model)
+summary(model)
+Anova(model)
+check_model(model)
+str(data_model2)
+table(data_model$survive)
+table(data_model$branch_ID,data_model$time, data_model$relocation)
+with(data_model, table(branch_ID, relocation))
+```
+
+SIMULANDOOOO
+```{r}
+#cargar la base simulada
+data_model_T5 <- read.csv("data_model_T5.csv")
+
+#preparar datos 
+data_model_T5$relocation <- factor(data_model_T5$relocation)
+data_model_T5$time <- factor(data_model_T5$time, levels = c("T1","T2","T3","T4","T5"))
+data_model_T5$branch_ID <- factor(data_model_T5$branch_ID)
+data_model_T5$epi_ID <- factor(data_model_T5$epi_ID)
+#modelo
+model_test <- glm(
+  survive ~ relocation + time,
+  family = binomial,
+  data = data_model_T5
+)
+summary(model_test)
+Anova(model_test)
+
+#modelo con rama
+model_testb <- glm(
+  survive ~ relocation + time + branch_ID ,
+  family = binomial,
+  data = data_model_T5
+)
+summary(model_testb)
+Anova(model_testb)
+#revisar no haya separacion completa como cuando todo estaba vivo en bosque
+table(data_model_T5$relocation, data_model_T5$survive)
+table(data_model_T5$time, data_model_T5$survive)
+
+
+#con bases de datos cambiada para que haya muertes en todos los tiempo 
+data_model_man <- read.csv2("data_model_mano.csv")
+#preparar datos 
+data_model_man$relocation <- factor(data_model_man$relocation)
+data_model_man$time <- factor(data_model_man$time, levels = c("T1","T2","T3","T4","T5"))
+data_model_man$branch_ID <- factor(data_model_man$branch_ID)
+data_model_man$epi_ID <- factor(data_model_man$epi_ID)
+#modelo con rama
+model_test_man <- glm(
+  survive ~ relocation + time + branch_ID ,
+  family = binomial,
+  data = data_model_man
+)
+summary(model_test_man)
+Anova(model_test_man)
+#modelo rama aleatoria
+model_ra<- glmer(survive ~ relocation + time + (1|branch_ID), family = binomial, data_model_man)
+summary(model_ra)
+Anova(model_ra)
+#modelo con rama y epi_ID aleatorio
+model_raep<- glmer(
+  survive ~ relocation + time + (1|branch_ID) + (1|epi_ID),
+  family = binomial,
+  data = data_model_man
+)
+summary(model_raep)
+Anova(model_raep)
+#modelo sin rama 
+model_test_massinr <- glm(
+  survive ~ relocation + time ,
+  family = binomial,
+  data = data_model_man
+)
+summary(model_test_massinr)
+Anova(model_test_massinr)
+
+#modelo interaccion 
+model_ma_retime<- glm(
+  survive ~ relocation*time ,
+  family = binomial,
+  data = data_model_man
+)
+summary(model_ma_retime)
+Anova(model_ma_retime)
+#modelo interaccion con branch
+model_ma_retimeb<- glmer(
+  survive ~ relocation*time + (1|branch_ID),
+  family = binomial,
+  data = data_model_man
+)
+summary(model_ma_retimeb)
+Anova(model_ma_retimeb)
+```
+

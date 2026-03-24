@@ -1,0 +1,6 @@
+"0",""
+"0","# etiquetas de elevación"
+"0","text(centroides$RDA1, centroides$RDA2,"
+"0","     labels = centroides$elevation,"
+"0","     pos = 3,"
+"0","     cex = 1)"

@@ -1,0 +1,932 @@
+---
+title: "RDA EX"
+author: "Edith"
+date: "2026-01-12"
+output: html_document
+---
+
+
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+POBSTRU <- data %>% ###TABLA DE DATOS POBLACIONALES
+  select(elevation,subplot, forof,morphospe, family, dap, height, elevation, tree_str,  life_stage, l_leaf_stem, n_shoots_leaf, reprod_stage)
+library(dplyr)
+library(vegan)
+
+# 1. Limpiar datos
+datos <- POBSTRU %>%
+  drop_na(
+    l_leaf_stem,
+    n_shoots_leaf,
+    elevation,
+    dap,
+    height
+  )
+
+# 2. Elevación como factor (si son pisos)
+datos$elevation <- factor(datos$elevation)
+
+# 3. Matriz Y (rasgos)
+Y <- datos %>%
+  select(
+    l_leaf_stem,
+    n_shoots_leaf
+  ) %>%
+  scale()   # MUY IMPORTANTE
+
+# 4. Matriz X (ambiental)
+X <- datos %>%
+  select(
+    elevation,
+    dap,
+    height
+  )
+
+# 5. RDA
+mod_rda <- rda(Y ~ dap + height + elevation, data = X)
+
+
+#pruebas estadisticas 
+# Significancia global
+anova(mod_rda, permutations = 999)
+
+# Significancia por eje
+anova(mod_rda, by = "axis", permutations = 999)
+
+# Significancia por variable
+anova(mod_rda, by = "terms", permutations = 999)
+
+#grafico 
+plot(mod_rda, scaling = 2)
+
+summary(mod_rda)
+```
+Escalando X tambien
+```{r}
+datos <- datos %>%
+  mutate(
+    dap_s = scale(dap),
+    height_s = scale(height),
+    elevation = factor(elevation)
+  )
+str(datos)
+mod_rda <- rda(
+  Y ~ dap_s + height_s + elevation,
+  data = datos
+)
+plot(mod_rda, scaling = 1)
+#pruebas estadisticas 
+# Significancia global
+anova(mod_rda, permutations = 999)
+
+# Significancia por eje
+anova(mod_rda, by = "axis", permutations = 999)
+
+# Significancia por variable
+anova(mod_rda, by = "terms", permutations = 999)
+
+#grafico 
+plot(mod_rda, scaling = 2)
+
+summary(mod_rda)
+
+```
+
+```{r}
+datos <- datos %>%
+  mutate(
+    dap_s = scale(dap),
+    height_s = scale(height),
+    elevation = factor(elevation)
+  )
+
+
+# 5. RDA
+mod_rda2 <-rda(Y ~ dap_s + height_s + elevation, data = datos)
+plot(mod_rda2, scaling = 1)
+plot(mod_rda2, scaling = 2)
+plot(mod_rda2, scaling = 3)
+summary(mod_rda2)
+#pruebas estadisticas 
+# Significancia global
+anova(mod_rda2, permutations = 999)
+
+# Significancia por eje
+anova(mod_rda2, by = "axis", permutations = 999)
+
+# Significancia por variable
+anova(mod_rda2, by = "terms", permutations = 999)
+
+
+summary(datos)
+```
+
+```{r}
+plot(mod_rda2, scaling = 2, type = "n")
+points(mod_rda2, display = "sites", scaling = 2,
+       pch = 21, bg = "grey90", col = "black", cex = 0.6)
+
+text(mod_rda2, display = "bp", scaling = 2,
+     col = "blue", cex = 1.1, font = 2)
+
+arrows(0, 0,
+       scores(mod_rda2, display = "bp", scaling = 2)[,1],
+       scores(mod_rda2, display = "bp", scaling = 2)[,2],
+       col = "blue", lwd = 2, length = 0.08)
+
+abline(h = 0, v = 0, lty = 2, col = "grey70")
+
+```
+
+```{r}
+plot(mod_rda2,
+     scaling = 2,
+     type = "n")   # no dibuja nada aún
+
+# puntos (observaciones / individuos / especies)
+points(mod_rda2,
+       display = "sites",   # o "species" si corresponde
+       scaling = 2,
+       pch = 21,
+       bg = "grey80",
+       col = "black",
+       cex = 0.7)
+
+# flechas de variables X
+arrows(0, 0,
+       scores(mod_rda2, display = "bp", scaling = 2)[,1],
+       scores(mod_rda2, display = "bp", scaling = 2)[,2],
+       length = 0.1,
+       lwd = 2,
+       col = "blue")
+
+# nombres de las flechas
+text(scores(mod_rda2, display = "bp", scaling = 2),
+     labels = rownames(scores(mod_rda2, display = "bp")),
+     col = "blue",
+     cex = 1,
+     pos = 3)
+
+```
+ver y cn flechas
+```{r}
+plot(mod_rda2,
+     scaling = 2,
+     type = "n")   # no dibuja nada aún
+
+# puntos (observaciones / individuos / especies)
+points(mod_rda2,
+       display = "sites",   # o "species" si corresponde
+       scaling = 2,
+       pch = 21,
+       bg = "grey80",
+       col = "black",
+       cex = 0.7)
+
+# flechas de variables X
+arrows(0, 0,
+       scores(mod_rda2, display = "bp", scaling = 2)[,1],
+       scores(mod_rda2, display = "bp", scaling = 2)[,2],
+       length = 0.1,
+       lwd = 2,
+       col = "blue")
+
+text(mod_rda2,
+     display = "species",
+     scaling = 2,
+     col = "darkgreen",
+     cex = 0.8)
+
+```
+RDA rda(Y ~ elevation + Condition(dap_s + height_s), data = datos)
+```{r}
+library(vegan)
+library(dplyr)
+Y <- datos %>%
+  select(
+    l_leaf_stem,
+    n_shoots_leaf
+  )
+datos$elevation <- factor(datos$elevation)
+datos$dap_s    <- scale(datos$dap)
+datos$height_s <- scale(datos$height)
+mod_rda_parcial <- rda(
+  Y ~ elevation + Condition(dap_s + height_s),
+  data = datos
+)
+summary(mod_rda_parcial)
+anova(mod_rda_parcial, permutations = 999)
+anova(mod_rda_parcial, by = "terms", permutations = 999)
+anova(mod_rda_parcial, by = "axis", permutations = 999)
+
+##limites calculados para el zoom del grafico 
+scores_sites <- scores(mod_rda, display = "sites", scaling = 2)
+scores_Y     <- scores(mod_rda, display = "species", scaling = 2)
+range(scores_sites[,1])
+range(scores_sites[,2])
+x_lim <- range(scores_sites[,1]) * 1.1
+y_lim <- range(scores_sites[,2]) * 1.1
+
+plot(
+  mod_rda,
+  scaling = 2,
+  type = "n",
+  xlim = x_lim,
+  ylim = y_lim,
+  main = "RDA parcial: elevación\n(controlando DAP y altura)",
+  xlab = "RDA1",
+  ylab = "RDA2"
+)
+points(
+  scores_sites[,1],
+  scores_sites[,2],
+  pch = 21,
+  bg = "grey70",
+  col = "black",
+  cex = 1
+)
+arrows(
+  0, 0,
+  scores_Y[,1],
+  scores_Y[,2],
+  col = "red",
+  lwd = 2,
+  length = 0.1
+)
+
+text(
+  scores_Y[,1],
+  scores_Y[,2],
+  labels = rownames(scores_Y),
+  col = "red",
+  pos = 4,
+  cex = 0.8
+)
+
+
+```
+
+
+```{r}
+datos$elevation <- factor(datos$elevation)
+library(vegan)
+
+# scores de los sitios (observaciones)
+sites <- scores(mod_rda, display = "sites", scaling = 1)
+
+# scores de las variables ambientales (X)
+env <- scores(mod_rda, display = "bp", scaling = 1)
+#3️⃣ Calcular los centroides por elevación
+centroides <- aggregate(
+  sites,
+  by = list(elevation = datos$elevation),
+  FUN = mean
+)
+#4️⃣ Definir colores por elevación
+cols <- c("3261" = "#1b9e77",
+          "3402" = "#d95f02",
+          "3537" = "#7570b3",
+          "3625" = "#e7298a")
+
+
+#5️⃣ Gráfico final: RDA con centroides + flechas
+plot(mod_rda, scaling = 1, type = "n")
+
+# centroides
+points(centroides$RDA1, centroides$RDA2,
+       pch = 21,
+       bg = cols[centroides$elevation],
+       col = "black",
+       cex = 2)
+
+# etiquetas de elevación
+text(centroides$RDA1, centroides$RDA2,
+     labels = centroides$elevation,
+     pos = 3,
+     cex = 1)
+
+# flechas ambientales (X)
+arrows(0, 0,
+       env[,1], env[,2],
+       col = "blue",
+       lwd = 2,
+       length = 0.08)
+
+# nombres de flechas
+text(env[,1], env[,2],
+     labels = rownames(env),
+     col = "blue",
+     font = 2,
+     pos = 3)
+
+# líneas guía
+abline(h = 0, v = 0, lty = 2, col = "grey70")
+
+```
+
+```{r}
+mod_rda2 <- rda(Y ~ dap_s + height_s, data = datos)
+
+sites <- scores(mod_rda2, display = "sites", scaling = 1)
+env   <- scores(mod_rda2, display = "bp", scaling = 1)
+
+centroides <- aggregate(
+  sites,
+  by = list(elevation = datos$elevation),
+  mean
+)
+
+plot(mod_rda2, scaling = 1, type = "n")
+
+points(centroides$RDA1, centroides$RDA2,
+       pch = 21, bg = cols[centroides$elevation],
+       cex = 2)
+
+text(centroides$RDA1, centroides$RDA2,
+     labels = centroides$elevation,
+     pos = 3)
+
+arrows(0, 0, env[,1], env[,2],
+       col = "blue", lwd = 2)
+text(env[,1], env[,2],
+     rownames(env), col = "blue", pos = 3)
+
+abline(h = 0, v = 0, lty = 2)
+
+```
+👉 Definir los límites (xlim, ylim) manualmente usando SOLO lo que graficas 
+CENTROIDES POR ELEVACION Y FLECHAS PRA Y
+
+```{r}
+library(vegan)
+library(dplyr)
+Y <- datos %>%
+  select(
+    l_leaf_stem,
+    n_shoots_leaf
+  )
+
+datos <- datos %>%
+  mutate(
+    dap_s    = scale(dap),
+    height_s = scale(height),
+    elevation = factor(elevation)
+  )
+mod_rda <- rda(
+  Y ~ dap_s + height_s,
+  data = datos
+)
+anova(mod_rda, permutations = 999)
+# sitios (individuos)
+sites <- scores(mod_rda, display = "sites", scaling = 1)
+
+# variables ambientales (flechas)
+env <- scores(mod_rda, display = "bp", scaling = 1)
+
+centroides <- aggregate(
+  sites,
+  by = list(elevation = datos$elevation),
+  FUN = mean
+)
+cols <- c(
+  "3261" = "#1b9e77",
+  "3402" = "#d95f02",
+  "3537" = "#7570b3",
+  "3625" = "#e7298a"
+)
+
+# definir límites según centroides y flechas
+x_lim <- range(c(centroides$RDA1, env[,1])) * 1.3
+y_lim <- range(c(centroides$RDA2, env[,2])) * 1.3
+
+plot(mod_rda,
+     scaling = 1,
+     type = "n",
+     xlim = x_lim,
+     ylim = y_lim,
+     xlab = "RDA1",
+     ylab = "RDA2")
+
+
+# centroides
+points(centroides$RDA1, centroides$RDA2,
+       pch = 21,
+       bg = cols[centroides$elevation],
+       col = "black",
+       cex = 2)
+
+# etiquetas de elevación
+text(centroides$RDA1, centroides$RDA2,
+     labels = centroides$elevation,
+     pos = 3,
+     cex = 1)
+
+# flechas ambientales
+arrows(0, 0,
+       env[,1], env[,2],
+       col = "blue",
+       lwd = 2,
+       length = 0.08)
+
+# nombres de flechas
+text(env[,1], env[,2],
+     labels = rownames(env),
+     col = "blue",
+     font = 2,
+     pos = 3)
+
+# líneas guía
+abline(h = 0, v = 0, lty = 2, col = "grey70")
+
+```
+
+```{r}
+rda(Y ~ elevation + Condition(dap_s + height_s), data = datos)
+
+```
+utilizando rda parcial con especie como factor Y ~ elevation + Condition(species)
+```{r}
+library(vegan)
+library(dplyr)
+
+#2️⃣ Preparar los datos
+datos_rda <- datos %>%
+  drop_na(
+    l_leaf_stem,
+    n_shoots_leaf,
+    elevation,
+    morphospe
+  ) %>%
+  mutate(
+    species   = factor(morphospe),
+    elevation = factor(elevation)
+  )
+
+#3️⃣ Matriz de respuesta Y (rasgos)
+Y <- datos_rda %>%
+  select(
+    l_leaf_stem,
+    n_shoots_leaf
+  ) %>%
+  scale()
+
+##4️⃣ Ajustar la RDA parcial
+mod_rda_sp <- rda(
+  Y ~ elevation + Condition(species),
+  data = datos_rda
+)
+
+#5️⃣ Resumen del modelo
+summary(mod_rda_sp)
+
+#6️⃣ Pruebas de significancia (PERMUTACIONES)
+anova(mod_rda_sp, permutations = 999)
+anova(mod_rda_sp, by = "terms", permutations = 999)
+
+#EXTRAER SCORES CORRECTOS
+# Individuos
+scores_sites <- scores(mod_rda_sp, display = "sites", scaling = 2)
+
+# Rasgos Y
+scores_Y <- scores(mod_rda_sp, display = "species", scaling = 2)
+
+# Variables X (elevation)
+scores_X <- scores(mod_rda_sp, display = "bp", scaling = 2)
+
+
+#2️⃣ DEFINIR LÍMITES
+coords_plot <- rbind(
+  scores_sites,
+  scores_Y,
+  scores_X
+)
+
+xlim <- range(coords_plot[,1]) * 1.2
+ylim <- range(coords_plot[,2]) * 1.2
+
+plot(
+  mod_rda_sp,
+  type = "n",
+  scaling = 2,
+  xlim = xlim,
+  ylim = ylim,
+  main = "RDA parcial: elevación\n(controlando especie)",
+  xlab = "RDA1",
+  ylab = "RDA2"
+)
+
+# Individuos
+points(
+  scores_sites[,1],
+  scores_sites[,2],
+  pch = 16,
+  col = rgb(0, 0, 0, 0.25),
+  cex = 0.6
+)
+
+# Flechas de Y (rasgos)
+arrows(
+  0, 0,
+  scores_Y[,1],
+  scores_Y[,2],
+  col = "red",
+  lwd = 2,
+  length = 0.1
+)
+
+text(
+  scores_Y[,1],
+  scores_Y[,2],
+  labels = rownames(scores_Y),
+  col = "red",
+  pos = 4,
+  cex = 0.8
+)
+
+# Flechas de X (elevation)
+arrows(
+  0, 0,
+  scores_X[,1],
+  scores_X[,2],
+  col = "blue",
+  lwd = 2,
+  lty = 2,
+  length = 0.1
+)
+
+text(
+  scores_X[,1],
+  scores_X[,2],
+  labels = rownames(scores_X),
+  col = "blue",
+  pos = 2,
+  cex = 0.9
+)
+
+
+```
+quitando los outliers?
+```{r}
+#Paso 1️⃣ Identificar los 3 puntos extremos (si ya no lo hiciste)
+scores_sites <- scores(mod_rda_sp, display = "sites", scaling = 2)
+
+scores_df <- as.data.frame(scores_sites)
+scores_df$id <- rownames(scores_df)
+
+scores_df$dist <- sqrt(scores_df$RDA1^2 + scores_df$RDA2^2)
+
+scores_df %>%
+  arrange(desc(dist)) %>%
+  head(10)
+
+#🔹 Paso 2️⃣ Guardar los IDs de esos puntos
+ids_out <- scores_df %>%
+  arrange(desc(dist)) %>%
+  slice(1:10) %>%
+  pull(id)
+
+#🔹 Paso 3️⃣ Hacer el gráfico SIN esos puntos
+plot(
+  mod_rda_sp,
+  scaling = 2,
+  type = "n"
+)
+
+# puntos sin outliers
+points(
+  scores(mod_rda_sp, display = "sites", scaling = 2)[
+    !rownames(scores(mod_rda_sp, display = "sites")) %in% ids_out, ],
+  pch = 16,
+  col = "grey50",
+  cex = 0.6
+)
+
+# flechas de los rasgos (Y)
+text(
+  scores(mod_rda_sp, display = "bp", scaling = 2),
+  col = "black",
+  cex = 1.1
+)
+
+# centroides de elevación
+text(
+  scores(mod_rda_sp, display = "cn", scaling = 2),
+  col = "blue",
+  cex = 1.1
+)
+
+
+
+```
+rda(Y ~ dap_s + height_s + elevation) PERO SOLO SPS COMUN ELEV
+🔹 Solo ~3% de la variación de los rasgos
+(l_leaf_stem, n_shoots_leaf)
+```{r}
+library(vegan)
+library(dplyr)
+#1️⃣ Revisar elevaciones
+levels(datos$elevation)
+nlevels(datos$elevation)
+
+#2️⃣ Identificar especies presentes en TODAS las elevaciones
+sp_todas <- datos %>%
+  group_by(morphospe) %>%
+  summarise(n_elev = n_distinct(elevation)) %>%
+  filter(n_elev == nlevels(datos$elevation)) %>%
+  pull(morphospe)
+length(sp_todas)
+
+#3️⃣ Filtrar la base de datos
+datos_filt <- datos %>%
+  filter(morphospe %in% sp_todas)
+table(datos_filt$elevation)
+
+#4️⃣ Estandarizar variables ambientales (dap y height)
+datos_filt <- datos_filt %>%
+  mutate(
+    dap_s    = scale(dap)[,1],
+    height_s = scale(height)[,1]
+  )
+
+#5️⃣ Construir matriz Y (respuesta)
+Y <- datos_filt %>%
+  select(l_leaf_stem, n_shoots_leaf)
+
+#6️⃣ Construir matriz X (predictores)
+X <- datos_filt %>%
+  select(dap_s, height_s, elevation)
+
+#7️⃣ Ajustar el RDA
+mod_rda <- rda(
+  Y ~ dap_s + height_s + elevation,
+  data = X
+)
+
+#8️⃣ Resumen del modelo
+summary(mod_rda)
+
+#9️⃣ Pruebas de significancia (PERMUTACIONES)
+anova(mod_rda, permutations = 999)#Modelo completo
+anova(mod_rda, by = "terms", permutations = 999) #Por variable
+anova(mod_rda, by = "axis", permutations = 999) # Por ejes
+
+#🔟 Gráfico limpio e interpretable
+plot(mod_rda, type = "n", scaling = 2)
+
+# Individuos
+points(mod_rda, display = "sites", scaling = 2,
+       pch = 16, col = "grey70", cex = 0.6)
+
+# Flechas ambientales (X)
+arrows(0, 0,
+       scores(mod_rda, display = "bp", scaling = 2)[,1],
+       scores(mod_rda, display = "bp", scaling = 2)[,2],
+       length = 0.08, col = "blue", lwd = 2)
+
+text(scores(mod_rda, display = "bp", scaling = 2),
+     col = "blue", cex = 1.1)
+
+
+
+```
+graficar especies centroides y var Y en flechas
+```{r}
+#Cómo calcular centroides de especies en el espacio RDA
+scores_sites <- scores(mod_rda, display = "sites", scaling = 2)
+df_sites <- as.data.frame(scores_sites)
+df_sites$species <- datos_filt$morphospe
+centroides_sp <- df_sites %>%
+  group_by(species) %>%
+  summarise(
+    RDA1 = mean(RDA1),
+    RDA2 = mean(RDA2)
+  )
+
+#Extraer flechas de Y (rasgos)
+scores_Y <- scores(mod_rda, display = "species", scaling = 2)
+#grafico final
+plot(mod_rda, type = "n", scaling = 2,
+     xlab = "RDA1", ylab = "RDA2")
+
+# Centroides de especies
+points(centroides_sp$RDA1, centroides_sp$RDA2,
+       pch = 21, bg = "darkgreen", col = "black", cex = 1)
+
+# Flechas de rasgos (Y)
+arrows(0, 0,
+       scores_Y[,1], scores_Y[,2],
+       length = 0.1, col = "red", lwd = 2)
+
+text(scores_Y[,1], scores_Y[,2],
+     labels = rownames(scores_Y),
+     col = "red", pos = 4)
+
+```
+hacer zoom al grafico calculando los limites adecuados y fijar manualmenete los limites
+```{r}
+#1. Unimos centroides + flechas Y
+coords_plot <- rbind(
+  centroides_sp[, c("RDA1", "RDA2")],
+  as.data.frame(scores_Y)
+)
+#2. Definir límites con un pequeño margen
+xlim <- range(coords_plot$RDA1) * 1.3
+ylim <- range(coords_plot$RDA2) * 1.3
+
+#4️⃣ Gráfico FINAL (zoom correcto)
+plot(mod_rda, type = "n", scaling = 2,
+     xlim = xlim, ylim = ylim,
+     xlab = "RDA1", ylab = "RDA2")
+
+# Centroides de especies
+points(centroides_sp$RDA1, centroides_sp$RDA2,
+       pch = 21, bg = "darkgreen", col = "black", cex = 1.2)
+
+# Flechas de rasgos (Y)
+arrows(0, 0,
+       scores_Y[,1], scores_Y[,2],
+       length = 0.12, col = "red", lwd = 2)
+
+text(scores_Y[,1], scores_Y[,2],
+     labels = rownames(scores_Y),
+     col = "red", pos = 4)
+
+```
+colocando los nombres de las especies
+```{r}
+
+
+
+#2️⃣ Script para crear abreviaturas automáticamente
+abreviar_sp <- function(x, n = 4) {
+  partes <- strsplit(x, " ")
+  sapply(partes, function(p) {
+    if (length(p) >= 2) {
+      paste0(
+        substr(p[1], 1, 1), ".",     # primera letra del género
+        substr(p[2], 1, n)           # primeras letras del epíteto
+      )
+    } else {
+      substr(p[1], 1, n)
+    }
+  })
+}
+
+# Limpiar caracteres raros y normalizar espacios
+library(dplyr)
+centroides_sp$species <- centroides_sp$species %>%
+  iconv(from = "", to = "UTF-8", sub = "") %>%
+  gsub("\u00A0", " ", .) %>%
+  gsub("\\s+", " ", .) %>%
+  trimws()
+
+#Aplicamos a los centroides:
+centroides_sp$sp_abrev <- abreviar_sp(centroides_sp$species, n = 4)
+head(centroides_sp[, c("species", "sp_abrev")])
+
+### 4️⃣ Extraer flechas de rasgos (Y)
+scores_Y <- scores(mod_rda, display = "species", scaling = 2)
+
+### 5️⃣ Definir límites (zoom automático)
+coords_plot <- rbind(
+  centroides_sp[, c("RDA1", "RDA2")],
+  as.data.frame(scores_Y)
+)
+
+xlim <- range(coords_plot$RDA1) * 1.3
+ylim <- range(coords_plot$RDA2) * 1.3
+
+### 6️⃣ Gráfico final
+plot(
+  mod_rda,
+  type = "n",
+  scaling = 2,
+  xlim = xlim,
+  ylim = ylim,
+  xlab = "RDA1",
+  ylab = "RDA2"
+)
+
+# Centroides de especies
+points(
+  centroides_sp$RDA1,
+  centroides_sp$RDA2,
+  pch = 21,
+  bg = "darkgreen",
+  col = "black",
+  cex = 1.1
+)
+
+# Flechas de rasgos (Y)
+arrows(
+  0, 0,
+  scores_Y[,1],
+  scores_Y[,2],
+  length = 0.12,
+  col = "red",
+  lwd = 2
+)
+
+text(
+  scores_Y[,1],
+  scores_Y[,2],
+  labels = rownames(scores_Y),
+  col = "red",
+  pos = 4
+)
+
+# Etiquetas de especies (abreviadas, sin solaparse)
+text(
+  centroides_sp$RDA1,
+  centroides_sp$RDA2,
+  labels = centroides_sp$sp_abrev,
+  col = "darkgreen",
+  cex = 0.7,
+  pos = 3
+)
+
+
+
+```
+arreglar los nombres 1 Fernandezia parviflora Fe.pa
+y todos los otros en esa forma 
+```{r}
+# Limpiar caracteres raros y normalizar texto
+
+abreviar_sp_seguro <- function(x) {
+
+  # 1) eliminar TODO lo que no sea letra
+  x <- gsub("[^A-Za-z]", "", x)
+
+  # 2) extraer género (solo el género)
+  genero <- sub("^([A-Z][a-z]+).*", "\\1", x)
+
+  # 3) extraer epíteto (lo que queda después del género)
+  epitet <- sub("^[A-Z][a-z]+", "", x)
+
+  # 4) construir abreviatura
+  paste0(
+    substr(genero, 1, 2),
+    ".",
+    substr(epitet, 1, 2)
+  )
+}
+centroides_sp$sp_abrev <- abreviar_sp_seguro(centroides_sp$species)
+
+#verifica
+centroides_sp[grep("Fernandezia", centroides_sp$species),
+              c("species", "sp_abrev")]
+
+#PLOT
+### 6️⃣ Gráfico final
+plot(
+  mod_rda,
+  type = "n",
+  scaling = 2,
+  xlim = xlim,
+  ylim = ylim,
+  xlab = "RDA1",
+  ylab = "RDA2"
+)
+
+# Centroides de especies
+points(
+  centroides_sp$RDA1,
+  centroides_sp$RDA2,
+  pch = 21,
+  bg = "darkgreen",
+  col = "black",
+  cex = 1.1
+)
+
+# Flechas de rasgos (Y)
+arrows(
+  0, 0,
+  scores_Y[,1],
+  scores_Y[,2],
+  length = 0.12,
+  col = "red",
+  lwd = 2
+)
+
+text(
+  scores_Y[,1],
+  scores_Y[,2],
+  labels = rownames(scores_Y),
+  col = "red",
+  pos = 4
+)
+
+# Etiquetas de especies (abreviadas, sin solaparse)
+text(
+  centroides_sp$RDA1,
+  centroides_sp$RDA2,
+  labels = centroides_sp$sp_abrev,
+  col = "darkgreen",
+  cex = 0.7,
+  pos = 3
+)
+
+```
+

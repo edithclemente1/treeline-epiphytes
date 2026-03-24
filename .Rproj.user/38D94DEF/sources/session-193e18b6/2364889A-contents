@@ -1,0 +1,212 @@
+---
+
+## title: "Epiphyte diversity along an elevational gradient" author: "Edith Clemente" date: "2026" output: html\_document
+
+# Study Objectives
+
+## Objective 1
+
+Assess how **epiphyte richness, abundance, and community composition** vary along the elevational gradient.
+
+## Objective 2
+
+Evaluate how host-tree characteristics influence **richness, abundance, and composition**.
+
+## Objective 3
+
+Examine **transplant survival**, and determine whether **climatic variables influence survival patterns**.
+
+---
+
+# 1. Setup
+
+```{r
+library(dplyr)
+library(tidyr)
+library(lme4)
+library(car)
+library(emmeans)
+library(performance)
+library(ggplot2)
+library(vegan)
+library(betapart)
+library(survival)
+library(survminer)
+library(MASS)
+library(ggpubr)
+```
+
+---
+
+# OBJECTIVE 1: Elevational effects
+
+## 1A. Richness
+
+### Data preparation
+
+```{r
+# Calculate richness per tree
+species_cols <- names(comm)[!names(comm) %in% c("forof", "elevation")]
+
+richness <- comm %>%
+  mutate(richness = rowSums(across(all_of(species_cols), ~ . > 0))) %>%
+  select(forof, elevation, richness)
+
+richness$elev_f <- factor(richness$elevation)
+```
+
+### Model: Richness \~ Elevation
+
+```{r
+m_rich <- glmer(
+  richness ~ elev_f + (1 | forof),
+  family = poisson,
+  data = richness
+)
+
+summary(m_rich)
+Anova(m_rich)
+```
+
+### Pairwise comparisons
+
+```{r
+emm_rich <- emmeans(m_rich, ~ elev_f)
+pairs(emm_rich, adjust = "tukey")
+```
+
+---
+
+## 1B. Abundance
+
+### Data preparation
+
+```{r
+abundance <- comm %>%
+  mutate(abundance = rowSums(across(all_of(species_cols)))) %>%
+  select(forof, elevation, abundance)
+
+abundance$elev_f <- factor(abundance$elevation)
+```
+
+### Model: Abundance \~ Elevation
+
+```{r
+m_abun <- glmer(
+  abundance ~ elev_f + (1 | forof),
+  family = poisson,
+  data = abundance
+)
+
+summary(m_abun)
+Anova(m_abun)
+```
+
+### Pairwise comparisons
+
+```{r
+emm_abun <- emmeans(m_abun, ~ elev_f)
+pairs(emm_abun, adjust = "tukey")
+```
+
+---
+
+## 1C. Community composition
+
+### Dissimilarity matrices
+
+```{r
+comm_mat <- as.matrix(comm[, species_cols])
+
+# Presence–absence
+comm_pa <- (comm_mat > 0) * 1
+beta_jac <- vegdist(comm_pa, method = "jaccard")
+
+# Abundance-based
+beta_bray <- vegdist(comm_mat, method = "bray")
+```
+
+### NMDS ordination
+
+```{r
+set.seed(123)
+nmds_jac <- metaMDS(comm_pa, distance = "jaccard", k = 2, trymax = 100)
+nmds_bray <- metaMDS(comm_mat, distance = "bray", k = 2, trymax = 100)
+```
+
+---
+
+# OBJECTIVE 2: Host-tree effects
+
+## 2A. Richness \~ Host traits
+
+```{r
+m_rich_host <- glmer(
+  richness ~ dap + height + (1 | forof),
+  family = poisson,
+  data = richness
+)
+
+summary(m_rich_host)
+Anova(m_rich_host)
+```
+
+---
+
+## 2B. Abundance \~ Host traits
+
+```{r
+m_abun_host <- glmer(
+  abundance ~ dap + height + (1 | forof),
+  family = poisson,
+  data = abundance
+)
+
+summary(m_abun_host)
+Anova(m_abun_host)
+```
+
+---
+
+## 2C. Composition \~ Host traits
+
+```{r
+adonis2(comm_mat ~ dap + height, data = env_tree, method = "bray")
+```
+
+---
+
+# OBJECTIVE 3: Transplant survival and climate
+
+## 3A. Survival analysis
+
+```{r
+# Example structure
+surv_object <- Surv(time = survival_time, event = status)
+
+km_fit <- survfit(surv_object ~ elevation)
+summary(km_fit)
+```
+
+---
+
+## 3B. Climate effects
+
+```{r
+# Example climatic predictors
+m_surv_climate <- coxph(
+  Surv(survival_time, status) ~ temperature + humidity,
+  data = survival_data
+)
+
+summary(m_surv_climate)
+```
+
+---
+
+# Reproducibility
+
+```{r
+sessionInfo()
+```
+

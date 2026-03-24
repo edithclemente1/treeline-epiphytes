@@ -1,0 +1,2929 @@
+<<<<<<< HEAD
+---
+title: "PAPER"
+author: "Edith"
+date: "2026-01-30"
+output: DATA ANALISES
+---
+
+OB.1: Cuantificar la variación en la riqueza, abundancia y composición de epífitas vasculares a lo largo del gradiente elevacional hacia el treeline.
+
+Data Epis treeline
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+#FOROFITOS
+data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+str(data)
+```
+paquetes
+```{r}
+library(dplyr)
+library(tidyr)
+library(car)
+library(stringi)
+library(lme4)
+library(performance)
+library(emmeans)
+library(sjmisc)
+library(sjPlot)
+library(ggplot2)
+library(vegan)
+library(betapart)
+library(MASS)
+library(patchwork)
+library(readr)
+library(lubridate)
+library(emmeans)
+library(ggpubr)
+
+```
+
+riqueza
+```{r}
+#Crear matriz de abundancia
+comm <- data %>%
+  group_by(forof, elevation, morphospe) %>%
+  summarise(abundance = n(), .groups="drop") %>%
+  pivot_wider(names_from = morphospe, values_from = abundance, values_fill = 0)
+#Matriz ambiental del árbol
+env_tree <- data %>%
+  distinct(forof, elevation, dap, height, plot, subplot, tree_name, genera_tree)
+#RIQUEZA DE EPÍFITAS POR ÁRBOL
+species_cols <- names(comm)[!names(comm) %in% c("forof","elevation")]
+#datos raros nombres
+data$morphospe <- stri_trans_general(data$morphospe, "Latin-ASCII")
+data$morphospe <- gsub("[^[:alnum:] ]", "", data$morphospe)
+
+richness <- comm %>%
+  mutate(richness = rowSums(across(all_of(species_cols), ~ . > 0))) %>%
+  dplyr::select(forof, elevation, richness)
+
+#MODELOS A LO LARGO DEL GRADIENTE ELEVACIONAL
+#Riqueza mejor fit con elevacion como factor y hacer anova con grafico de boxplot con resultados de pairwise. 20FEB
+str(richness)
+richness$elev_f <- factor(richness$elevation)
+
+m_rich <- glmer(richness ~ elev_f + (1|forof),
+                family=poisson, data=richness)
+summary(m_rich)
+Anova(m_rich)
+check_model(m_rich)###valuar de forma rápida y visual si un modelo estadístico está bien especificado y si cumple los supuestos.1. linealidad, 2. homocedasticidad, 3. Normalidad de residuos, 4. Valores atipicos e influencia, 4. Colinearidad, Ajuste general del modelo
+library(performance)##cuando no muestra el plot hace otra ventana
+dev.new()
+check_model(m_rich)
+#comparacion por pares
+emmeans(m_rich, list(pairwise ~ elev_f), adjust = "tukey")
+#revisar overdispersion
+check_overdispersion(m_rich)#sin overdispercion
+
+#regresion
+richness$elev_z <- scale(richness$elevation)
+m_richz <- glmer(richness ~ elev_z + (1|forof),
+                family=poisson, data=richness)
+summary(m_richz)
+Anova(m_richz)
+plot(richness$elevation, richness$richness)
+check_model(m_richz)#
+plot(m_richz)
+#comparacion por pares
+emmeans(m_richz, list(pairwise ~ elev_z), adjust = "tukey")
+plot_model(m_richz,
+type = "pred",
+terms = "elev_z")
+
+###La elevación se trató como una variable categórica debido a que solo se muestrearon cuatro niveles discretos, lo que impide el uso de enfoques de suavizamiento continuo como los GAM
+#grafico
+riq_el<- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot() +
+  geom_jitter(width=0.1, alpha=0.4) +
+  theme_classic() +
+  ylab("Epiphyte species richness per tree") +
+  xlab("Elevation (m)")
+```
+RIQUEZA grafico completo con comparaciones
+```{r}
+#Extraer las comparaciones de emmeans como data frame
+emm <- emmeans(m_rich, ~ elev_f)
+pairs_df <- pairs(emm, adjust = "tukey") %>%
+  as.data.frame()
+#data frame para ggplot
+pairs_df <- pairs_df %>%
+  separate(contrast, into = c("group1", "group2"), sep = " - ") %>%
+  mutate(
+    group1 = gsub("elev_f", "", group1),
+    group2 = gsub("elev_f", "", group2),
+    y.position = max(richness$richness) + 
+                 seq(0.2, by = 0.2, length.out = n())
+  )
+
+#GRAFICO con asteriscos
+colnames(pairs_df)
+pairs_df <- pairs_df %>%
+  mutate(
+    p.signif = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*",
+      TRUE            ~ "ns"
+    )
+  )
+riq_el <- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1, alpha = 0.4) +
+  stat_pvalue_manual(
+    pairs_df,
+    label = "p.signif",
+    tip.length = 0.01
+  ) +
+  theme_classic() +
+  ylab("Epiphyte species richness per tree") +
+  xlab("Elevation (m)")
+riq_el
+#corregir visualmente
+pairs_sig <- pairs_df %>%
+  filter(p.value < 0.05)
+pairs_sig <- pairs_sig %>%
+  mutate(
+    y.position = max(richness$richness, na.rm = TRUE) +
+                 seq(2, by = 2, length.out = n())
+  )
+riq_el <- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot(width = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.5, size = 1.8) +
+  stat_pvalue_manual(
+    pairs_sig,
+    label = "p.signif",
+    tip.length = 0.01
+  ) +
+  theme_classic(base_size = 14) +
+  ylab("Epiphyte species richness per tree") +
+  xlab("Elevation (m)")
+riq_el
+#caption grafico: Boxes show median and interquartile range. Points represent individual trees.Asterisks indicate significant pairwise differences among elevations based on Tukey-adjusted estimated marginal means derived from the GLMM (* p < 0.05, ** p < 0.01).
+```
+
+ABUNDANCIA
+```{r}
+#ABUNDANCIA TOTAL
+abundance <- comm %>%
+  mutate(abundance = rowSums(dplyr::select(., -forof, -elevation))) %>%
+  dplyr::select(forof, elevation, abundance)
+#Abundancia 
+abund <- data %>%
+  group_by(forof, elevation) %>%
+  summarise(abundance = n(), .groups="drop")
+#modelo 
+m_abund <- glmer(abundance ~ elev_f + (1|forof),
+                 family = poisson, data = abund)
+summary(m_abund)
+#modelo elegido###################################
+abundance$elev_f <- factor(abundance$elevation)
+
+m_abun <- glmer(abundance ~ elev_f + (1|forof),
+                family=poisson, data=abundance)
+summary(m_abun)
+Anova(m_abun)
+
+check_model(m_abun)###valuar de forma rápida y visual si un modelo estadístico está bien especificado y si cumple los supuestos.1. linealidad, 2. homocedasticidad, 3. Normalidad de residuos, 4. Valores atipicos e influencia, 4. Colinearidad, Ajuste general del modelo
+#comparacion por pares
+library(performance)##cuando no muestra el plot hace otra ventana
+dev.new()
+check_model(m_abun)
+#revisar overdispersion
+check_overdispersion(m_abun)#sin overdispercion
+emmeans(m_abun, list(pairwise ~ elev_f), adjust = "tukey")#comparando pares
+
+#regresion PEOR AJUSTE
+abundance$elev_z <- scale(abundance$elevation)
+abundance$elev_z <- as.numeric(abundance$elev_z)
+m_abunz <- glmer(abundance ~ elev_z + (1|forof),
+                family=poisson, data=abundance)
+summary(m_abunz)
+Anova(m_abunz)
+check_model(m_abunz)#
+library(performance)##cuando no muestra el plot hace otra ventana
+dev.new()
+check_model(m_abunz)
+
+#grafico solo sin log
+ggplot(abundance, aes(elev_f, abundance)) +
+  geom_boxplot() +
+  geom_jitter(width=0.1, alpha=0.4) +
+  theme_classic() +
+  ylab("Epiphyte abundance per tree") +
+  xlab("Elevation (m)")
+```
+Grafico ABUNDANCE completo con las comparaciones
+```{r}
+############################################
+## MODELO DE ABUNDANCIA (GLMM POISSON)
+############################################
+m_abun <- glmer(
+  abundance ~ elev_f + (1 | forof),
+  family = poisson,
+  data = abundance
+)
+
+############################################
+## EMMEANS Y COMPARACIONES (Tukey)
+############################################
+emm_abun <- emmeans(m_abun, ~ elev_f)
+pairs_abun <- pairs(emm_abun, adjust = "tukey") |> as.data.frame()
+
+# (solo informativo, no se usa más abajo)
+pairs_abun
+# Comparación significativa:
+# elev_f3402 - elev_f3537  p = 0.0001
+
+############################################
+## GRÁFICO FINAL CON ANOTACIÓN MANUAL
+############################################
+
+# Posiciones X de los niveles del factor:
+# levels(abundance$elev_f)
+# 1 = 3261
+# 2 = 3402
+# 3 = 3537
+# 4 = 3625
+
+abun_el <- ggplot(abundance, aes(elev_f, abundance)) +
+
+  # boxplots y puntos
+  geom_boxplot(width = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.5, size = 1.8) +
+
+  # línea horizontal de comparación (3402 vs 3537)
+  geom_segment(
+    aes(x = 2, xend = 3, y = 450, yend = 450),
+    inherit.aes = FALSE
+  ) +
+
+  # "patitas" verticales
+  geom_segment(
+    aes(x = 2, xend = 2, y = 420, yend = 450),
+    inherit.aes = FALSE
+  ) +
+  geom_segment(
+    aes(x = 3, xend = 3, y = 420, yend = 450),
+    inherit.aes = FALSE
+  ) +
+
+  # asteriscos de significancia
+  annotate(
+    "text",
+    x = 2.5, y = 480,
+    label = "***",
+    size = 6
+  ) +
+
+  # escala log SOLO visual
+  scale_y_log10() +
+  coord_cartesian(ylim = c(1, 650)) +
+
+  # estética final
+  theme_classic(base_size = 14) +
+  ylab("Epiphyte abundance per tree (log scale)") +
+  xlab("Elevation (m)")
+
+abun_el
+#caption : Boxplots show epiphyte abundance per tree (log scale). Asterisks indicate a significant pairwise difference based on Tukey-adjusted estimated marginal means from a Poisson GLMM.
+```
+
+Comparando el efecto de la elevacion con la riq y abund
+```{r}
+#glm incluidos en los resultados 18FEB que capta la variablilidad de los forofitos diferentes no todos son iguales y asi no sobrestima la variabilidad de la elevacion 
+richness$elev_z <- scale(richness$elevation)
+str(richness)
+m_rich_z <- glmer(richness ~ elev_z + (1|forof),
+                  family = poisson, data = richness)
+abundance$elev_z <- scale(abundance$elevation)
+m_abund_z <- glmer(abundance ~ elev_z + (1|forof),
+                   family = poisson, data = abundance)
+summary(m_rich_z)
+summary(m_abund_z)
+#####GLM con eleva sin efecto aleatorio
+m_rich2 <- glm(richness ~ elev_z,
+                  family = poisson, data = richness)
+summary(m_rich2)
+m_abund2 <- glm(abundance ~ elev_z,
+                   family = poisson, data = abundance)
+summary(m_abund2)
+
+m_rich3 <- glm(richness ~ elevation,
+                  family = poisson, data = richness)
+summary(m_rich3)
+m_abund3 <- glm(abundance ~ elevation,
+                   family = poisson, data = abundance)
+summary(m_abund3)
+#sobredispersion 
+check_overdispersion(m_rich_z)
+check_overdispersion(m_abund_z)
+#grafico riq y abund
+pA <- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1, alpha = 0.4) +
+  theme_classic() +
+  ylab("Species richness per tree") +
+  xlab("Elevation (m)") +
+  labs(tag = "A")
+pB <- ggplot(abund, aes(elev_f, abundance)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1, alpha = 0.4) +
+  theme_classic() +
+  ylab("Abundance per tree") +
+  xlab("Elevation (m)") +
+  labs(tag = "B")
+p_compuesto <- pA + pB
+ggsave(
+  filename = "Fig_richness_abundance elevation .png",
+  plot = p_compuesto,
+  width = 18,
+  height = 10,
+  units = "cm",
+  dpi = 300
+)
+
+
+```
+Composición
+```{r}
+#COMPOSICIÓN DE ESPECIES
+# Matriz de abundancia por árbol
+#Separar metadata y matriz de especies
+meta <- comm %>% dplyr::select(forof, elevation)
+comm_mat <- comm %>% dplyr::select(-forof, -elevation)
+###################nombres raros
+# reemplazar el caracter raro por espacio
+colnames(comm_mat) <- gsub("�", " ", colnames(comm_mat))
+# quitar dobles espacios
+colnames(comm_mat) <- gsub(" +", " ", colnames(comm_mat))
+# limpiar espacios al inicio y final
+colnames(comm_mat) <- trimws(colnames(comm_mat))
+###########################################
+# Convertir a matriz
+comm_mat <- as.matrix(comm_mat)
+rownames(comm_mat) <- meta$forof
+
+#Transformación recomendada (muy importante) Epífitas tienen muchos ceros → usa Hellinger (estándar en ecología)
+
+comm_hel <- decostand(comm_mat, method = "hellinger")
+#NMDS
+set.seed(123)
+nmds <- metaMDS(comm_hel, distance = "chao", k = 2, trymax = 100)
+nmds
+
+#grafico set.seed(123)
+scores_nmds <- as.data.frame(scores(nmds, display = "sites"))
+scores_nmds$elevation <- factor(meta$elevation)
+ggplot(scores_nmds, aes(x = NMDS1, y = NMDS2, color = elevation)) +
+  geom_point(size = 3, alpha = 0.7) +
+  theme_classic() +
+  labs(color = "Elevation (m)", title = "NMDS of epiphyte community composition")
+
+#PERMANOVA 
+meta$elev_f <- factor(meta$elevation)
+adonis_res <- adonis2(comm_hel ~ elev_f, data = meta, method = "bray", permutations = 999)
+adonis_res
+##test de dispersion
+disp <- betadisper(vegdist(comm_hel, method="chao"), meta$elev_f)
+anova(disp)
+
+#TURNOVER (beta diversity)
+meta <- comm %>% 
+  dplyr::select(forof, elevation) %>% 
+  distinct()
+meta <- meta[match(rownames(comm_mat), meta$forof), ]
+meta$elev_f <- factor(meta$elevation)
+dist_chao <- vegdist(comm_mat, method="chao")
+beta <- betadisper(dist_bray, meta$elev_f)
+anova(beta)
+
+#conclusion: La composición cambia con la elevación, pero también cambia la heterogeneidad entre forófitos.
+
+#grafico 
+boxplot(beta, 
+        xlab = "Elevation (m)", 
+        ylab = "Distance to centroid (chao)")
+
+#turnover y nestedness
+#matriz-ausencia
+
+# comm_mat = matriz especies (186 x spp)
+comm_pa <- comm_mat
+comm_pa[comm_pa > 0] <- 1
+# Beta diversity partitioning (Sørensen)
+beta_core <- betapart.core(comm_pa)
+beta_pair <- beta.pair(beta_core, index.family = "sorensen")
+
+# Componentes
+beta_sim <- beta_pair$beta.sim   # turnover
+beta_sne <- beta_pair$beta.sne   # nestedness
+beta_sor <- beta_pair$beta.sor   # beta total
+
+#MULTI-SITE BETA (valores globales para Results)
+beta_multi <- beta.multi(comm_pa, index.family = "sorensen")
+beta_multi
+
+# PERMANOVA por elevBETA TOTAL
+adonis_sor <- adonis2(beta_sor ~ elev_f, data = meta, permutations = 999)
+adonis_sor
+
+#grafico
+library(reshape2)
+library(ggplot2)
+beta_df <- data.frame(
+  turnover = as.vector(as.dist(beta_sim)),
+  nestedness = as.vector(as.dist(beta_sne)),
+  elev = meta$elev_f[combn(1:nrow(meta),2)[1,]]
+)
+ggplot(beta_df, aes(elev, turnover)) +
+  geom_boxplot() +
+  theme_bw() +
+  ylab("Turnover (βSIM)")
+
+
+summary(m_rich)
+summary(m_abund)
+beta_multi
+```
+
+
+OB.2: Evaluar la influencia de la estructura (DAP y altura) y la identidad taxonómica (género) del árbol hospedero sobre la riqueza y abundancia de epífitas, controlando el efecto de la elevación.
+
+base datos: ojo todos los arboles
+```{r}
+#########primero la base de datos que posee a todos los arboles incleyendo loos que no tuvieron epifitas
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+#FOROFITOS
+data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+hospepi <- data %>% ###TABLA DE DATOS POBLACIONALES
+  dplyr::select(plot, elevation, forof,morphospe, family, genera_tree, dap, height)
+str(hospepi)
+#ARBOLES
+trees <- read.csv("treealtu.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+tree <- trees %>% ###TABLA DE DATOS POBLACIONALES
+  dplyr::select(plot, elevation, tagtree,family, genus, NC, DBH, H)
+str(tree)
+
+#resumir epifitas por forofito
+epi_por_arbol <- hospepi %>%
+  group_by(forof, plot, elevation, genera_tree, dap, height) %>%
+  summarise(
+    presencia_epifitas = 1,
+    riqueza = n_distinct(morphospe),
+    abundancia_total = n(),
+    .groups = "drop"
+  )
+#unificar nombres tree
+tree2 <- tree %>%
+  rename(
+    forof = tagtree,
+    genera_tree = genus,
+    dap = DBH,
+    height = H
+  )
+epi_por_arbol <- hospepi %>%
+  group_by(forof) %>%
+  summarise(
+    presencia_epifitas = 1,
+    riqueza = n_distinct(morphospe),
+    abundancia_total = n(),
+    .groups = "drop"
+  )
+#unir tablas 
+arboles <- tree2 %>%
+  left_join(epi_por_arbol, by = "forof") %>%
+  mutate(
+    presencia_epifitas = ifelse(is.na(presencia_epifitas), 0, presencia_epifitas),
+    riqueza = ifelse(is.na(riqueza), 0, riqueza),
+    abundancia_total = ifelse(is.na(abundancia_total), 0, abundancia_total)
+  )
+nrow(arboles)                 # debe ser 193
+table(arboles$presencia_epifitas)
+table(arboles$plot, arboles$presencia_epifitas)#para ver cuantos arboles estan con epifitas
+
+# riqueza 
+arboles$genera_tree <- as.factor(arboles$genera_tree)
+arboles$plot <- as.factor(arboles$plot)#factores
+riqueza_arbol <- hospepi %>%
+  group_by(forof, plot, elevation, genera_tree, dap, height) %>%
+  summarise(
+    riqueza = n_distinct(morphospe),
+    .groups = "drop"
+  )
+str(riqueza_arbol)
+
+#abundancia
+abund_arbol <- hospepi %>%
+  group_by(forof, plot, elevation, genera_tree, dap, height) %>%
+  summarise(
+    abundancia = n(),
+    .groups = "drop"
+  )
+str(abund_arbol)
+
+```
+abundancia/riqueza => caracteristicas hospedero
+```{r}
+#preparacion de datos escalar var numericas y genero como factor 
+riqueza_arbol$genera_tree <- as.factor(riqueza_arbol$genera_tree)
+abund_arbol$genera_tree  <- as.factor(abund_arbol$genera_tree)
+riqueza_arbol$dap_z     <- scale(riqueza_arbol$dap)
+riqueza_arbol$height_z  <- scale(riqueza_arbol$height)
+riqueza_arbol$elev_z    <- scale(riqueza_arbol$elevation)
+abund_arbol$dap_z       <- scale(abund_arbol$dap)
+abund_arbol$height_z    <- scale(abund_arbol$height)
+abund_arbol$elev_z      <- scale(abund_arbol$elevation)
+#Modelo para riqueza de epífitas
+#poison
+m_ric_pois <- glm(
+  riqueza ~ dap_z + height_z + genera_tree + elev_z,
+  family = poisson,
+  data = riqueza_arbol
+)
+summary(m_ric_pois)
+Anova(m_ric_pois, type = "II")
+check_overdispersion(m_ric_pois)##confirmada la sobredispersion
+##modelo Binomial negativo sugerido 
+m_ric_nb <- glm.nb(
+  riqueza ~ dap_z + height_z + genera_tree + elev_z,
+  data = riqueza_arbol
+)
+summary(m_ric_nb)
+Anova(m_ric_nb, type = "II")#importancia de cada variable 
+#Modelo para abundancia de epífitas
+#poison
+m_ab_pois <- glm(
+  abundancia ~ dap_z + height_z + genera_tree + elev_z,
+  family = poisson,
+  data = abund_arbol
+)
+check_overdispersion(m_ab_pois)##confirmada la sobredispersion
+#modelo binomial negativo obligatoriamente
+m_ab_nb <- glm.nb(
+  abundancia ~ dap_z + height_z + genera_tree + elev_z,
+  data = abund_arbol
+)
+summary(m_ab_nb)
+Anova(m_ab_nb, type = "II")
+
+
+
+riqueza_arbol$genera_tree <- as.factor(riqueza_arbol$genera_tree)
+abund_arbol$genera_tree  <- as.factor(abund_arbol$genera_tree)
+riqueza_arbol$dap_z     <- scale(riqueza_arbol$dap)
+riqueza_arbol$height_z  <- scale(riqueza_arbol$height)
+riqueza_arbol$elev_z    <- scale(riqueza_arbol$elevation)
+abund_arbol$dap_z       <- scale(abund_arbol$dap)
+abund_arbol$height_z    <- scale(abund_arbol$height)
+abund_arbol$elev_f      <- as.factor(abund_arbol$elevation)
+riqueza_arbol$elev_f <- as.factor(riqueza_arbol$elevation)
+#modelos solo el efecto del hospedero
+m_ricnb_h <- glm.nb(
+  riqueza ~ dap_z + height_z  + (1/elev_f),
+  data = riqueza_arbol
+)
+m_abnb_h <- glm.nb(
+  abundancia ~ dap_z + height_z + (1/elev_f),
+  data = abund_arbol
+)
+summary(m_ricnb_h)
+summary(m_abnb_h)
+```
+CHEQUEANDO COLINEARIDAD 
+resulto que tuen valores de 1,8 lo cual es bajo y no hay problema de colinearidad
+```{r}
+cor(riqueza_arbol[,c("dap","height","elevation")],
+    use = "complete.obs")
+names(riqueza_arbol)
+
+riqueza_arbol$riqueza <- as.numeric(riqueza_arbol$riqueza)
+str(riqueza_arbol$riqueza)
+m_vif_rich <- lm(riqueza ~ dap_z + height_z + elev_z,
+                 data = riqueza_arbol)
+vif(m_vif_rich)
+m_vif_abund <- lm(abundancia ~ dap_z + height_z + elev_z,
+                  data = abund_arbol)
+vif(m_vif_abund)
+
+
+```
+
+graficos
+```{r}
+#Gráfico 1. Riqueza de epífitas vs DAP del hospedero
+#preparacion de datos
+#variables como numericas
+riqueza_arbol <- riqueza_arbol %>%
+  mutate(
+    dap_z = as.numeric(scale(dap)),
+    height_z = as.numeric(scale(height)),
+    elev_z = as.numeric(scale(elevation))
+  )
+#ajustar el modelo binomial negativo
+m_ric_nb <- glm.nb(
+  riqueza ~ dap_z + height_z + genera_tree + elev_z,
+  data = riqueza_arbol
+)
+#dataframe
+new_dap <- data.frame(
+  dap_z = seq(min(riqueza_arbol$dap_z),
+              max(riqueza_arbol$dap_z),
+              length.out = 100),
+  height_z = 0,   # valor promedio
+  elev_z   = 0,   # valor promedio
+  genera_tree = levels(riqueza_arbol$genera_tree)[1]
+)
+
+#predicciones del modelo
+pred <- predict(
+  m_ric_nb,
+  newdata = new_dap,
+  type = "link",
+  se.fit = TRUE
+)
+new_dap <- new_dap %>%
+  mutate(
+    fit = exp(pred$fit),
+    lwr = exp(pred$fit - 1.96 * pred$se.fit),
+    upr = exp(pred$fit + 1.96 * pred$se.fit)
+  )
+
+#grafico  Riqueza DAP
+ggplot(riqueza_arbol, aes(x = dap, y = riqueza)) +
+  # datos observados
+  geom_point(alpha = 0.6, size = 2, color = "black") +
+  # línea del modelo
+  geom_line(
+    data = new_dap,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(riqueza_arbol$dap) + mean(riqueza_arbol$dap),
+      y = fit
+    ),
+    linewidth = 1
+  ) +
+  # intervalo de confianza
+  geom_ribbon(
+    data = new_dap,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(riqueza_arbol$dap) + mean(riqueza_arbol$dap),
+      ymin = lwr,
+      ymax = upr
+    ),
+    alpha = 0.25
+  ) +
+
+  labs(
+    x = "DAP del árbol hospedero (cm)",
+    y = "Riqueza de epífitas vasculares"
+  ) +
+
+  theme_classic(base_size = 13)
+ggsave(
+  filename = "Fig_Riqueza_DAP.png",
+  width = 18,      # ancho en cm
+  height = 14,     # alto en cm
+  units = "cm",
+  dpi = 300
+)
+
+#Gráfico 2. Abundancia de epífitas vs DAP y altura
+abund_arbol <- abund_arbol %>%#preparacion de datos
+  mutate(
+    dap_z    = as.numeric(scale(dap)),
+    height_z = as.numeric(scale(height)),
+    elev_z   = as.numeric(scale(elevation)),
+    genera_tree = as.factor(genera_tree)
+  )
+m_ab_nb <- glm.nb(#ajustar modelo
+  abundancia ~ dap_z + height_z + genera_tree + elev_z,
+  data = abund_arbol
+)
+#prediccioneds Dap
+new_dap_ab <- data.frame(
+  dap_z = seq(min(abund_arbol$dap_z),
+              max(abund_arbol$dap_z),
+              length.out = 100),
+  height_z = 0,
+  elev_z   = 0,
+  genera_tree = levels(abund_arbol$genera_tree)[1]
+)
+
+pred_dap <- predict(
+  m_ab_nb,
+  newdata = new_dap_ab,
+  type = "link",
+  se.fit = TRUE
+)
+
+new_dap_ab <- new_dap_ab %>%
+  mutate(
+    fit = exp(pred_dap$fit),
+    lwr = exp(pred_dap$fit - 1.96 * pred_dap$se.fit),
+    upr = exp(pred_dap$fit + 1.96 * pred_dap$se.fit)
+  )
+#predicciones para altura
+new_h_ab <- data.frame(
+  height_z = seq(min(abund_arbol$height_z),
+                 max(abund_arbol$height_z),
+                 length.out = 100),
+  dap_z  = 0,
+  elev_z = 0,
+  genera_tree = levels(abund_arbol$genera_tree)[1]
+)
+
+pred_h <- predict(
+  m_ab_nb,
+  newdata = new_h_ab,
+  type = "link",
+  se.fit = TRUE
+)
+
+new_h_ab <- new_h_ab %>%
+  mutate(
+    fit = exp(pred_h$fit),
+    lwr = exp(pred_h$fit - 1.96 * pred_h$se.fit),
+    upr = exp(pred_h$fit + 1.96 * pred_h$se.fit)
+  )
+#GRAFICO PARTIDO
+#A DAP
+p_dap <- ggplot(abund_arbol, aes(x = dap, y = abundancia)) +
+
+  geom_point(alpha = 0.6, size = 2, color = "black") +
+
+  geom_line(
+    data = new_dap_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(abund_arbol$dap) + mean(abund_arbol$dap),
+      y = fit
+    ),
+    linewidth = 1
+  ) +
+
+  geom_ribbon(
+    data = new_dap_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(abund_arbol$dap) + mean(abund_arbol$dap),
+      ymin = lwr,
+      ymax = upr
+    ),
+    alpha = 0.25
+  ) +
+
+  labs(
+    x = "DBH Host tree (cm)",
+    y = "Abundance"
+  ) +
+
+  theme_classic(base_size = 13)
+#B ALTURA
+p_h <- ggplot(abund_arbol, aes(x = height, y = abundancia)) +
+
+  geom_point(alpha = 0.6, size = 2, color = "black") +
+
+  geom_line(
+    data = new_h_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = height_z * sd(abund_arbol$height) + mean(abund_arbol$height),
+      y = fit
+    ),
+    linewidth = 1
+  ) +
+
+  geom_ribbon(
+    data = new_h_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = height_z * sd(abund_arbol$height) + mean(abund_arbol$height),
+      ymin = lwr,
+      ymax = upr
+    ),
+    alpha = 0.25
+  ) +
+
+  labs(
+    x = "Height (m)",
+    y = "Abundance"
+  ) +
+
+  theme_classic(base_size = 13)
+p_dap + p_h#UNIR LOS GRAFICOS
+
+ggsave(
+  filename = "Fig_Abundancia_DAP y altura.png",
+  width = 18,      # ancho en cm
+  height = 14,     # alto en cm
+  units = "cm",
+  dpi = 300
+)
+
+#OPCION B UN SOLO GRAFICO PARA EL DAP Y LA ABUNDANCIA
+abund_arbol <- abund_arbol %>%
+  mutate(
+    dap_z    = as.numeric(scale(dap)),
+    height_z = as.numeric(scale(height)),
+    elev_z   = as.numeric(scale(elevation)),
+    genera_tree = as.factor(genera_tree)
+  )
+m_ab_nb <- glm.nb(
+  abundancia ~ dap_z + height_z + genera_tree + elev_z,
+  data = abund_arbol
+)
+new_dap_ab <- data.frame(
+  dap_z = seq(min(abund_arbol$dap_z),
+              max(abund_arbol$dap_z),
+              length.out = 100),
+  height_z = 0,
+  elev_z   = 0,
+  genera_tree = levels(abund_arbol$genera_tree)[1]
+)
+
+pred_dap <- predict(
+  m_ab_nb,
+  newdata = new_dap_ab,
+  type = "link",
+  se.fit = TRUE
+)
+
+new_dap_ab <- new_dap_ab %>%
+  mutate(
+    fit = exp(pred_dap$fit),
+    lwr = exp(pred_dap$fit - 1.96 * pred_dap$se.fit),
+    upr = exp(pred_dap$fit + 1.96 * pred_dap$se.fit)
+  )
+ggplot(abund_arbol, aes(x = dap, y = abundancia)) +
+
+  # puntos observados (tamaño = altura)
+  geom_point(
+    aes(size = height),
+    alpha = 0.6,
+    color = "black"
+  ) +
+
+  # línea del modelo
+  geom_line(
+    data = new_dap_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(abund_arbol$dap) + mean(abund_arbol$dap),
+      y = fit
+    ),
+    linewidth = 1
+  ) +
+
+  # intervalo de confianza
+  geom_ribbon(
+    data = new_dap_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(abund_arbol$dap) + mean(abund_arbol$dap),
+      ymin = lwr,
+      ymax = upr
+    ),
+    alpha = 0.25
+  ) +
+
+  scale_size_continuous(
+    name = "Height tree (m)",
+    range = c(2, 7)
+  ) +
+
+  labs(
+    x = "DBH (cm)",
+    y = "Abundance"
+  ) +
+
+  theme_classic(base_size = 12)
+#Guardar la imagen
+ggsave(
+  filename = "Fig_Abundancia_DAP_altura.png",
+  width = 18,      # ancho en cm
+  height = 16,     # alto en cm
+  units = "cm",
+  dpi = 300
+)
+
+
+```
+
+
+OB.3: Determinar la sobrevivencia de epífitas vasculares translocadas desde el treeline hacia la puna adyacente como prueba experimental de los límites climáticos para su persistencia.
+
+Data SOBREVIVENCIA
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+expdata <- read.csv("relocadata.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+str(expdata)      # Estructura de la base de datos
+head(expdata)
+colnames(expdata)
+#corregir datos extraños
+expdata <- expdata %>%
+  # Convierte todas las columnas tipo texto a UTF-8
+  mutate(across(where(is.character), ~ stri_encode(.x, from = "", to = "UTF-8"))) %>%
+  # Quita espacios en blanco y reemplaza vacíos por NA
+  mutate(across(everything(), ~ na_if(trimws(as.character(.x)), "")))
+###colocar NA en las celdas vacias
+expdata <- expdata %>%
+  mutate(across(where(is.character), ~iconv(.x, from = "", to = "UTF-8"))) %>%  # 🔧 corrige codificación
+  mutate(across(everything(), ~na_if(trimws(.x), "")))  # 🔄 reemplaza vacíos por NA
+str(expdata)
+colSums(is.na(expdata))
+
+```
+
+Data Clima
+```{r}
+# 1. Cargar archivo con separador ";"
+clima <- read_delim("dataclima.csv",
+                    delim = ";",
+                    col_types = cols(.default = "c"))  # leer todo como texto primero
+
+# 2. Convertir columnas numéricas correctamente
+num_cols <- c("t_puna", "ilum_puna", "t_forest", "ilum_forest",
+              "temp_forest", "hr_forest", "temp_puna", "hr_puna")
+
+clima <- clima %>%
+  mutate(across(all_of(num_cols), ~ parse_number(.)))
+
+# 3. Convertir la fecha-hora (formato dmy_hm)
+clima <- clima %>%
+  mutate(
+    date_hour = dmy_hm(date_hour),
+    date = as.Date(date_hour)
+  )
+
+# 4. Crear la tabla diaria
+clima_daily <- clima %>%
+  group_by(date) %>%
+  summarise(
+    light_max_puna   = if (all(is.na(ilum_puna))) NA else max(ilum_puna, na.rm = TRUE),
+    temp_max_puna    = if (all(is.na(temp_puna))) NA else max(temp_puna, na.rm = TRUE),
+    temp_min_puna    = if (all(is.na(temp_puna))) NA else min(temp_puna, na.rm = TRUE),
+    rh_min_puna      = if (all(is.na(hr_puna)))   NA else min(hr_puna,   na.rm = TRUE),
+
+    light_max_forest = if (all(is.na(ilum_forest))) NA else max(ilum_forest, na.rm = TRUE),
+    temp_max_forest  = if (all(is.na(temp_forest))) NA else max(temp_forest, na.rm = TRUE),
+    temp_min_forest  = if (all(is.na(temp_forest))) NA else min(temp_forest, na.rm = TRUE),
+    rh_min_forest    = if (all(is.na(hr_forest)))   NA else min(hr_forest,   na.rm = TRUE)
+  )
+```
+UNIR TABLAS Y CUANTIFICAR LAS VARIABLES EN FUNCION A LOS DATALOGGERS para las evaluaciones
+```{r}
+head(expdata$date)
+expdata$date <- as.Date(expdata$date, format = "%d.%m.%Y")
+#Revisar y convertir fechas en tus dos tablas
+clima_daily$date <- as.Date(clima_daily$date)
+#CLIMA SOLO PUNA
+#Crear tabla SOLO clima puna
+clima_puna <- clima_daily %>%
+  dplyr::select(date, temp_min_puna, temp_max_puna, rh_min_puna, light_max_puna)
+#3. Crear tabla con fechas de censos (T1–T4)
+census_dates <- expdata %>%
+  distinct(time, date) %>%
+  arrange(date)
+
+#Calcular clima promedio + extremos por intervalo
+climate_intervals <- census_dates %>%
+  mutate(start = lag(date),
+         end   = date) %>%
+  filter(!is.na(start)) %>%
+  rowwise() %>%
+  mutate(
+    # PROMEDIOS
+    Tmin_mean  = mean(clima_puna$temp_min_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+    Tmax_mean  = mean(clima_puna$temp_max_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+    RHmin_mean = mean(clima_puna$rh_min_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+    Light_mean = mean(clima_puna$light_max_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+
+    # EXTREMOS ABSOLUTOS (ecológicamente más importantes)
+    Tmin_abs   = min(clima_puna$temp_min_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+    RHmin_abs  = min(clima_puna$rh_min_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+    Light_abs  = max(clima_puna$light_max_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE)
+  ) %>%
+  ungroup()
+#Unir clima con epífitas
+expdata2 <- left_join(expdata, climate_intervals, by = "time")
+str(expdata2)
+names(expdata2)
+#Chequear que T1 no tenga clima
+expdata2 %>% distinct(time, Tmin_mean, Tmin_abs)
+
+str(expdata2)
+```
+```{r}
+#Preparar la base SOLO PUNA (porque en bosque no hay variación)
+puna_data <- expdata2 %>%
+  filter(relocation == "true")   # solo ramas llevadas a puna
+names(puna_data)
+#Convertir alive a binaria
+puna_data$alive <- ifelse(puna_data$dead_alive == "alive", 1,
+                          ifelse(puna_data$dead_alive == "dead", 0, NA))
+puna_data$alive <- as.integer(puna_data$alive)
+table(puna_data$branch_ID, puna_data$time, puna_data$alive)
+table(puna_data$alive, puna_data$time)
+table(puna_data$branch_ID,puna_data$time)##este era el que vimos
+
+#Escalar clima (muy importante para GLMM)
+puna_data <- puna_data %>%
+  mutate(
+    Tmin_abs_s  = scale(Tmin_abs),
+    RHmin_abs_s = scale(RHmin_abs),
+    Light_abs_s = scale(Light_abs)
+  )
+m_both <- glmer(alive ~ Tmin_abs_s + RHmin_abs_s + time + (1|branch_ID),
+                family=binomial, data=puna_data)#MODELO ELEGIDO 
+```
+
+modelo  sobrevivencia en funcion al clima
+```{r}
+
+
+#Modelo completo
+#install.packages("lme4")
+
+m1 <- glmer(alive ~ Tmin_abs_s + RHmin_abs_s + Light_abs_s +
+              (1|branch_ID) + (1|genus),
+            family = binomial,
+            data = puna_data)
+summary(m1)
+#modelo Solo extremos térmicos e hídricos
+m_final <- glmer(alive ~ Tmin_abs_s + RHmin_abs_s + 
+                 (1|branch_ID),
+                 family=binomial, data=puna_data,
+                 control=glmerControl(optimizer="bobyqa"))
+summary(m_final)
+
+```
+OPCIONES PARA EL MODELO
+```{r}
+m_temp <- glmer(alive ~ Tmin_abs_s + (1|branch_ID),
+                family = binomial,
+                data = puna_data,
+                control = glmerControl(optimizer="bobyqa"))
+summary(m_temp)
+#GRAFICO
+library(ggeffects)
+library(ggplot2)
+
+pred <- ggpredict(m_temp, terms = "Tmin_abs_s")
+
+ggplot(pred, aes(x = x, y = predicted)) +
+  geom_line(size=1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha=0.2) +
+  geom_point(data=puna_data, aes(x=Tmin_abs_s, y=alive), alpha=0.4) +
+  labs(x="Minimum absolute temperature (scaled)",
+       y="Predicted survival probability") +
+  theme_classic()
+
+#Código para comparar AIC DE DIFERENTES MODELOS  
+m_rh <- glmer(alive ~ RHmin_abs_s + (1|branch_ID),
+              family=binomial, data=puna_data)
+
+str(puna_data)
+puna_data$time<-as.factor(puna_data$time)
+puna_data$branch_ID<-as.factor(puna_data$branch_ID)
+str(puna_data)
+
+
+m_both <- glmer(alive ~ Tmin_abs_s + RHmin_abs_s + time + (1|branch_ID),
+                family=binomial, data=puna_data)
+
+AIC(m_temp, m_rh, m_both)
+summary(m_both)
+#RESULTADO FINAL #se eligio el modelo Both porque comprarndolos con los solitarios de tmin_abs y RH_min es mejor en que tiene menor AIC
+```
+comparando modelos 
+```{r}
+#Escalar clima (muy importante para GLMM)
+puna_data <- puna_data %>%
+  mutate(
+    Tmin_mean_s = scale(Tmin_mean),
+    Tmin_abs_s  = scale(Tmin_abs),
+    Tmax_mean_s = scale(Tmax_mean),
+    RHmin_abs_s = scale(RHmin_abs),
+    RHmin_mean_s = scale( RHmin_mean),
+    Light_abs_s = scale(Light_abs),
+    Light_mean_s = scale(Light_mean)
+  )
+
+puna_data$alive <- ifelse(puna_data$dead_alive == "alive", 1, 0)
+table(puna_data$alive)
+
+#Modelo con Tmin_mean
+m_Tmin <- glmer(alive ~ Tmin_mean_s + (1|branch_ID),
+                family = binomial,
+                data = puna_data,
+                control = glmerControl(optimizer="bobyqa"))
+#Modelo con Light_mean
+m_Light <- glmer(alive ~ Light_mean_s + (1|branch_ID),
+                 family = binomial,
+                 data = puna_data,
+                 control = glmerControl(optimizer="bobyqa"))
+#Modelo con RHmin_abs
+m_RH <- glmer(alive ~ RHmin_abs_s + (1|branch_ID),
+              family = binomial,
+              data = puna_data,
+              control = glmerControl(optimizer="bobyqa"))
+#modelo juntos 
+m_full <- glmer(alive ~ Tmin_mean_s + Light_mean_s + RHmin_abs_s +
+                (1|branch_ID),
+                family = binomial,
+                data = puna_data,
+                control = glmerControl(optimizer="bobyqa"))
+summary(m_Tmin)
+summary(m_Light)
+summary(m_RH)
+summary(m_full)
+AIC(m_Tmin, m_Light, m_RH, m_full)
+
+```
+Evaluando VIF colinearidad
+```{r}
+#correlacion ENTRE LAS VARIABLES
+cor(puna_data[,c("Tmin_mean_s",
+                "Tmin_abs_s",
+                "Tmax_mean_s",
+                "RHmin_mean_s",
+                "RHmin_abs_s",
+                "Light_abs_s",
+                "Light_mean_s")],
+    use = "complete.obs")
+#SUGIRIO POR CORRELACION SOLO USAR m_Tmin_abs, m_Tmin_mean Y m_RHmin_abs
+library(lme4)
+m_Tmin_abs <- glmer(alive ~ Tmin_abs_s + (1|branch_ID),
+                    family = binomial,
+                    data = puna_data,
+                    control = glmerControl(optimizer = "bobyqa"))
+m_Tmin_mean <- glmer(alive ~ Tmin_mean_s + (1|branch_ID),
+                     family = binomial,
+                     data = puna_data,
+                     control = glmerControl(optimizer = "bobyqa"))
+m_RHmin_abs <- glmer(alive ~ RHmin_abs_s + (1|branch_ID),
+                     family = binomial,
+                     data = puna_data,
+                     control = glmerControl(optimizer = "bobyqa"))
+#COMPARAR AIC
+AIC(m_Tmin_abs, m_Tmin_mean, m_RHmin_abs)
+aic_table <- AIC(m_Tmin_abs, m_Tmin_mean, m_RHmin_abs)
+aic_table$delta <- aic_table$AIC - min(aic_table$AIC)
+aic_table
+summary(m_Tmin_abs)
+#MODELO NULO
+data_model <- na.omit(puna_data[, c("alive",
+                                   "branch_ID",
+                                   "Tmin_abs_s",
+                                   "Tmin_mean_s",
+                                   "RHmin_abs_s")])
+
+m_null <- glmer(alive ~ 1 + (1|branch_ID),
+                family = binomial,
+                data = data_model,
+                control = glmerControl(optimizer="bobyqa"))
+
+m_Tmin_abs <- glmer(alive ~ Tmin_abs_s + (1|branch_ID),
+                    family = binomial,
+                    data = data_model,
+                    control = glmerControl(optimizer="bobyqa"))
+
+m_Tmin_mean <- glmer(alive ~ Tmin_mean_s + (1|branch_ID),
+                     family = binomial,
+                     data = data_model,
+                     control = glmerControl(optimizer="bobyqa"))
+
+m_RHmin_abs <- glmer(alive ~ RHmin_abs_s + (1|branch_ID),
+                     family = binomial,
+                     data = data_model,
+                     control = glmerControl(optimizer="bobyqa"))
+
+isSingular(m_null)
+
+AIC(m_null, m_Tmin_abs, m_Tmin_mean, m_RHmin_abs)
+
+##modelo sin branch porque no influye PERO AL NO USAR SE VE QUE ES MEJOR USARLO
+m_null_B <- glm(alive ~ 1 ,
+                family = binomial,
+                data = data_model)
+
+m_Tmin_abs_B <- glm(alive ~ Tmin_abs_s,
+                    family = binomial,
+                    data = data_model)
+
+m_Tmin_mean_B <- glm(alive ~ Tmin_mean_s ,
+                     family = binomial,
+                     data = data_model)
+
+m_RHmin_abs_B <- glm(alive ~ RHmin_abs_s ,
+                     family = binomial,
+                     data = data_model)
+AIC(m_null_B, m_Tmin_abs_B, m_Tmin_mean_B, m_RHmin_abs_B)
+
+#VIF (Variance Inflation Factor) mide cuánto aumenta la varianza de un coeficiente debido a colinealidad con otras variables del modelo.
+#install.packages("car")
+library(car)
+m_vif <- glmer(alive ~  Tmin_abs_s + RHmin_abs_s + Tmin_mean + (1|branch_ID),
+             family = binomial,
+             data = puna_data, 
+             control = glmerControl(optimizer="bobyqa"))
+vif(m_vif)
+
+#PROBANDO Temp_min_abs+ rhmin_abs
+m_two <- glmer(alive ~ Tmin_abs_s + RHmin_abs_s + (1|branch_ID),
+               family = binomial,
+               data = data_model,
+               control = glmerControl(optimizer="bobyqa"))
+
+AIC(m_Tmin_abs, m_two)
+
+```
+
+TEST DE KAPLAN-MEIER o analisis de supervivencia  se usa para estimar y comparar la probabilidad de supervivencia en el tiempo
+responde a:
+¿Cuál es la probabilidad de supervivencia después de cierto tiempo?
+En el bosque, la probabilidad de supervivencia se mantiene en 1 durante todo el experimento.
+En la puna, la probabilidad disminuye rápidamente, con una caída abrupta alrededor del mes 5 y una mediana de supervivencia de 5 meses.
+¿Son diferentes las probabilidades de supervivencia entre puna vs bosque a lo largo del tiempo? test de log-rank
+Sí, son drásticamente diferentes.
+
+```{r}
+#paquetes
+library(dplyr)
+library(survival)
+library(survminer)
+#preparar datos 
+supervivencia <- expdata %>% arrange(epi_ID, time, branch_ID)
+supervivencia <- supervivencia %>%
+  mutate(
+    relocation = as.logical(relocation),
+    dead_alive = as.character(dead_alive),
+    time_num = as.numeric(gsub("T", "", time))
+  )
+#crear tabala de supervivencia
+surv_data <- supervivencia %>%
+  arrange(epi_ID, time_num) %>%
+  group_by(epi_ID) %>%
+  summarise(
+    group = first(relocation),        # TRUE = puna, FALSE = bosque
+    event = any(dead_alive == "dead"),
+    time_event = ifelse(
+      event,
+      min(time_num[dead_alive == "dead"]),  # primer dead
+      max(time_num)                          # último censo si sigue viva
+    ),
+    .groups = "drop"
+  )
+#convertir censo a tiempo real 
+surv_data <- surv_data %>%
+  dplyr:: mutate(
+    time_months = dplyr:: recode(
+      time_event,
+      `1` = 0,
+      `2` = 2,
+      `3` = 5,
+      `4` = 8
+    )
+  )
+table(surv_data$epi_ID, surv_data$time_months)##tabla del evento mortalidad x nepi y time(#mes)
+#Crear el objeto de supervivencia
+#library(survival)
+S <- Surv(
+  time  = surv_data$time_months,
+  event = surv_data$event
+)
+
+#Ajustar Kaplan–Meier por grupo (Puna vs Bosque)
+km_fit <- survfit(S ~ group, data = surv_data)
+#Log-rank test
+survdiff(S ~ group, data = surv_data)
+
+ggsurvplot(
+  km_fit,
+  data = surv_data,
+  risk.table = TRUE,
+  pval = TRUE,
+  conf.int = FALSE,
+  legend.labs = c("Bosque", "Puna"),
+  legend.title = "Hábitat",
+  palette = c("darkgreen", "brown"),
+  linewidth = 1,
+  xlab = "Tiempo desde el inicio (meses)",
+  ylab = "Probabilidad de supervivencia",
+  break.time.by = 1
+)
+summary(km_fit)#comprobacion rapida
+
+#en ingles
+g <- ggsurvplot(
+  km_fit,
+  data = surv_data,
+  risk.table = TRUE,
+  pval = TRUE,
+  conf.int = FALSE,
+  legend.labs = c("Forest", "Puna"),
+  legend.title = "Habitat",
+  palette = c("darkgreen", "brown"),
+  linewidth = 1,
+  xlab = "Time since the start (months)",
+  ylab = "Survival probability",
+  break.time.by = 1
+)
+png("KaplanMeier_epiphyte_survival.png",
+    width = 2000, height = 1600, res = 300)
+print(g)
+
+
+```
+Kaplan–Meier survival analysis showed that the probability of survival remained at 1.0 for forest controls throughout the study, whereas epiphytes translocated to the puna experienced a sharp decline in survival probability, with median survival of five months.
+
+
+grafico de Sobrevivencia
+```{r}
+library(ggplot2)
+library(dplyr)
+
+names(expdata)
+
+# Ordenar los datos por fecha
+supervivencia <- expdata %>% arrange(epi_ID, time, branch_ID)
+
+#grafico supervivencia por rama 
+library(dplyr)
+library(ggplot2)
+
+# 1️⃣ Preparar los datos
+expdata <- expdata %>%
+  mutate(
+    dead_alive = tolower(dead_alive),   # uniformar texto
+    alive = ifelse(dead_alive == "alive", 1, 0),  # 1 = vivo, 0 = muerto
+    relocation = as.factor(relocation),
+    branch_ID = as.factor(branch_ID),
+    time = as.factor(time)
+  )
+
+# 2️⃣ Calcular supervivencia promedio (%)
+survival_summary <- expdata %>%
+  group_by(relocation, branch_ID, time) %>%
+  summarise(
+    survival = mean(alive, na.rm = TRUE) * 100
+  ) %>%
+  ungroup()
+
+##GRAFICO MEJORADO
+library(dplyr)
+go<- ggplot(
+  survival_summary,
+  aes(
+    x = time,
+    y = survival,
+    group = branch_ID,
+    color = relocation
+  )
+) +
+  geom_line(
+    position = position_dodge2(width = 0.3),
+    size = 1, alpha = 0.6
+  ) +
+  geom_point(
+    position = position_dodge2(width = 0.3),
+    size = 2, alpha = 0.6
+  )+
+  facet_wrap(
+    ~ relocation,
+    ncol = 1,
+    labeller = labeller(
+      relocation = c(
+        "false" = "Puna",
+        "true"  = "Forest"
+      )
+    )
+  ) +
+  scale_color_manual(
+    values = c(
+      "false" = "#8B5A2B",  # Puna = marrón
+      "true"  = "#1B7837"  # Forest = verde
+    )
+  ) +
+  scale_x_discrete(
+    labels = c(
+      "T1" = "April",
+      "T2" = "June",
+      "T3" = "August",
+      "T4" = "December"
+    ) 
+    )+
+  scale_y_continuous(
+    labels = scales::percent_format(scale = 1)
+  ) +
+  theme_bw() +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 14)
+  ) +
+  labs(
+    title = "Survival (%) over time by branch",
+    x = "Time",
+    y = "Survival (%)"
+  )
+go 
+
+ggsave(
+  filename = "survival_plot.png",
+  plot = go,
+  width = 5,
+  height = 6,
+  dpi = 300
+)
+
+```
+
+=======
+---
+title: "PAPER"
+author: "Edith"
+date: "2026-01-30"
+output: DATA ANALISES
+---
+
+OB.1: Cuantificar la variación en la riqueza, abundancia y composición de epífitas vasculares a lo largo del gradiente elevacional hacia el treeline.
+
+Data Epis treeline
+```{r}
+#setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+# NO NECESITAS SETWD PORQUE ESTAS USANDO PROYECTOS, TODO LO QUE ESTA DENTRO DEL FOLDER SE PUEDE ACCEDER
+
+#FOROFITOS
+data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+str(data)
+```
+paquetes
+```{r}
+library(dplyr)
+library(tidyr)
+library(car)
+library(stringi)
+library(lme4)
+library(performance)
+library(emmeans)
+library(sjmisc)
+library(sjPlot)
+library(ggplot2)
+library(vegan)
+library(betapart)
+library(MASS)
+library(patchwork)
+library(readr)
+library(lubridate)
+library(emmeans)
+library(ggpubr)
+
+```
+
+riqueza
+```{r}
+#Crear matriz de abundancia
+comm <- data %>%
+  group_by(forof, elevation, morphospe) %>%
+  summarise(abundance = n(), .groups="drop") %>%
+  pivot_wider(names_from = morphospe, values_from = abundance, values_fill = 0)
+#Matriz ambiental del árbol
+env_tree <- data %>%
+  distinct(forof, elevation, dap, height, plot, subplot, tree_name, genera_tree)
+#RIQUEZA DE EPÍFITAS POR ÁRBOL
+species_cols <- names(comm)[!names(comm) %in% c("forof","elevation")]
+#datos raros nombres
+data$morphospe <- stri_trans_general(data$morphospe, "Latin-ASCII")
+data$morphospe <- gsub("[^[:alnum:] ]", "", data$morphospe)
+
+richness <- comm %>%
+  mutate(richness = rowSums(across(all_of(species_cols), ~ . > 0))) %>%
+  dplyr::select(forof, elevation, richness)
+
+#MODELOS A LO LARGO DEL GRADIENTE ELEVACIONAL
+#Riqueza mejor fit con elevacion como factor y hacer anova con grafico de boxplot con resultados de pairwise. 20FEB
+str(richness)
+richness$elev_f <- factor(richness$elevation)
+
+m_rich <- glmer(richness ~ elev_f + (1|forof),
+                family=poisson, data=richness)
+summary(m_rich)
+Anova(m_rich)
+check_model(m_rich)###valuar de forma rápida y visual si un modelo estadístico está bien especificado y si cumple los supuestos.1. linealidad, 2. homocedasticidad, 3. Normalidad de residuos, 4. Valores atipicos e influencia, 4. Colinearidad, Ajuste general del modelo
+library(performance)##cuando no muestra el plot hace otra ventana
+dev.new()
+check_model(m_rich)
+#comparacion por pares
+emmeans(m_rich, list(pairwise ~ elev_f), adjust = "tukey")
+#revisar overdispersion
+check_overdispersion(m_rich)#sin overdispercion
+
+#regresion
+richness$elev_z <- scale(richness$elevation)
+m_richz <- glmer(richness ~ elev_z + (1|forof),
+                family=poisson, data=richness)
+summary(m_richz)
+Anova(m_richz)
+plot(richness$elevation, richness$richness)
+check_model(m_richz)#
+plot(m_richz)
+#comparacion por pares
+emmeans(m_richz, list(pairwise ~ elev_z), adjust = "tukey")
+plot_model(m_richz,
+type = "pred",
+terms = "elev_z")
+
+###La elevación se trató como una variable categórica debido a que solo se muestrearon cuatro niveles discretos, lo que impide el uso de enfoques de suavizamiento continuo como los GAM
+#grafico
+riq_el<- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot() +
+  geom_jitter(width=0.1, alpha=0.4) +
+  theme_classic() +
+  ylab("Epiphyte species richness per tree") +
+  xlab("Elevation (m)")
+```
+RIQUEZA grafico completo con comparaciones
+```{r}
+#Extraer las comparaciones de emmeans como data frame
+emm <- emmeans(m_rich, ~ elev_f)
+pairs_df <- pairs(emm, adjust = "tukey") %>%
+  as.data.frame()
+#data frame para ggplot
+pairs_df <- pairs_df %>%
+  separate(contrast, into = c("group1", "group2"), sep = " - ") %>%
+  mutate(
+    group1 = gsub("elev_f", "", group1),
+    group2 = gsub("elev_f", "", group2),
+    y.position = max(richness$richness) + 
+                 seq(0.2, by = 0.2, length.out = n())
+  )
+
+#GRAFICO con asteriscos
+colnames(pairs_df)
+pairs_df <- pairs_df %>%
+  mutate(
+    p.signif = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*",
+      TRUE            ~ "ns"
+    )
+  )
+riq_el <- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1, alpha = 0.4) +
+  stat_pvalue_manual(
+    pairs_df,
+    label = "p.signif",
+    tip.length = 0.01
+  ) +
+  theme_classic() +
+  ylab("Epiphyte species richness per tree") +
+  xlab("Elevation (m)")
+riq_el
+#corregir visualmente
+pairs_sig <- pairs_df %>%
+  filter(p.value < 0.05)
+pairs_sig <- pairs_sig %>%
+  mutate(
+    y.position = max(richness$richness, na.rm = TRUE) +
+                 seq(2, by = 2, length.out = n())
+  )
+riq_el <- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot(width = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.5, size = 1.8) +
+  stat_pvalue_manual(
+    pairs_sig,
+    label = "p.signif",
+    tip.length = 0.01
+  ) +
+  theme_classic(base_size = 14) +
+  ylab("Epiphyte species richness per tree") +
+  xlab("Elevation (m)")
+riq_el
+#caption grafico: Boxes show median and interquartile range. Points represent individual trees.Asterisks indicate significant pairwise differences among elevations based on Tukey-adjusted estimated marginal means derived from the GLMM (* p < 0.05, ** p < 0.01).
+```
+
+ABUNDANCIA
+```{r}
+#ABUNDANCIA TOTAL
+abundance <- comm %>%
+  mutate(abundance = rowSums(dplyr::select(., -forof, -elevation))) %>%
+  dplyr::select(forof, elevation, abundance)
+#Abundancia 
+abund <- data %>%
+  group_by(forof, elevation) %>%
+  summarise(abundance = n(), .groups="drop")
+#modelo 
+m_abund <- glmer(abundance ~ elev_f + (1|forof),
+                 family = poisson, data = abund)
+summary(m_abund)
+#modelo elegido###################################
+abundance$elev_f <- factor(abundance$elevation)
+
+m_abun <- glmer(abundance ~ elev_f + (1|forof),
+                family=poisson, data=abundance)
+summary(m_abun)
+Anova(m_abun)
+
+check_model(m_abun)###valuar de forma rápida y visual si un modelo estadístico está bien especificado y si cumple los supuestos.1. linealidad, 2. homocedasticidad, 3. Normalidad de residuos, 4. Valores atipicos e influencia, 4. Colinearidad, Ajuste general del modelo
+#comparacion por pares
+library(performance)##cuando no muestra el plot hace otra ventana
+dev.new()
+check_model(m_abun)
+#revisar overdispersion
+check_overdispersion(m_abun)#sin overdispercion
+emmeans(m_abun, list(pairwise ~ elev_f), adjust = "tukey")#comparando pares
+
+#regresion PEOR AJUSTE
+abundance$elev_z <- scale(abundance$elevation)
+abundance$elev_z <- as.numeric(abundance$elev_z)
+m_abunz <- glmer(abundance ~ elev_z + (1|forof),
+                family=poisson, data=abundance)
+summary(m_abunz)
+Anova(m_abunz)
+check_model(m_abunz)#
+library(performance)##cuando no muestra el plot hace otra ventana
+dev.new()
+check_model(m_abunz)
+
+#grafico solo
+ggplot(abundance, aes(elev_f, abundance)) +
+  geom_boxplot() +
+  geom_jitter(width=0.1, alpha=0.4) +
+  theme_classic() +
+  ylab("Epiphyte abundance per tree") +
+  xlab("Elevation (m)")
+```
+Grafico ABUNDANCE completo con las comparaciones
+```{r}
+############################################
+## MODELO DE ABUNDANCIA (GLMM POISSON)
+############################################
+m_abun <- glmer(
+  abundance ~ elev_f + (1 | forof),
+  family = poisson,
+  data = abundance
+)
+
+############################################
+## EMMEANS Y COMPARACIONES (Tukey)
+############################################
+emm_abun <- emmeans(m_abun, ~ elev_f)
+pairs_abun <- pairs(emm_abun, adjust = "tukey") |> as.data.frame()
+
+# (solo informativo, no se usa más abajo)
+pairs_abun
+# Comparación significativa:
+# elev_f3402 - elev_f3537  p = 0.0001
+
+############################################
+## GRÁFICO FINAL CON ANOTACIÓN MANUAL
+############################################
+
+# Posiciones X de los niveles del factor:
+# levels(abundance$elev_f)
+# 1 = 3261
+# 2 = 3402
+# 3 = 3537
+# 4 = 3625
+
+abun_el <- ggplot(abundance, aes(elev_f, abundance)) +
+
+  # boxplots y puntos
+  geom_boxplot(width = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.5, size = 1.8) +
+
+  # línea horizontal de comparación (3402 vs 3537)
+  geom_segment(
+    aes(x = 2, xend = 3, y = 450, yend = 450),
+    inherit.aes = FALSE
+  ) +
+
+  # "patitas" verticales
+  geom_segment(
+    aes(x = 2, xend = 2, y = 420, yend = 450),
+    inherit.aes = FALSE
+  ) +
+  geom_segment(
+    aes(x = 3, xend = 3, y = 420, yend = 450),
+    inherit.aes = FALSE
+  ) +
+
+  # asteriscos de significancia
+  annotate(
+    "text",
+    x = 2.5, y = 480,
+    label = "***",
+    size = 6
+  ) +
+
+  # escala log SOLO visual
+  scale_y_log10() +
+  coord_cartesian(ylim = c(1, 650)) +
+
+  # estética final
+  theme_classic(base_size = 14) +
+  ylab("Epiphyte abundance per tree (log scale)") +
+  xlab("Elevation (m)")
+
+abun_el
+#caption : Boxplots show epiphyte abundance per tree (log scale). Asterisks indicate a significant pairwise difference based on Tukey-adjusted estimated marginal means from a Poisson GLMM.
+```
+
+Comparando el efecto de la elevacion con la riq y abund
+```{r}
+#glm incluidos en los resultados 18FEB que capta la variablilidad de los forofitos diferentes no todos son iguales y asi no sobrestima la variabilidad de la elevacion 
+richness$elev_z <- scale(richness$elevation)
+str(richness)
+m_rich_z <- glmer(richness ~ elev_z + (1|forof),
+                  family = poisson, data = richness)
+abundance$elev_z <- scale(abundance$elevation)
+m_abund_z <- glmer(abundance ~ elev_z + (1|forof),
+                   family = poisson, data = abundance)
+summary(m_rich_z)
+summary(m_abund_z)
+#####GLM con eleva sin efecto aleatorio
+m_rich2 <- glm(richness ~ elev_z,
+                  family = poisson, data = richness)
+summary(m_rich2)
+m_abund2 <- glm(abundance ~ elev_z,
+                   family = poisson, data = abundance)
+summary(m_abund2)
+
+m_rich3 <- glm(richness ~ elevation,
+                  family = poisson, data = richness)
+summary(m_rich3)
+m_abund3 <- glm(abundance ~ elevation,
+                   family = poisson, data = abundance)
+summary(m_abund3)
+#sobredispersion 
+check_overdispersion(m_rich_z)
+check_overdispersion(m_abund_z)
+#grafico riq y abund
+pA <- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1, alpha = 0.4) +
+  theme_classic() +
+  ylab("Species richness per tree") +
+  xlab("Elevation (m)") +
+  labs(tag = "A")
+pB <- ggplot(abund, aes(elev_f, abundance)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1, alpha = 0.4) +
+  theme_classic() +
+  ylab("Abundance per tree") +
+  xlab("Elevation (m)") +
+  labs(tag = "B")
+p_compuesto <- pA + pB
+ggsave(
+  filename = "Fig_richness_abundance elevation .png",
+  plot = p_compuesto,
+  width = 18,
+  height = 10,
+  units = "cm",
+  dpi = 300
+)
+
+
+```
+Composición
+```{r}
+#COMPOSICIÓN DE ESPECIES
+# Matriz de abundancia por árbol
+#Separar metadata y matriz de especies
+meta <- comm %>% dplyr::select(forof, elevation)
+comm_mat <- comm %>% dplyr::select(-forof, -elevation)
+###################nombres raros
+# reemplazar el caracter raro por espacio
+colnames(comm_mat) <- gsub("�", " ", colnames(comm_mat))
+# quitar dobles espacios
+colnames(comm_mat) <- gsub(" +", " ", colnames(comm_mat))
+# limpiar espacios al inicio y final
+colnames(comm_mat) <- trimws(colnames(comm_mat))
+###########################################
+# Convertir a matriz
+comm_mat <- as.matrix(comm_mat)
+rownames(comm_mat) <- meta$forof
+
+#Transformación recomendada (muy importante) Epífitas tienen muchos ceros → usa Hellinger (estándar en ecología)
+
+comm_hel <- decostand(comm_mat, method = "hellinger")
+#NMDS
+set.seed(123)
+nmds <- metaMDS(comm_hel, distance = "chao", k = 2, trymax = 100)
+nmds
+
+#grafico set.seed(123)
+scores_nmds <- as.data.frame(scores(nmds, display = "sites"))
+scores_nmds$elevation <- factor(meta$elevation)
+ggplot(scores_nmds, aes(x = NMDS1, y = NMDS2, color = elevation)) +
+  geom_point(size = 3, alpha = 0.7) +
+  theme_classic() +
+  labs(color = "Elevation (m)", title = "NMDS of epiphyte community composition")
+
+#PERMANOVA 
+meta$elev_f <- factor(meta$elevation)
+adonis_res <- adonis2(comm_hel ~ elev_f, data = meta, method = "bray", permutations = 999)
+adonis_res
+##test de dispersion
+disp <- betadisper(vegdist(comm_hel, method="chao"), meta$elev_f)
+anova(disp)
+
+#TURNOVER (beta diversity)
+meta <- comm %>% 
+  dplyr::select(forof, elevation) %>% 
+  distinct()
+meta <- meta[match(rownames(comm_mat), meta$forof), ]
+meta$elev_f <- factor(meta$elevation)
+dist_chao <- vegdist(comm_mat, method="chao")
+beta <- betadisper(dist_bray, meta$elev_f)
+anova(beta)
+
+#conclusion: La composición cambia con la elevación, pero también cambia la heterogeneidad entre forófitos.
+
+#grafico 
+boxplot(beta, 
+        xlab = "Elevation (m)", 
+        ylab = "Distance to centroid (chao)")
+
+#turnover y nestedness
+#matriz-ausencia
+
+# comm_mat = matriz especies (186 x spp)
+comm_pa <- comm_mat
+comm_pa[comm_pa > 0] <- 1
+# Beta diversity partitioning (Sørensen)
+beta_core <- betapart.core(comm_pa)
+beta_pair <- beta.pair(beta_core, index.family = "sorensen")
+
+# Componentes
+beta_sim <- beta_pair$beta.sim   # turnover
+beta_sne <- beta_pair$beta.sne   # nestedness
+beta_sor <- beta_pair$beta.sor   # beta total
+
+#MULTI-SITE BETA (valores globales para Results)
+beta_multi <- beta.multi(comm_pa, index.family = "sorensen")
+beta_multi
+
+# PERMANOVA por elevBETA TOTAL
+adonis_sor <- adonis2(beta_sor ~ elev_f, data = meta, permutations = 999)
+adonis_sor
+
+#grafico
+library(reshape2)
+library(ggplot2)
+beta_df <- data.frame(
+  turnover = as.vector(as.dist(beta_sim)),
+  nestedness = as.vector(as.dist(beta_sne)),
+  elev = meta$elev_f[combn(1:nrow(meta),2)[1,]]
+)
+ggplot(beta_df, aes(elev, turnover)) +
+  geom_boxplot() +
+  theme_bw() +
+  ylab("Turnover (βSIM)")
+
+
+summary(m_rich)
+summary(m_abund)
+beta_multi
+```
+
+
+OB.2: Evaluar la influencia de la estructura (DAP y altura) y la identidad taxonómica (género) del árbol hospedero sobre la riqueza y abundancia de epífitas, controlando el efecto de la elevación.
+
+base datos: ojo todos los arboles
+```{r}
+#########primero la base de datos que posee a todos los arboles incleyendo loos que no tuvieron epifitas
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+#FOROFITOS
+data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+hospepi <- data %>% ###TABLA DE DATOS POBLACIONALES
+  dplyr::select(plot, elevation, forof,morphospe, family, genera_tree, dap, height)
+str(hospepi)
+#ARBOLES
+trees <- read.csv("treealtu.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+tree <- trees %>% ###TABLA DE DATOS POBLACIONALES
+  dplyr::select(plot, elevation, tagtree,family, genus, NC, DBH, H)
+str(tree)
+
+#resumir epifitas por forofito
+epi_por_arbol <- hospepi %>%
+  group_by(forof, plot, elevation, genera_tree, dap, height) %>%
+  summarise(
+    presencia_epifitas = 1,
+    riqueza = n_distinct(morphospe),
+    abundancia_total = n(),
+    .groups = "drop"
+  )
+#unificar nombres tree
+tree2 <- tree %>%
+  rename(
+    forof = tagtree,
+    genera_tree = genus,
+    dap = DBH,
+    height = H
+  )
+epi_por_arbol <- hospepi %>%
+  group_by(forof) %>%
+  summarise(
+    presencia_epifitas = 1,
+    riqueza = n_distinct(morphospe),
+    abundancia_total = n(),
+    .groups = "drop"
+  )
+#unir tablas 
+arboles <- tree2 %>%
+  left_join(epi_por_arbol, by = "forof") %>%
+  mutate(
+    presencia_epifitas = ifelse(is.na(presencia_epifitas), 0, presencia_epifitas),
+    riqueza = ifelse(is.na(riqueza), 0, riqueza),
+    abundancia_total = ifelse(is.na(abundancia_total), 0, abundancia_total)
+  )
+nrow(arboles)                 # debe ser 193
+table(arboles$presencia_epifitas)
+table(arboles$plot, arboles$presencia_epifitas)#para ver cuantos arboles estan con epifitas
+
+# riqueza 
+arboles$genera_tree <- as.factor(arboles$genera_tree)
+arboles$plot <- as.factor(arboles$plot)#factores
+riqueza_arbol <- hospepi %>%
+  group_by(forof, plot, elevation, genera_tree, dap, height) %>%
+  summarise(
+    riqueza = n_distinct(morphospe),
+    .groups = "drop"
+  )
+str(riqueza_arbol)
+
+#abundancia
+abund_arbol <- hospepi %>%
+  group_by(forof, plot, elevation, genera_tree, dap, height) %>%
+  summarise(
+    abundancia = n(),
+    .groups = "drop"
+  )
+str(abund_arbol)
+
+```
+abundancia/riqueza => caracteristicas hospedero
+```{r}
+#preparacion de datos escalar var numericas y genero como factor 
+riqueza_arbol$genera_tree <- as.factor(riqueza_arbol$genera_tree)
+abund_arbol$genera_tree  <- as.factor(abund_arbol$genera_tree)
+riqueza_arbol$dap_z     <- scale(riqueza_arbol$dap)
+riqueza_arbol$height_z  <- scale(riqueza_arbol$height)
+riqueza_arbol$elev_z    <- scale(riqueza_arbol$elevation)
+
+abund_arbol$dap_z       <- scale(abund_arbol$dap)
+abund_arbol$height_z    <- scale(abund_arbol$height)
+abund_arbol$elev_z      <- scale(abund_arbol$elevation)
+#Modelo para riqueza de epífitas
+#poison
+m_ric_pois <- glm(
+  riqueza ~ dap_z + height_z + genera_tree + elev_z,
+  family = poisson,
+  data = riqueza_arbol
+)
+summary(m_ric_pois)
+check_overdispersion(m_ric_pois)##confirmada la sobredispersion
+##modelo Binomial negativo sugerido 
+m_ric_nb <- glm.nb(
+  riqueza ~ dap_z + height_z + genera_tree + elev_z,
+  data = riqueza_arbol
+)
+summary(m_ric_nb)
+Anova(m_ric_nb, type = "II")#importancia de cada variable 
+#Modelo para abundancia de epífitas
+#poison
+m_ab_pois <- glm(
+  abundancia ~ dap_z + height_z + genera_tree + elev_z,
+  family = poisson,
+  data = abund_arbol
+)
+check_overdispersion(m_ab_pois)##confirmada la sobredispersion
+#modelo binomial negativo obligatoriamente
+m_ab_nb <- glm.nb(
+  abundancia ~ dap_z + height_z + genera_tree + elev_z,
+  data = abund_arbol
+)
+summary(m_ab_nb)
+Anova(m_ab_nb, type = "II")
+
+#modelos solo el efecto del hospedero
+m_ricnb_h <- glm.nb(
+  riqueza ~ dap_z + height_z  + (1/elev_z),
+  data = riqueza_arbol
+)
+m_abnb_h <- glm.nb(
+  abundancia ~ dap_z + height_z + (1/elev_z),
+  data = abund_arbol
+)
+summary(m_ricnb_h)
+summary(m_abnb_h)
+```
+CHEQUEANDO COLINEARIDAD 
+resulto que tuen valores de 1,8 lo cual es bajo y no hay problema de colinearidad
+```{r}
+cor(riqueza_arbol[,c("dap","height","elevation")],
+    use = "complete.obs")
+names(riqueza_arbol)
+
+riqueza_arbol$riqueza <- as.numeric(riqueza_arbol$riqueza)
+str(riqueza_arbol$riqueza)
+m_vif_rich <- lm(riqueza ~ dap_z + height_z + elev_z,
+                 data = riqueza_arbol)
+vif(m_vif_rich)
+m_vif_abund <- lm(abundancia ~ dap_z + height_z + elev_z,
+                  data = abund_arbol)
+vif(m_vif_abund)
+
+
+```
+
+graficos
+```{r}
+#Gráfico 1. Riqueza de epífitas vs DAP del hospedero
+#preparacion de datos
+#variables como numericas
+riqueza_arbol <- riqueza_arbol %>%
+  mutate(
+    dap_z = as.numeric(scale(dap)),
+    height_z = as.numeric(scale(height)),
+    elev_z = as.numeric(scale(elevation))
+  )
+#ajustar el modelo binomial negativo
+m_ric_nb <- glm.nb(
+  riqueza ~ dap_z + height_z + genera_tree + elev_z,
+  data = riqueza_arbol
+)
+#dataframe
+new_dap <- data.frame(
+  dap_z = seq(min(riqueza_arbol$dap_z),
+              max(riqueza_arbol$dap_z),
+              length.out = 100),
+  height_z = 0,   # valor promedio
+  elev_z   = 0,   # valor promedio
+  genera_tree = levels(riqueza_arbol$genera_tree)[1]
+)
+
+#predicciones del modelo
+pred <- predict(
+  m_ric_nb,
+  newdata = new_dap,
+  type = "link",
+  se.fit = TRUE
+)
+new_dap <- new_dap %>%
+  mutate(
+    fit = exp(pred$fit),
+    lwr = exp(pred$fit - 1.96 * pred$se.fit),
+    upr = exp(pred$fit + 1.96 * pred$se.fit)
+  )
+
+#grafico  Riqueza DAP
+ggplot(riqueza_arbol, aes(x = dap, y = riqueza)) +
+  # datos observados
+  geom_point(alpha = 0.6, size = 2, color = "black") +
+  # línea del modelo
+  geom_line(
+    data = new_dap,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(riqueza_arbol$dap) + mean(riqueza_arbol$dap),
+      y = fit
+    ),
+    linewidth = 1
+  ) +
+  # intervalo de confianza
+  geom_ribbon(
+    data = new_dap,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(riqueza_arbol$dap) + mean(riqueza_arbol$dap),
+      ymin = lwr,
+      ymax = upr
+    ),
+    alpha = 0.25
+  ) +
+
+  labs(
+    x = "DAP del árbol hospedero (cm)",
+    y = "Riqueza de epífitas vasculares"
+  ) +
+
+  theme_classic(base_size = 13)
+ggsave(
+  filename = "Fig_Riqueza_DAP.png",
+  width = 18,      # ancho en cm
+  height = 14,     # alto en cm
+  units = "cm",
+  dpi = 300
+)
+
+#Gráfico 2. Abundancia de epífitas vs DAP y altura
+abund_arbol <- abund_arbol %>%#preparacion de datos
+  mutate(
+    dap_z    = as.numeric(scale(dap)),
+    height_z = as.numeric(scale(height)),
+    elev_z   = as.numeric(scale(elevation)),
+    genera_tree = as.factor(genera_tree)
+  )
+m_ab_nb <- glm.nb(#ajustar modelo
+  abundancia ~ dap_z + height_z + genera_tree + elev_z,
+  data = abund_arbol
+)
+#prediccioneds Dap
+new_dap_ab <- data.frame(
+  dap_z = seq(min(abund_arbol$dap_z),
+              max(abund_arbol$dap_z),
+              length.out = 100),
+  height_z = 0,
+  elev_z   = 0,
+  genera_tree = levels(abund_arbol$genera_tree)[1]
+)
+
+pred_dap <- predict(
+  m_ab_nb,
+  newdata = new_dap_ab,
+  type = "link",
+  se.fit = TRUE
+)
+
+new_dap_ab <- new_dap_ab %>%
+  mutate(
+    fit = exp(pred_dap$fit),
+    lwr = exp(pred_dap$fit - 1.96 * pred_dap$se.fit),
+    upr = exp(pred_dap$fit + 1.96 * pred_dap$se.fit)
+  )
+#predicciones para altura
+new_h_ab <- data.frame(
+  height_z = seq(min(abund_arbol$height_z),
+                 max(abund_arbol$height_z),
+                 length.out = 100),
+  dap_z  = 0,
+  elev_z = 0,
+  genera_tree = levels(abund_arbol$genera_tree)[1]
+)
+
+pred_h <- predict(
+  m_ab_nb,
+  newdata = new_h_ab,
+  type = "link",
+  se.fit = TRUE
+)
+
+new_h_ab <- new_h_ab %>%
+  mutate(
+    fit = exp(pred_h$fit),
+    lwr = exp(pred_h$fit - 1.96 * pred_h$se.fit),
+    upr = exp(pred_h$fit + 1.96 * pred_h$se.fit)
+  )
+#GRAFICO PARTIDO
+#A DAP
+p_dap <- ggplot(abund_arbol, aes(x = dap, y = abundancia)) +
+
+  geom_point(alpha = 0.6, size = 2, color = "black") +
+
+  geom_line(
+    data = new_dap_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(abund_arbol$dap) + mean(abund_arbol$dap),
+      y = fit
+    ),
+    linewidth = 1
+  ) +
+
+  geom_ribbon(
+    data = new_dap_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(abund_arbol$dap) + mean(abund_arbol$dap),
+      ymin = lwr,
+      ymax = upr
+    ),
+    alpha = 0.25
+  ) +
+
+  labs(
+    x = "DBH Host tree (cm)",
+    y = "Abundance"
+  ) +
+
+  theme_classic(base_size = 13)
+#B ALTURA
+p_h <- ggplot(abund_arbol, aes(x = height, y = abundancia)) +
+
+  geom_point(alpha = 0.6, size = 2, color = "black") +
+
+  geom_line(
+    data = new_h_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = height_z * sd(abund_arbol$height) + mean(abund_arbol$height),
+      y = fit
+    ),
+    linewidth = 1
+  ) +
+
+  geom_ribbon(
+    data = new_h_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = height_z * sd(abund_arbol$height) + mean(abund_arbol$height),
+      ymin = lwr,
+      ymax = upr
+    ),
+    alpha = 0.25
+  ) +
+
+  labs(
+    x = "Height (m)",
+    y = "Abundance"
+  ) +
+
+  theme_classic(base_size = 13)
+p_dap + p_h#UNIR LOS GRAFICOS
+
+ggsave(
+  filename = "Fig_Abundancia_DAP y altura.png",
+  width = 18,      # ancho en cm
+  height = 14,     # alto en cm
+  units = "cm",
+  dpi = 300
+)
+
+#OPCION B UN SOLO GRAFICO PARA EL DAP Y LA ABUNDANCIA
+abund_arbol <- abund_arbol %>%
+  mutate(
+    dap_z    = as.numeric(scale(dap)),
+    height_z = as.numeric(scale(height)),
+    elev_z   = as.numeric(scale(elevation)),
+    genera_tree = as.factor(genera_tree)
+  )
+m_ab_nb <- glm.nb(
+  abundancia ~ dap_z + height_z + genera_tree + elev_z,
+  data = abund_arbol
+)
+new_dap_ab <- data.frame(
+  dap_z = seq(min(abund_arbol$dap_z),
+              max(abund_arbol$dap_z),
+              length.out = 100),
+  height_z = 0,
+  elev_z   = 0,
+  genera_tree = levels(abund_arbol$genera_tree)[1]
+)
+
+pred_dap <- predict(
+  m_ab_nb,
+  newdata = new_dap_ab,
+  type = "link",
+  se.fit = TRUE
+)
+
+new_dap_ab <- new_dap_ab %>%
+  mutate(
+    fit = exp(pred_dap$fit),
+    lwr = exp(pred_dap$fit - 1.96 * pred_dap$se.fit),
+    upr = exp(pred_dap$fit + 1.96 * pred_dap$se.fit)
+  )
+ggplot(abund_arbol, aes(x = dap, y = abundancia)) +
+
+  # puntos observados (tamaño = altura)
+  geom_point(
+    aes(size = height),
+    alpha = 0.6,
+    color = "black"
+  ) +
+
+  # línea del modelo
+  geom_line(
+    data = new_dap_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(abund_arbol$dap) + mean(abund_arbol$dap),
+      y = fit
+    ),
+    linewidth = 1
+  ) +
+
+  # intervalo de confianza
+  geom_ribbon(
+    data = new_dap_ab,
+    inherit.aes = FALSE,
+    aes(
+      x = dap_z * sd(abund_arbol$dap) + mean(abund_arbol$dap),
+      ymin = lwr,
+      ymax = upr
+    ),
+    alpha = 0.25
+  ) +
+
+  scale_size_continuous(
+    name = "Height tree (m)",
+    range = c(2, 7)
+  ) +
+
+  labs(
+    x = "DBH (cm)",
+    y = "Abundance"
+  ) +
+
+  theme_classic(base_size = 12)
+#Guardar la imagen
+ggsave(
+  filename = "Fig_Abundancia_DAP_altura.png",
+  width = 18,      # ancho en cm
+  height = 16,     # alto en cm
+  units = "cm",
+  dpi = 300
+)
+
+
+```
+
+
+OB.3: Determinar la sobrevivencia de epífitas vasculares translocadas desde el treeline hacia la puna adyacente como prueba experimental de los límites climáticos para su persistencia.
+
+Data SOBREVIVENCIA
+```{r}
+#setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+expdata <- read.csv("relocadata.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+str(expdata)      # Estructura de la base de datos
+head(expdata)
+colnames(expdata)
+#corregir datos extraños
+expdata <- expdata %>%
+  # Convierte todas las columnas tipo texto a UTF-8
+  mutate(across(where(is.character), ~ stri_encode(.x, from = "", to = "UTF-8"))) %>%
+  # Quita espacios en blanco y reemplaza vacíos por NA
+  mutate(across(everything(), ~ na_if(trimws(as.character(.x)), "")))
+###colocar NA en las celdas vacias
+expdata <- expdata %>%
+  mutate(across(where(is.character), ~iconv(.x, from = "", to = "UTF-8"))) %>%  # 🔧 corrige codificación
+  mutate(across(everything(), ~na_if(trimws(.x), "")))  # 🔄 reemplaza vacíos por NA
+str(expdata)
+colSums(is.na(expdata))
+
+```
+
+Data Clima
+```{r}
+# 1. Cargar archivo con separador ";"
+clima <- read_delim("dataclima.csv",
+                    delim = ";",
+                    col_types = cols(.default = "c"))  # leer todo como texto primero
+
+# 2. Convertir columnas numéricas correctamente
+num_cols <- c("t_puna", "ilum_puna", "t_forest", "ilum_forest",
+              "temp_forest", "hr_forest", "temp_puna", "hr_puna")
+
+clima <- clima %>%
+  mutate(across(all_of(num_cols), ~ parse_number(.)))
+
+# 3. Convertir la fecha-hora (formato dmy_hm)
+clima <- clima %>%
+  mutate(
+    date_hour = dmy_hm(date_hour),
+    date = as.Date(date_hour)
+  )
+
+# 4. Crear la tabla diaria
+clima_daily <- clima %>%
+  group_by(date) %>%
+  summarise(
+    light_max_puna   = if (all(is.na(ilum_puna))) NA else max(ilum_puna, na.rm = TRUE),
+    temp_max_puna    = if (all(is.na(temp_puna))) NA else max(temp_puna, na.rm = TRUE),
+    temp_min_puna    = if (all(is.na(temp_puna))) NA else min(temp_puna, na.rm = TRUE),
+    rh_min_puna      = if (all(is.na(hr_puna)))   NA else min(hr_puna,   na.rm = TRUE),
+
+    light_max_forest = if (all(is.na(ilum_forest))) NA else max(ilum_forest, na.rm = TRUE),
+    temp_max_forest  = if (all(is.na(temp_forest))) NA else max(temp_forest, na.rm = TRUE),
+    temp_min_forest  = if (all(is.na(temp_forest))) NA else min(temp_forest, na.rm = TRUE),
+    rh_min_forest    = if (all(is.na(hr_forest)))   NA else min(hr_forest,   na.rm = TRUE)
+  )
+```
+UNIR TABLAS Y CUANTIFICAR LAS VARIABLES EN FUNCION A LOS DATALOGGERS para las evaluaciones
+```{r}
+head(expdata$date)
+expdata$date <- as.Date(expdata$date, format = "%d.%m.%Y")
+#Revisar y convertir fechas en tus dos tablas
+clima_daily$date <- as.Date(clima_daily$date)
+#CLIMA SOLO PUNA
+#Crear tabla SOLO clima puna
+clima_puna <- clima_daily %>%
+  dplyr::select(date, temp_min_puna, temp_max_puna, rh_min_puna, light_max_puna)
+#3. Crear tabla con fechas de censos (T1–T4)
+census_dates <- expdata %>%
+  distinct(time, date) %>%
+  arrange(date)
+
+#Calcular clima promedio + extremos por intervalo
+climate_intervals <- census_dates %>%
+  mutate(start = lag(date),
+         end   = date) %>%
+  filter(!is.na(start)) %>%
+  rowwise() %>%
+  mutate(
+    # PROMEDIOS
+    Tmin_mean  = mean(clima_puna$temp_min_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+    Tmax_mean  = mean(clima_puna$temp_max_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+    RHmin_mean = mean(clima_puna$rh_min_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+    Light_mean = mean(clima_puna$light_max_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+
+    # EXTREMOS ABSOLUTOS (ecológicamente más importantes)
+    Tmin_abs   = min(clima_puna$temp_min_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+    RHmin_abs  = min(clima_puna$rh_min_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE),
+    Light_abs  = max(clima_puna$light_max_puna[clima_puna$date >= start & clima_puna$date < end], na.rm = TRUE)
+  ) %>%
+  ungroup()
+#Unir clima con epífitas
+expdata2 <- left_join(expdata, climate_intervals, by = "time")
+str(expdata2)
+names(expdata2)
+#Chequear que T1 no tenga clima
+expdata2 %>% distinct(time, Tmin_mean, Tmin_abs)
+
+str(expdata2)
+```
+```{r}
+#Preparar la base SOLO PUNA (porque en bosque no hay variación)
+puna_data <- expdata2 %>%
+  filter(relocation == "true")   # solo ramas llevadas a puna
+names(puna_data)
+#Convertir alive a binaria
+puna_data$alive <- ifelse(puna_data$dead_alive == "alive", 1,
+                          ifelse(puna_data$dead_alive == "dead", 0, NA))
+puna_data$alive <- as.integer(puna_data$alive)
+table(puna_data$branch_ID, puna_data$time, puna_data$alive)
+table(puna_data$alive, puna_data$time)
+table(puna_data$branch_ID,puna_data$time)##este era el que vimos
+
+#Escalar clima (muy importante para GLMM)
+puna_data <- puna_data %>%
+  mutate(
+    Tmin_abs_s  = scale(Tmin_abs),
+    RHmin_abs_s = scale(RHmin_abs),
+    Light_abs_s = scale(Light_abs)
+  )
+m_both <- glmer(alive ~ Tmin_abs_s + RHmin_abs_s + time + (1|branch_ID),
+                family=binomial, data=puna_data)#MODELO ELEGIDO 
+```
+
+modelo  sobrevivencia en funcion al clima
+```{r}
+
+
+#Modelo completo
+#install.packages("lme4")
+
+m1 <- glmer(alive ~ Tmin_abs_s + RHmin_abs_s + Light_abs_s +
+              (1|branch_ID) + (1|genus),
+            family = binomial,
+            data = puna_data)
+summary(m1)
+#modelo Solo extremos térmicos e hídricos
+m_final <- glmer(alive ~ Tmin_abs_s + RHmin_abs_s + 
+                 (1|branch_ID),
+                 family=binomial, data=puna_data,
+                 control=glmerControl(optimizer="bobyqa"))
+summary(m_final)
+
+```
+OPCIONES PARA EL MODELO
+```{r}
+m_temp <- glmer(alive ~ Tmin_abs_s + (1|branch_ID),
+                family = binomial,
+                data = puna_data,
+                control = glmerControl(optimizer="bobyqa"))
+summary(m_temp)
+#GRAFICO
+library(ggeffects)
+library(ggplot2)
+
+pred <- ggpredict(m_temp, terms = "Tmin_abs_s")
+
+ggplot(pred, aes(x = x, y = predicted)) +
+  geom_line(size=1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha=0.2) +
+  geom_point(data=puna_data, aes(x=Tmin_abs_s, y=alive), alpha=0.4) +
+  labs(x="Minimum absolute temperature (scaled)",
+       y="Predicted survival probability") +
+  theme_classic()
+
+#Código para comparar AIC DE DIFERENTES MODELOS  
+m_rh <- glmer(alive ~ RHmin_abs_s + (1|branch_ID),
+              family=binomial, data=puna_data)
+
+str(puna_data)
+puna_data$time<-as.factor(puna_data$time)
+puna_data$branch_ID<-as.factor(puna_data$branch_ID)
+str(puna_data)
+
+
+m_both <- glmer(alive ~ Tmin_abs_s + RHmin_abs_s + time + (1|branch_ID),
+                family=binomial, data=puna_data)
+
+AIC(m_temp, m_rh, m_both)
+summary(m_both)
+#RESULTADO FINAL #se eligio el modelo Both porque comprarndolos con los solitarios de tmin_abs y RH_min es mejor en que tiene menor AIC
+```
+comparando modelos 
+```{r}
+#Escalar clima (muy importante para GLMM)
+puna_data <- puna_data %>%
+  mutate(
+    Tmin_mean_s = scale(Tmin_mean),
+    Tmin_abs_s  = scale(Tmin_abs),
+    Tmax_mean_s = scale(Tmax_mean),
+    RHmin_abs_s = scale(RHmin_abs),
+    RHmin_mean_s = scale( RHmin_mean),
+    Light_abs_s = scale(Light_abs),
+    Light_mean_s = scale(Light_mean)
+  )
+
+puna_data$alive <- ifelse(puna_data$dead_alive == "alive", 1, 0)
+table(puna_data$alive)
+
+#Modelo con Tmin_mean
+m_Tmin <- glmer(alive ~ Tmin_mean_s + (1|branch_ID),
+                family = binomial,
+                data = puna_data,
+                control = glmerControl(optimizer="bobyqa"))
+#Modelo con Light_mean
+m_Light <- glmer(alive ~ Light_mean_s + (1|branch_ID),
+                 family = binomial,
+                 data = puna_data,
+                 control = glmerControl(optimizer="bobyqa"))
+#Modelo con RHmin_abs
+m_RH <- glmer(alive ~ RHmin_abs_s + (1|branch_ID),
+              family = binomial,
+              data = puna_data,
+              control = glmerControl(optimizer="bobyqa"))
+#modelo juntos 
+m_full <- glmer(alive ~ Tmin_mean_s + Light_mean_s + RHmin_abs_s +
+                (1|branch_ID),
+                family = binomial,
+                data = puna_data,
+                control = glmerControl(optimizer="bobyqa"))
+summary(m_Tmin)
+summary(m_Light)
+summary(m_RH)
+summary(m_full)
+AIC(m_Tmin, m_Light, m_RH, m_full)
+
+```
+Evaluando VIF colinearidad
+```{r}
+#correlacion ENTRE LAS VARIABLES
+cor(puna_data[,c("Tmin_mean_s",
+                "Tmin_abs_s",
+                "Tmax_mean_s",
+                "RHmin_mean_s",
+                "RHmin_abs_s",
+                "Light_abs_s",
+                "Light_mean_s")],
+    use = "complete.obs")
+#SUGIRIO POR CORRELACION SOLO USAR m_Tmin_abs, m_Tmin_mean Y m_RHmin_abs
+library(lme4)
+m_Tmin_abs <- glmer(alive ~ Tmin_abs_s + (1|branch_ID),
+                    family = binomial,
+                    data = puna_data,
+                    control = glmerControl(optimizer = "bobyqa"))
+m_Tmin_mean <- glmer(alive ~ Tmin_mean_s + (1|branch_ID),
+                     family = binomial,
+                     data = puna_data,
+                     control = glmerControl(optimizer = "bobyqa"))
+m_RHmin_abs <- glmer(alive ~ RHmin_abs_s + (1|branch_ID),
+                     family = binomial,
+                     data = puna_data,
+                     control = glmerControl(optimizer = "bobyqa"))
+#COMPARAR AIC
+AIC(m_Tmin_abs, m_Tmin_mean, m_RHmin_abs)
+aic_table <- AIC(m_Tmin_abs, m_Tmin_mean, m_RHmin_abs)
+aic_table$delta <- aic_table$AIC - min(aic_table$AIC)
+aic_table
+summary(m_Tmin_abs)
+#MODELO NULO
+data_model <- na.omit(puna_data[, c("alive",
+                                   "branch_ID",
+                                   "Tmin_abs_s",
+                                   "Tmin_mean_s",
+                                   "RHmin_abs_s")])
+
+m_null <- glmer(alive ~ 1 + (1|branch_ID),
+                family = binomial,
+                data = data_model,
+                control = glmerControl(optimizer="bobyqa"))
+
+m_Tmin_abs <- glmer(alive ~ Tmin_abs_s + (1|branch_ID),
+                    family = binomial,
+                    data = data_model,
+                    control = glmerControl(optimizer="bobyqa"))
+
+m_Tmin_mean <- glmer(alive ~ Tmin_mean_s + (1|branch_ID),
+                     family = binomial,
+                     data = data_model,
+                     control = glmerControl(optimizer="bobyqa"))
+
+m_RHmin_abs <- glmer(alive ~ RHmin_abs_s + (1|branch_ID),
+                     family = binomial,
+                     data = data_model,
+                     control = glmerControl(optimizer="bobyqa"))
+
+isSingular(m_null)
+
+AIC(m_null, m_Tmin_abs, m_Tmin_mean, m_RHmin_abs)
+
+##modelo sin branch porque no influye PERO AL NO USAR SE VE QUE ES MEJOR USARLO
+m_null_B <- glm(alive ~ 1 ,
+                family = binomial,
+                data = data_model)
+
+m_Tmin_abs_B <- glm(alive ~ Tmin_abs_s,
+                    family = binomial,
+                    data = data_model)
+
+m_Tmin_mean_B <- glm(alive ~ Tmin_mean_s ,
+                     family = binomial,
+                     data = data_model)
+
+m_RHmin_abs_B <- glm(alive ~ RHmin_abs_s ,
+                     family = binomial,
+                     data = data_model)
+AIC(m_null_B, m_Tmin_abs_B, m_Tmin_mean_B, m_RHmin_abs_B)
+
+#VIF (Variance Inflation Factor) mide cuánto aumenta la varianza de un coeficiente debido a colinealidad con otras variables del modelo.
+#install.packages("car")
+library(car)
+m_vif <- glmer(alive ~  Tmin_abs_s + RHmin_abs_s + Tmin_mean + (1|branch_ID),
+             family = binomial,
+             data = puna_data, 
+             control = glmerControl(optimizer="bobyqa"))
+vif(m_vif)
+
+#PROBANDO Temp_min_abs+ rhmin_abs
+m_two <- glmer(alive ~ Tmin_abs_s + RHmin_abs_s + (1|branch_ID),
+               family = binomial,
+               data = data_model,
+               control = glmerControl(optimizer="bobyqa"))
+
+AIC(m_Tmin_abs, m_two)
+
+```
+
+TEST DE KAPLAN-MEIER o analisis de supervivencia  se usa para estimar y comparar la probabilidad de supervivencia en el tiempo
+responde a:
+¿Cuál es la probabilidad de supervivencia después de cierto tiempo?
+En el bosque, la probabilidad de supervivencia se mantiene en 1 durante todo el experimento.
+En la puna, la probabilidad disminuye rápidamente, con una caída abrupta alrededor del mes 5 y una mediana de supervivencia de 5 meses.
+¿Son diferentes las probabilidades de supervivencia entre puna vs bosque a lo largo del tiempo? test de log-rank
+Sí, son drásticamente diferentes.
+
+```{r}
+#paquetes
+library(dplyr)
+library(survival)
+library(survminer)
+#preparar datos 
+supervivencia <- expdata %>% arrange(epi_ID, time, branch_ID)
+supervivencia <- supervivencia %>%
+  mutate(
+    relocation = as.logical(relocation),
+    dead_alive = as.character(dead_alive),
+    time_num = as.numeric(gsub("T", "", time))
+  )
+#crear tabala de supervivencia
+surv_data <- supervivencia %>%
+  arrange(epi_ID, time_num) %>%
+  group_by(epi_ID) %>%
+  summarise(
+    group = first(relocation),        # TRUE = puna, FALSE = bosque
+    event = any(dead_alive == "dead"),
+    time_event = ifelse(
+      event,
+      min(time_num[dead_alive == "dead"]),  # primer dead
+      max(time_num)                          # último censo si sigue viva
+    ),
+    .groups = "drop"
+  )
+#convertir censo a tiempo real 
+surv_data <- surv_data %>%
+  dplyr:: mutate(
+    time_months = dplyr:: recode(
+      time_event,
+      `1` = 0,
+      `2` = 2,
+      `3` = 5,
+      `4` = 8
+    )
+  )
+table(surv_data$epi_ID, surv_data$time_months)##tabla del evento mortalidad x nepi y time(#mes)
+#Crear el objeto de supervivencia
+#library(survival)
+S <- Surv(
+  time  = surv_data$time_months,
+  event = surv_data$event
+)
+
+#Ajustar Kaplan–Meier por grupo (Puna vs Bosque)
+km_fit <- survfit(S ~ group, data = surv_data)
+#Log-rank test
+survdiff(S ~ group, data = surv_data)
+
+ggsurvplot(
+  km_fit,
+  data = surv_data,
+  risk.table = TRUE,
+  pval = TRUE,
+  conf.int = FALSE,
+  legend.labs = c("Bosque", "Puna"),
+  legend.title = "Hábitat",
+  palette = c("darkgreen", "brown"),
+  linewidth = 1,
+  xlab = "Tiempo desde el inicio (meses)",
+  ylab = "Probabilidad de supervivencia",
+  break.time.by = 1
+)
+summary(km_fit)#comprobacion rapida
+
+#en ingles
+g <- ggsurvplot(
+  km_fit,
+  data = surv_data,
+  risk.table = TRUE,
+  pval = TRUE,
+  conf.int = FALSE,
+  legend.labs = c("Forest", "Puna"),
+  legend.title = "Habitat",
+  palette = c("darkgreen", "brown"),
+  linewidth = 1,
+  xlab = "Time since the start (months)",
+  ylab = "Survival probability",
+  break.time.by = 1
+)
+png("KaplanMeier_epiphyte_survival.png",
+    width = 2000, height = 1600, res = 300)
+print(g)
+
+
+
+
+
+### eXAMPLE:
+
+# Install and load necessary packages
+if(!require(lme4)) install.packages("lme4")
+if(!require(ggplot2)) install.packages("ggplot2")
+library(lme4)
+library(ggplot2)
+
+# --- Create Example Dataset ---
+set.seed(123)
+n_sites <- 10
+n_per_site <- 30
+total_obs <- n_sites * n_per_site
+
+data <- data.frame(
+  site = rep(1:n_sites, each = n_per_site),
+  treatment = rep(c("Control", "Pesticide"), each = n_per_site * n_sites / 2)
+)
+
+str(data)
+head(data)
+# Simulate survival: lower probability in Pesticide group
+# logit-linear relationship: intercept -0.5, pesticide effect -1.5
+data$logit_p <- -0.5 - 1.5 * (data$treatment == "Pesticide") + rnorm(n_sites, 0, 0.5)[data$site]
+data$prob <- 1 / (1 + exp(-data$logit_p))
+data$survive <- rbinom(total_obs, 1, data$prob)
+
+# --- Fit the Binomial GLMM ---
+# Using glmer() with family = binomial
+# (1 | site) allows for a random intercept for each site
+model <- glmer(survive ~ treatment + (1 | site), 
+               data = data, 
+               family = binomial)
+
+# --- View Results ---
+summary(model)
+
+# --- Plot the Results ---
+# Visualize the probability of survival by treatment
+ggplot(data, aes(x = treatment, y = survive, color = treatment)) +
+  geom_jitter(width = 0.2, height = 0.05, alpha = 0.5) +
+  stat_summary(fun = mean, geom = "point", size = 4, color = "black") +
+  labs(title = "Caterpillar Survival by Treatment",
+       y = "Survival Probability (1=Alive, 0=Dead)",
+       x = "Treatment Group") +
+  theme_minimal()
+
+
+```
+Kaplan–Meier survival analysis showed that the probability of survival remained at 1.0 for forest controls throughout the study, whereas epiphytes translocated to the puna experienced a sharp decline in survival probability, with median survival of five months.
+
+
+grafico de Sobrevivencia
+```{r}
+library(ggplot2)
+library(dplyr)
+
+names(expdata)
+
+# Ordenar los datos por fecha
+supervivencia <- expdata %>% arrange(epi_ID, time, branch_ID)
+
+#grafico supervivencia por rama 
+library(dplyr)
+library(ggplot2)
+
+# 1️⃣ Preparar los datos
+expdata <- expdata %>%
+  mutate(
+    dead_alive = tolower(dead_alive),   # uniformar texto
+    alive = ifelse(dead_alive == "alive", 1, 0),  # 1 = vivo, 0 = muerto
+    relocation = as.factor(relocation),
+    branch_ID = as.factor(branch_ID),
+    time = as.factor(time)
+  )
+
+# 2️⃣ Calcular supervivencia promedio (%)
+survival_summary <- expdata %>%
+  group_by(relocation, branch_ID, time) %>%
+  summarise(
+    survival = mean(alive, na.rm = TRUE) * 100
+  ) %>%
+  ungroup()
+
+##GRAFICO MEJORADO
+library(dplyr)
+go<- ggplot(
+  survival_summary,
+  aes(
+    x = time,
+    y = survival,
+    group = branch_ID,
+    color = relocation
+  )
+) +
+  geom_line(
+    position = position_dodge2(width = 0.3),
+    size = 1, alpha = 0.6
+  ) +
+  geom_point(
+    position = position_dodge2(width = 0.3),
+    size = 2, alpha = 0.6
+  )+
+  facet_wrap(
+    ~ relocation,
+    ncol = 1,
+    labeller = labeller(
+      relocation = c(
+        "false" = "Puna",
+        "true"  = "Forest"
+      )
+    )
+  ) +
+  scale_color_manual(
+    values = c(
+      "false" = "#8B5A2B",  # Puna = marrón
+      "true"  = "#1B7837"  # Forest = verde
+    )
+  ) +
+  scale_x_discrete(
+    labels = c(
+      "T1" = "April",
+      "T2" = "June",
+      "T3" = "August",
+      "T4" = "December"
+    ) 
+    )+
+  scale_y_continuous(
+    labels = scales::percent_format(scale = 1)
+  ) +
+  theme_bw() +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 14)
+  ) +
+  labs(
+    title = "Survival (%) over time by branch",
+    x = "Time",
+    y = "Survival (%)"
+  )
+go 
+
+ggsave(
+  filename = "survival_plot.png",
+  plot = go,
+  width = 5,
+  height = 6,
+  dpi = 300
+)
+
+```
+
+>>>>>>> efaca42398656e7b6a69722e456c773620ec3748

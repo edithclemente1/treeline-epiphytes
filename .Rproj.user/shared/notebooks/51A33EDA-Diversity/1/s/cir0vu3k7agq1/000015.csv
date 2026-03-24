@@ -1,0 +1,6 @@
+"0",""
+"0","##quitando los outliers"
+"0","nmds_points %>% "
+"0","  filter(plot == ""TRU-02"") %>% "
+"0","  arrange(desc(NMDS1)) %>% "
+"0","  head()"
