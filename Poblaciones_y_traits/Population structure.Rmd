@@ -1,0 +1,1588 @@
+---
+title: "population structure"
+author: "Edith"
+date: "2025-10-21"
+output: html_document
+---
+Packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(vegan)
+library(patchwork)
+library(tidyr)
+library(scales)
+library(FSA)
+install.packages(c("rcompanion"))
+library(rcompanion)
+install.packages("janitor")
+install.packages("stringi")
+library(dplyr)
+library(janitor)
+library(stringi)
+library(dplyr)
+library(janitor)
+```
+
+DATA
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+str(data)      # Estructura de la base de datos
+head(data)
+```
+
+Data population Structure - parameters
+```{r}
+data$n_shoots_leaf <- as.numeric(data$n_shoots_leaf)## numerico
+str(data$n_shoots_leaf)
+POBSTRU <- data %>% ###TABLA DE DATOS POBLACIONALES
+  select(elevation,subplot, forof,morphospe, family, life_stage, l_leaf_stem, n_shoots_leaf, reprod_stage, herbi)
+head(POBSTRU)
+POBSTRU$log_l_leaf_stem <- log10(POBSTRU$l_leaf_stem)##logaritmizar
+summary(POBSTRU$log_l_leaf_stem)
+
+
+
+# 1. Limpiar nombres con janitor
+data <- data %>% janitor::clean_names()
+
+# 2. Convertir todo a ASCII (borra caracteres raros y <a0>)
+names(data) <- iconv(names(data), from = "", to = "ASCII//TRANSLIT")
+
+# 3. Eliminar todo lo que no sea letras, números o _
+names(data) <- gsub("[^A-Za-z0-9_]", "", names(data))
+names(data)
+names(data) <- stri_replace_all_regex(names(data), "[^A-Za-z0-9_]", "")
+names(data)
+```
+nivel generos y familia
+```{r}
+POBSTRU <- data %>% ###TABLA DE DATOS POBLACIONALES
+  select(elevation,subplot, forof,morphospe, family, life_stage, l_leaf_stem, n_shoots_leaf, reprod_stage, herbi)
+EPIDATA<- data %>%
+  select(elevation,forof, morphospe, family, genera_epi, life_stage, l_leaf_stem, n_shoots_leaf, reprod_stage, herbi)
+str(EPIDATA)
+##tabla de familias con especies e individuos
+tabla_familias_completa <- EPIDATA %>%
+  group_by(family) %>%
+  summarise(
+    n_especies = n_distinct(morphospe),  # especies únicas por familia
+    n_individuos = n()                   # total de individuos
+  ) %>%
+  arrange(desc(n_especies))              # orden opcional
+tabla_familias_completa
+tabla_familias_completai <- tabla_familias_completa %>%
+  arrange(desc(n_individuos))
+tabla_familias_completai
+###por genero 
+tabla_familia_genero <- EPIDATA %>%
+  group_by(family, genera_epi) %>%
+  summarise(
+    n_especies = n_distinct(morphospe),
+    n_individuos = n(),
+    .groups = "drop"
+  ) %>%
+  arrange( desc(n_especies))
+tabla_familia_genero
+tabla_familia_generoi <- tabla_familia_genero %>%
+  arrange(desc(n_individuos))
+tabla_familia_generoi
+
+dataplot <- EPIDATA %>%
+  group_by(elevation) %>%
+  summarise(
+    n_especies = n_distinct(morphospe),  # especies únicas por familia
+    n_individuos = n()                   # total de individuos
+  ) 
+dataplot
+
+```
+
+```{r}
+pop_mean_elev <- EPIDATA %>%
+  group_by(elevation, morphospe) %>%
+  summarise(n_ind = n(), .groups = "drop") %>%
+  group_by(elevation) %>%
+  summarise(mean_pop_size = mean(n_ind),
+            sd_pop_size = sd(n_ind))
+
+pop_mean_elev
+
+```
+
+
+Abundant species(Most Abundant Species and Most Abundant Species Present at All Elevations)
+```{r}
+#1. Especies más abundantes en general
+species_abundance <- POBSTRU %>%
+  group_by(morphospe) %>%
+  summarise(abundancia = n()) %>%
+  arrange(desc(abundancia))
+
+#2. Especies más abundantes presentes en todas las elevaciones 
+num_elevaciones <- length(unique(POBSTRU$elevation))
+species_all_elev <- POBSTRU %>%
+  group_by(morphospe) %>%
+  summarise(
+    n_elev = n_distinct(elevation),
+    abundancia_total = n()
+  ) %>%
+  filter(n_elev == num_elevaciones) %>%
+  arrange(desc(abundancia_total))
+
+##Limpieza de caracteres (problema UTF-8)
+# 1️⃣ Forzar a que todo sea texto plano
+species_abundance$morphospe <- as.character(species_abundance$morphospe)
+species_all_elev$morphospe  <- as.character(species_all_elev$morphospe)
+
+# 2️⃣ Detectar y limpiar caracteres no válidos, incluidos <a0> o similares
+species_abundance$morphospe <- iconv(species_abundance$morphospe,
+                                     from = "latin1", to = "UTF-8", sub = "")
+species_all_elev$morphospe  <- iconv(species_all_elev$morphospe,
+                                     from = "latin1", to = "UTF-8", sub = "")
+# 3️⃣ Eliminar caracteres invisibles y espacios extraños (incluye <a0>)
+species_abundance$morphospe <- gsub("[[:cntrl:]]|\\s+", " ", species_abundance$morphospe)
+species_abundance$morphospe <- trimws(species_abundance$morphospe)
+species_all_elev$morphospe <- gsub("[[:cntrl:]]|\\s+", " ", species_all_elev$morphospe)
+species_all_elev$morphospe <- trimws(species_all_elev$morphospe)
+
+# 4️⃣ Verificar si el problema persiste
+grep("Fernandezia", species_abundance$morphospe, value = TRUE)
+
+#Grafico
+g1 <- species_abundance %>%
+  slice_max(abundancia, n = 10) %>%
+  ggplot(aes(x = reorder(morphospe, abundancia), y = abundancia)) +
+  geom_bar(stat = "identity", fill = "forestgreen") +
+  coord_flip() +
+  theme_bw() +
+  labs(
+    title = "Most abundant species",
+    x = "Specie",
+    y = "Abundance"
+  )
+g1
+g2 <- ggplot(species_all_elev, 
+             aes(x = reorder(morphospe, abundancia_total), 
+                 y = abundancia_total)) +
+  geom_col(fill = "#74C476") +  # verde
+  coord_flip() +
+  labs(
+    title = "Species present at all elevations",
+    x = "Specie",
+    y = "Abundance"
+  ) +
+  theme_minimal(base_size = 12)
+
+g2
+# Combinar ambos gráficos con un título general
+(g1 + g2) +
+  plot_annotation(
+    title = "Comparison of species abundance",
+    subtitle = "Left: most abundant species overall | Right: species present at all elevations"
+  )
+
+
+```
+
+grafico de species abundantes por plot 
+```{r}
+##tabla de indv por plot por especie
+library(dplyr)
+library(tidyr)
+
+tabla_indiv_por_plot <- POBSTRU %>%
+  group_by(morphospe, elevation) %>%       # contar individuos por especie y plot
+  summarise(n_individuos = n(), .groups = "drop") %>%
+  pivot_wider(
+    names_from = elevation,
+    values_from = n_individuos,
+    values_fill = 0                       # rellena con 0 donde no hay individuos
+  ) %>%
+  arrange(morphospe)
+tabla_indiv_por_plot
+
+##solo especie que estan en tods los plots
+tabla_presentes_todos <- tabla_indiv_por_plot %>%
+  filter(if_all(-morphospe, ~ .x > 0))
+tabla_presentes_todos
+nrow(tabla_presentes_todos)
+###ordenado por la abundancia
+tabla_presentes_todos_ordenada <- tabla_presentes_todos %>%
+  mutate(abund_total = rowSums(across(where(is.numeric)))) %>%   # sumar todos los plots
+  arrange(desc(abund_total)) %>%                                # ordenar de mayor a menor
+  select(morphospe, abund_total, everything())                  # poner abund_total adelante
+tabla_presentes_todos_ordenada
+
+##grafico
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+tabla_long <- tabla_presentes_todos %>%
+  pivot_longer(-morphospe, names_to = "plot", values_to = "abundancia")
+#nombres dañados
+tabla_long$morphospe[!stri_enc_isutf8(tabla_long$morphospe)]
+tabla_long$morphospe <- iconv(tabla_long$morphospe, from = "", to = "UTF-8")
+
+tabla_long$morphospe <- gsub("�", "", tabla_long$morphospe)
+tabla_long$morphospe <- trimws(tabla_long$morphospe)
+tabla_long[is.na(tabla_long$morphospe), ]
+unique(data$morphospe)
+tabla_long$morphospe[is.na(tabla_long$morphospe)] <- "Fernandezia parvifolia"
+tabla_long$morphospe <- trimws(tabla_long$morphospe)
+##grafico
+ggplot(tabla_long, aes(x = morphospe, y = abundancia, fill = plot)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(
+    x = "Especie",
+    y = "Abundancia",
+    title = "Abundancia por especie en cada plot"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+###grafico de barras con numero de ind por plot
+ggplot(tabla_long, aes(x = morphospe, y = abundancia, fill = plot)) +
+  geom_bar(stat = "identity", position = position_stack()) +
+  geom_text(aes(label = abundancia),
+            position = position_stack(vjust = 0.5),
+            size = 3, color = "white") +
+  labs(
+    x = "Especie",
+    y = "Abundancia",
+    title = "Abundancia por especie en cada relevación (plot)"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+Código con barras ordenadas de mayor a menor abundancia total
+```{r}
+library(dplyr)
+library(ggplot2)
+install.packages("MetBrewer")
+library(MetBrewer)
+
+# 1. Ordenar especies por abundancia total
+orden_especies <- tabla_long %>%
+  group_by(morphospe) %>%
+  summarise(total_abund = sum(abundancia, na.rm = TRUE)) %>%
+  arrange(desc(total_abund)) %>%
+  pull(morphospe)
+
+tabla_long$morphospe <- factor(tabla_long$morphospe, levels = orden_especies)
+
+# 2. Gráfico con paleta elegante
+g_abund <- ggplot(tabla_long, aes(x = morphospe, y = abundancia, fill = plot)) +
+  geom_bar(stat = "identity", position = position_stack()) +
+  geom_text(aes(label = abundancia),
+            position = position_stack(vjust = 0.5),
+            size = 3, color = "white") +
+  scale_fill_manual(values = MetBrewer::met.brewer("Hiroshige", length(unique(tabla_long$plot)))) +
+  labs(
+    x = "Species",
+    y = "Abundance",
+    title = "Most abundant species present across all plots",
+    fill = "Plot"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    panel.grid = element_blank(),              # ❌ Sin cuadrículas
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.background = element_rect(fill = "white", color = NA)
+  )
+
+g_abund
+ggsave("Abundancia_epifitas.png", 
+       plot = g_abund,
+       width = 8, height = 7, dpi = 300)
+```
+
+
+For each abundant species
+```{r}
+###da la escala a cada variable
+ggplot(num_summary_species,
+       aes(x = elevation, y = mean, color = morphospe, group = morphospe)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.1) +
+  facet_wrap(~ morphospe + variable, scales = "free_y", ncol = 2) +
+  theme_bw() +
+  labs(
+    title = "Quantitative variables per species along the altitudinal gradient",
+    x = "Elevation (m.a.s.l.)",
+    y = "Mean ± Standard deviation",
+    color = "Specie"
+  ) +
+  theme(
+    strip.text = element_text(face = "bold", size = 9),
+    legend.position = "bottom"
+  )
+#####separa las especies por cada una de las dos variables 
+library(patchwork)
+g1 <- ggplot(filter(num_summary_species, variable == "l_leaf_stem"),
+             aes(x = elevation, y = mean, color = morphospe, group = morphospe)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.1) +
+  facet_wrap(~ morphospe, scales = "free_y") +
+  theme_bw() +
+  labs(x = "Elevation (m.a.s.l.)", y = "Mean ± SD", title = "l_leaf_stem")
+g2 <- ggplot(filter(num_summary_species, variable == "n_shoots_leaf"),
+             aes(x = elevation, y = mean, color = morphospe, group = morphospe)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.1) +
+  facet_wrap(~ morphospe, scales = "free_y") +
+  theme_bw() +
+  labs(x = "Elevation (m.a.s.l.)", y = "Mean ± SD", title = "n_shoots_leaf")
+
+g1 <- g1 + theme(legend.position = "none")
+g2 <- g2 + theme(legend.position = "none")
+# Unir ambos gráficos en una fila
+g1 + g2
+
+```
+
+Apply log to the quantitative variables
+```{r}
+###Aplicar la escala logarítmica a toda la base
+POBSTRU <- POBSTRU %>%
+  mutate(
+    log_l_leaf_stem = log10(l_leaf_stem + 1),
+    log_n_shoots_leaf = log10(n_shoots_leaf + 1)
+  )
+#Calcular medias ± desviación estándar por plot (o elevación)
+summary_plot <- POBSTRU %>%
+  group_by(elevation) %>%
+  summarise(
+    mean_log_l_leaf_stem = mean(log_l_leaf_stem, na.rm = TRUE),
+    sd_log_l_leaf_stem = sd(log_l_leaf_stem, na.rm = TRUE),
+    mean_log_n_shoots_leaf = mean(log_n_shoots_leaf, na.rm = TRUE),
+    sd_log_n_shoots_leaf = sd(log_n_shoots_leaf, na.rm = TRUE)
+  )
+#Pasar a formato largo para graficar fácilmente
+library(tidyr)
+summary_long_plot <- summary_plot %>%
+  pivot_longer(
+    cols = starts_with("mean_"),
+    names_to = "variable",
+    values_to = "mean"
+  ) %>%
+  mutate(
+    sd = ifelse(variable == "mean_log_l_leaf_stem", sd_log_l_leaf_stem, sd_log_n_shoots_leaf),
+    variable = recode(variable,
+                      "mean_log_l_leaf_stem" = "log(l_leaf_stem)",
+                      "mean_log_n_shoots_leaf" = "log(n_shoots_leaf)")
+  )
+#Graficar las variables a nivel de plot/elevación
+library(ggplot2)
+ggplot(summary_long_plot, aes(x = elevation, y = mean, color = variable, group = variable)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.1) +
+  facet_wrap(~ variable, scales = "free_y") +
+  theme_bw() +
+  labs(
+    title = "Log-transformed variables along the altitudinal gradient",
+    x = "Elevation (m.a.s.l.)",
+    y = "Mean (logarithmic scale)"
+  ) +
+  theme(legend.position = "none")
+
+```
+
+
+Graph of all population structure variables for all species combined
+
+```{r}
+vars_num <- c("l_leaf_stem", "n_shoots_leaf")
+
+summary_long_plot <- data %>%
+  group_by(elevation) %>%
+  summarise(across(all_of(vars_num),
+                   list(mean = ~mean(.x, na.rm = TRUE),
+                        sd = ~sd(.x, na.rm = TRUE)),
+                   .names = "{.col}_{.fn}")) %>%
+  pivot_longer(cols = -elevation,
+               names_to = c("variable", ".value"),
+               names_pattern = "(.*)_(mean|sd)")
+
+# Nombres nuevos para los paneles numéricos
+facet_names_num <- c(
+  "l_leaf_stem" = "Leaf–stem length",
+  "n_shoots_leaf" = "number of leaf/stem"
+)
+
+g_num <- ggplot(summary_long_plot, aes(x = elevation, y = mean, color = variable, group = variable)) +
+  geom_line(size = 0.8) +
+  geom_point(size = 1.8) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.08) +
+  facet_wrap(~ variable, scales = "free_y", labeller = labeller(variable = facet_names_num)) +
+  theme_bw(base_size = 8) +
+  labs(x = "Elevation (m.a.s.l.)",
+       y = "Mean (logarithmic scale)") +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold", size = 12)
+  )
+# 2. HERBIVORÍA
+herbi_summary <- data %>%
+  group_by(elevation, herbi) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(prop = count / sum(count),
+         panel = "Herbivory")   # Nombre final del panel
+
+g_herbi <- ggplot(herbi_summary, aes(x = factor(elevation), y = prop, fill = factor(herbi))) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_bw(base_size = 8) +
+  labs(x = "Elevation (m.a.s.l.)",
+       y = "Proportion",
+       fill = "Herbivory") +
+  scale_y_continuous(labels = percent) +
+  facet_wrap(~ panel, nrow = 1) +
+  theme(
+    strip.background = element_rect(fill = "grey85"),
+    strip.text = element_text(face = "bold", size = 12),
+    legend.text = element_text(size = 9),
+    legend.title = element_text(size = 10)
+  )
+# 3. VARIABLES CATEGÓRICAS
+vars_cat <- c("life_stage", "reprod_stage")
+
+cat_summary <- data %>%
+  pivot_longer(cols = all_of(vars_cat), names_to = "variable", values_to = "category") %>%
+  group_by(elevation, variable, category) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(prop = count / sum(count))
+
+# Nombres finales para paneles categóricos
+facet_names_cat <- c(
+  "life_stage" = "Ontogeny",
+  "reprod_stage" = "Fenology"
+)
+
+g_cat <- ggplot(cat_summary, aes(x = factor(elevation), y = prop, fill = category)) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_bw(base_size = 8) +
+  labs(x = "Elevation (m.a.s.l.)",
+       y = "Proportion",
+       fill = "Category") +
+  scale_y_continuous(labels = percent) +
+  facet_wrap(~ variable, nrow = 1, labeller = labeller(variable = facet_names_cat)) +
+  theme(
+    strip.background = element_rect(fill = "grey85"),
+    strip.text = element_text(face = "bold", size = 12),
+    legend.text = element_text(size = 9),
+    legend.title = element_text(size = 10)
+  )
+
+# 4. COMBINACIÓN FINAL DE LOS 3 GRÁFICOS
+final_plot <- g_num + g_herbi + g_cat +
+  plot_layout(nrow = 1, widths = c(1, 0.5, 1)) +
+  plot_annotation(
+    title = "Structural variables of vascular epiphyte populations along the treeline",
+    theme = theme(
+      plot.title = element_text(hjust = 0.5, face = "bold", size = 12)
+    )
+  )
+
+final_plot
+```
+
+View the distribution of the variables to determine whether it is better to use transformed data or not
+
+```{r}
+#PARA l_leaf_steam
+# 1. Mira la distribución de tus datos
+hist(POBSTRU$l_leaf_stem)
+hist(log(POBSTRU$l_leaf_stem))
+# 2. Prueba la normalidad
+shapiro.test(POBSTRU$l_leaf_stem)
+shapiro.test(log(POBSTRU$l_leaf_stem))
+#PARA n_shoots_leaf
+# 1. Mira la distribución de tus datos
+hist(POBSTRU$n_shoots_leaf)
+hist(log(POBSTRU$n_shoots_leaf))
+# 2. Prueba la normalidad
+shapiro.test(POBSTRU$n_shoots_leaf)
+shapiro.test(log(POBSTRU$n_shoots_leaf))
+
+```
+
+Graphic by specie Hymenophyllum sp1
+```{r}
+# 1️⃣ Filtrar solo la especie Hymenophyllum sp1
+hymeno_pobstru <- POBSTRU %>%
+  filter(morphospe == "Hymenophyllum sp1")
+# 2️⃣ Transformar las variables numéricas a logaritmo
+hymeno_log <- hymeno_pobstru %>%
+  mutate(
+    log_l_leaf_stem = log(l_leaf_stem + 1),
+    log_n_shoots_leaf = log(n_shoots_leaf + 1)
+  )
+# 3️⃣ Calcular media y desviación estándar por elevación
+hymeno_summary <- hymeno_log %>%
+  group_by(elevation) %>%
+  summarise(
+    mean_l = mean(log_l_leaf_stem, na.rm = TRUE),
+    sd_l = sd(log_l_leaf_stem, na.rm = TRUE),
+    mean_n = mean(log_n_shoots_leaf, na.rm = TRUE),
+    sd_n = sd(log_n_shoots_leaf, na.rm = TRUE)
+  )
+# 4️⃣ Pasar a formato largo para graficar ambas variables en facetas
+hymeno_long <- hymeno_summary %>%
+  pivot_longer(
+    cols = starts_with("mean_"),
+    names_to = "variable",
+    values_to = "mean"
+  ) %>%
+  mutate(
+    sd = ifelse(variable == "mean_l", sd_l, sd_n),
+    variable = recode(variable,
+                      "mean_l" = "log(l_leaf_stem)",
+                      "mean_n" = "log(n_shoots_leaf)")
+  )
+# 5️⃣ Graficar
+##variable numericas
+g_numh1 <- ggplot(hymeno_long, aes(x = elevation, y = mean, color = variable, group = variable)) +
+  geom_line(size = 0.8) +
+  geom_point(size = 1.8) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.08) +
+  facet_wrap(~ variable, scales = "free_y") +
+  theme_bw((base_size = 8)) +
+  labs(
+    title = expression(paste(, italic("a) Hymenophyllum sp1"),)),
+    x = "Elevation (m.a.s.l.)",
+    y = "Mean (Logarithmic scale)"
+  ) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5, size = 9, face = "bold"),
+    strip.text = element_text(size = 7),  # 👈 texto de los paneles (facet_wrap)
+    axis.title = element_text(size = 8),
+    axis.text = element_text(size = 7)
+  )
+
+#Herbivoria
+hymeno_herbi_summary <- hymeno_pobstru %>%
+  group_by(elevation, herbi) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(prop = count / sum(count))
+library(scales)
+g_herbih1 <- ggplot(hymeno_herbi_summary, aes(x = factor(elevation), y = prop, fill = factor(herbi))) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_bw(base_size = 8) +  # 👈 mismo tamaño de texto que los otros
+  labs(
+    x = "Elevation (m.a.s.l.)",
+    y = "Proportion",
+    fill = "Herbivory"
+  ) +
+  scale_y_continuous(labels = percent) +
+  facet_wrap(~ "Herbivory", nrow = 1) +
+ theme(
+    strip.background = element_rect(fill = "grey85"),
+    strip.text = element_text(face = "bold", size = 7),
+    axis.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    legend.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    plot.title = element_text(hjust = 0.5, size = 9, face = "bold"),
+    axis.ticks.length = unit(0.15, "cm"),
+    panel.spacing = unit(0.3, "lines"),
+    legend.key.size = unit(0.3, "cm"))
+
+###variable categoricas 
+vars_cat <- c("life_stage", "reprod_stage")
+cat_summary <- hymeno_pobstru %>%
+  pivot_longer(cols = all_of(vars_cat), names_to = "variable", values_to = "category") %>%
+  group_by(elevation, variable, category) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(prop = count / sum(count))
+g_cath1 <- ggplot(cat_summary, aes(x = factor(elevation), y = prop, fill = category)) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_bw(base_size = 8) +  # 👈 igual que en los otros
+  labs(
+    x = "Elevation (m.a.s.l.)",
+    y = "Proportion",
+    fill = "Category"
+  ) +
+  scale_y_continuous(labels = scales::percent) +
+  facet_wrap(~ variable, nrow = 1) +
+  theme(
+    strip.background = element_rect(fill = "grey85"),
+    strip.text = element_text(face = "bold", size = 7),
+    axis.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    legend.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    plot.title = element_text(hjust = 0.5, size = 9, face = "bold"),
+    axis.ticks.length = unit(0.15, "cm"),
+    panel.spacing = unit(0.3, "lines"),
+    legend.key.size = unit(0.3, "cm")
+  )
+#Combina los tres gráficos en una sola fila (5 paneles en total)
+final_hymesp1 <- g_numh1 + g_herbih1 + g_cath1 +
+plot_layout(nrow = 1, widths = c(1,0.5,1)) +
+  plot_annotation(
+    title = " ",
+    theme = theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+  )
+
+final_hymesp1
+```
+Graphic by specie Elaphoglossum vulcanicum
+```{r}
+# 1️⃣ Filtrar solo la especie
+elapho_pobstru <- POBSTRU %>%
+  filter(morphospe == "Elaphoglossum vulcanicum")
+
+# 2️⃣ Transformar variables a logaritmo
+elapho_log <- elapho_pobstru %>%
+  mutate(
+    log_l_leaf_stem = log(l_leaf_stem + 1),
+    log_n_shoots_leaf = log(n_shoots_leaf + 1)
+  )
+
+# 3️⃣ Calcular media y desviación estándar por elevación
+elapho_summary <- elapho_log %>%
+  group_by(elevation) %>%
+  summarise(
+    mean_l = mean(log_l_leaf_stem, na.rm = TRUE),
+    sd_l = sd(log_l_leaf_stem, na.rm = TRUE),
+    mean_n = mean(log_n_shoots_leaf, na.rm = TRUE),
+    sd_n = sd(log_n_shoots_leaf, na.rm = TRUE)
+  )
+
+# 4️⃣ Pasar a formato largo
+elapho_long <- elapho_summary %>%
+  pivot_longer(
+    cols = starts_with("mean_"),
+    names_to = "variable",
+    values_to = "mean"
+  ) %>%
+  mutate(
+    sd = ifelse(variable == "mean_l", sd_l, sd_n),
+    variable = recode(variable,
+                      "mean_l" = "log(l_leaf_stem)",
+                      "mean_n" = "log(n_shoots_leaf)")
+  )
+
+# 📊 5️⃣ Gráfico de variables numéricas
+g_numelav <- ggplot(elapho_long, aes(x = elevation, y = mean, color = variable, group = variable)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.1) +
+  facet_wrap(~ variable, scales = "free_y") +
+  theme_bw(base_size = 8) +
+  labs(
+    title = expression(paste(" ", italic("a)Elaphoglossum vulcanicum"))),
+    x = "Elevation (m.a.s.l.)",
+    y = "Mean (log scale)"
+  ) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5, size = 10),
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    strip.text = element_text(size = 7, face = "bold"),
+    panel.spacing = unit(0.5, "lines")
+  )
+
+# 🌿 6️⃣ Herbivoría
+elav_herbi_summary <- elapho_pobstru %>%
+  group_by(elevation, herbi) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(prop = count / sum(count))
+
+g_herbielav <- ggplot(elav_herbi_summary, aes(x = factor(elevation), y = prop, fill = factor(herbi))) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_bw(base_size = 8) +
+  labs(x = "Elevation (m.a.s.l.)", y = "Proportion", fill = "Herbivory") +
+  scale_y_continuous(labels = percent) +
+  facet_wrap(~ "Herbivory", nrow = 1) +
+  theme(
+    strip.background = element_rect(fill = "grey85"),
+    strip.text = element_text(face = "bold", size = 7),
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    legend.title = element_text(size = 7),
+    legend.text = element_text(size = 6),
+    panel.spacing = unit(0.5, "lines")
+  )
+
+# 🌱 7️⃣ Variables categóricas
+vars_cat <- c("life_stage", "reprod_stage")
+elav_cat_summary <- elapho_pobstru %>%
+  pivot_longer(cols = all_of(vars_cat), names_to = "variable", values_to = "category") %>%
+  group_by(elevation, variable, category) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(prop = count / sum(count))
+
+g_catelav <- ggplot(elav_cat_summary, aes(x = factor(elevation), y = prop, fill = category)) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_bw(base_size = 8) +
+  labs(x = "Elevation (m.a.s.l.)", y = NULL, fill = "Category") +
+  scale_y_continuous(labels = percent) +
+  facet_wrap(~ variable, nrow = 1) +
+  theme(
+    strip.background = element_rect(fill = "grey85"),
+    strip.text = element_text(face = "bold", size = 7),
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    legend.title = element_text(size = 7),
+    legend.text = element_text(size = 6),
+    panel.spacing = unit(0.5, "lines")
+  )
+
+# 🧩 8️⃣ Combinar los tres gráficos
+final_elavul <- g_numelav + g_herbielav + g_catelav +
+  plot_layout(nrow = 1, widths = c(1, 0.5, 1)) +
+  plot_annotation(
+    title = " ",
+    theme = theme(
+      plot.title = element_text(hjust = 0.5, face = "bold", size = 12)
+    )
+  )
+
+final_elavul
+
+```
+Graphic by specie Melpomene personata
+```{r}
+# 1️⃣ Filtrar solo la especie
+melpope_pobstru <- POBSTRU %>%
+  filter(morphospe == "Melpomene personata")
+
+# 2️⃣ Transformar las variables numéricas a logaritmo
+melpope_log <- melpope_pobstru %>%
+  mutate(
+    log_l_leaf_stem = log(l_leaf_stem + 1),
+    log_n_shoots_leaf = log(n_shoots_leaf + 1)
+  )
+
+# 3️⃣ Calcular media y desviación estándar por elevación
+melpope_summary <- melpope_log %>%
+  group_by(elevation) %>%
+  summarise(
+    mean_l = mean(log_l_leaf_stem, na.rm = TRUE),
+    sd_l = sd(log_l_leaf_stem, na.rm = TRUE),
+    mean_n = mean(log_n_shoots_leaf, na.rm = TRUE),
+    sd_n = sd(log_n_shoots_leaf, na.rm = TRUE)
+  )
+
+# 4️⃣ Pasar a formato largo
+melpope_long <- melpope_summary %>%
+  pivot_longer(
+    cols = starts_with("mean_"),
+    names_to = "variable",
+    values_to = "mean"
+  ) %>%
+  mutate(
+    sd = ifelse(variable == "mean_l", sd_l, sd_n),
+    variable = recode(variable,
+                      "mean_l" = "log(l_leaf_stem)",
+                      "mean_n" = "log(n_shoots_leaf)")
+  )
+
+# 📊 5️⃣ Gráfico de variables numéricas
+g_nummelpope <- ggplot(melpope_long, aes(x = elevation, y = mean, color = variable, group = variable)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.1) +
+  facet_wrap(~ variable, scales = "free_y") +
+  theme_bw(base_size = 8) +
+  labs(
+    title = expression(paste(" ", italic("Melpomene personata"))),
+    x = "Elevation (m.a.s.l.)",
+    y = "Mean (log scale)"
+  ) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5, size = 10),
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    strip.text = element_text(size = 7, face = "bold"),
+    panel.spacing = unit(0.5, "lines")
+  )
+
+# 🌿 6️⃣ Herbivoría
+melpope_herbi_summary <- melpope_pobstru %>%  # <- corregido (antes usaba elapho_pobstru)
+  group_by(elevation, herbi) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(prop = count / sum(count))
+
+g_herbimelpope <- ggplot(melpope_herbi_summary, aes(x = factor(elevation), y = prop, fill = factor(herbi))) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_bw(base_size = 8) +
+  labs(x = "Elevation (m.a.s.l.)", y = "Proportion", fill = "Herbivory") +
+  scale_y_continuous(labels = percent) +
+  facet_wrap(~ "Herbivory", nrow = 1) +
+  theme(
+    strip.background = element_rect(fill = "grey85"),
+    strip.text = element_text(face = "bold", size = 7),
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    legend.title = element_text(size = 7),
+    legend.text = element_text(size = 6),
+    panel.spacing = unit(0.5, "lines")
+  )
+
+# 🌱 7️⃣ Variables categóricas
+vars_cat <- c("life_stage", "reprod_stage")
+melpope_cat_summary <- melpope_pobstru %>%
+  pivot_longer(cols = all_of(vars_cat), names_to = "variable", values_to = "category") %>%
+  group_by(elevation, variable, category) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(prop = count / sum(count))
+
+g_catmelpope <- ggplot(melpope_cat_summary, aes(x = factor(elevation), y = prop, fill = category)) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_bw(base_size = 8) +
+  labs(x = "Elevation (m.a.s.l.)", y = NULL, fill = "Category") +
+  scale_y_continuous(labels = percent) +
+  facet_wrap(~ variable, nrow = 1) +
+  theme(
+    strip.background = element_rect(fill = "grey85"),
+    strip.text = element_text(face = "bold", size = 7),
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    legend.title = element_text(size = 7),
+    legend.text = element_text(size = 6),
+    panel.spacing = unit(0.5, "lines")
+  )
+
+# 🧩 8️⃣ Combinar los tres gráficos
+final_melpope <- g_nummelpope + g_herbimelpope + g_catmelpope +
+  plot_layout(nrow = 1, widths = c(1, 0.5, 1)) +
+  plot_annotation(
+    theme = theme(
+      plot.title = element_text(hjust = 0.5, face = "bold", size = 12)
+    )
+  )
+
+final_melpope
+
+```
+
+Graphic by specie Elaphoglossum metallicum
+```{r}
+# 1️⃣ Filtrar solo la especie
+elaphome_pobstru <- POBSTRU %>%
+  filter(morphospe == "Elaphoglossum metallicum")
+
+# 2️⃣ Transformar las variables numéricas a logaritmo
+elaphome_log <- elaphome_pobstru %>%
+  mutate(
+    log_l_leaf_stem = log(l_leaf_stem + 1),
+    log_n_shoots_leaf = log(n_shoots_leaf + 1)
+  )
+
+# 3️⃣ Calcular media y desviación estándar por elevación
+elaphome_summary <- elaphome_log %>%
+  group_by(elevation) %>%
+  summarise(
+    mean_l = mean(log_l_leaf_stem, na.rm = TRUE),
+    sd_l = sd(log_l_leaf_stem, na.rm = TRUE),
+    mean_n = mean(log_n_shoots_leaf, na.rm = TRUE),
+    sd_n = sd(log_n_shoots_leaf, na.rm = TRUE)
+  )
+
+# 4️⃣ Pasar a formato largo
+elaphome_long <- elaphome_summary %>%
+  pivot_longer(
+    cols = starts_with("mean_"),
+    names_to = "variable",
+    values_to = "mean"
+  ) %>%
+  mutate(
+    sd = ifelse(variable == "mean_l", sd_l, sd_n),
+    variable = recode(variable,
+                      "mean_l" = "log(l_leaf_stem)",
+                      "mean_n" = "log(n_shoots_leaf)")
+  )
+
+# 📊 5️⃣ Gráfico de variables numéricas
+g_numelaphome <- ggplot(elaphome_long, aes(x = elevation, y = mean, color = variable, group = variable)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.1) +
+  facet_wrap(~ variable, scales = "free_y") +
+  theme_bw(base_size = 8) +
+  labs(
+    title = expression(paste(" ", italic("Elaphoglossum metallicum"))),
+    x = "Elevation (m.a.s.l.)",
+    y = "Mean (log scale)"
+  ) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5, size = 10),
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    strip.text = element_text(size = 7, face = "bold"),
+    panel.spacing = unit(0.5, "lines")
+  )
+
+# 🌿 6️⃣ Herbivoría
+elaphome_herbi_summary <- elaphome_pobstru %>%
+  group_by(elevation, herbi) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(prop = count / sum(count))
+
+g_herbielaphome <- ggplot(elaphome_herbi_summary, aes(x = factor(elevation), y = prop, fill = factor(herbi))) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_bw(base_size = 8) +
+  labs(x = "Elevation (m.a.s.l.)", y = "Proportion", fill = "Herbivory") +
+  scale_y_continuous(labels = percent) +
+  facet_wrap(~ "Herbivory", nrow = 1) +
+  theme(
+    strip.background = element_rect(fill = "grey85"),
+    strip.text = element_text(face = "bold", size = 7),
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    legend.title = element_text(size = 7),
+    legend.text = element_text(size = 6),
+    panel.spacing = unit(0.5, "lines")
+  )
+
+# 🌱 7️⃣ Variables categóricas
+vars_cat <- c("life_stage", "reprod_stage")
+elaphome_cat_summary <- elaphome_pobstru %>%
+  pivot_longer(cols = all_of(vars_cat), names_to = "variable", values_to = "category") %>%
+  group_by(elevation, variable, category) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(prop = count / sum(count))
+
+g_catelaphome <- ggplot(elaphome_cat_summary, aes(x = factor(elevation), y = prop, fill = category)) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_bw(base_size = 8) +
+  labs(x = "Elevation (m.a.s.l.)", y = NULL, fill = "Category") +
+  scale_y_continuous(labels = percent) +
+  facet_wrap(~ variable, nrow = 1) +
+  theme(
+    strip.background = element_rect(fill = "grey85"),
+    strip.text = element_text(face = "bold", size = 7),
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    legend.title = element_text(size = 7),
+    legend.text = element_text(size = 6),
+    panel.spacing = unit(0.5, "lines")
+  )
+
+# 🧩 8️⃣ Combinar los tres gráficos
+final_elaphome <- g_numelaphome + g_herbielaphome + g_catelaphome +
+  plot_layout(nrow = 1, widths = c(1, 0.5, 1)) +
+  plot_annotation(
+    title = " ",
+    theme = theme(
+      plot.title = element_text(hjust = 0.5, face = "bold", size = 12)
+    )
+  )
+
+final_elaphome
+```
+Graphic by specie Peperomia sp1
+```{r}
+# 1️⃣ Filtrar solo la especie Peperomia sp1
+pepe1_pobstru <- POBSTRU %>%
+  filter(morphospe == "Peperomia sp1")
+
+# 2️⃣ Transformar las variables numéricas a logaritmo
+pepe1_log <- pepe1_pobstru %>%
+  mutate(
+    log_l_leaf_stem = log(l_leaf_stem + 1),
+    log_n_shoots_leaf = log(n_shoots_leaf + 1)
+  )
+
+# 3️⃣ Calcular media y desviación estándar por elevación
+pepe1_summary <- pepe1_log %>%
+  group_by(elevation) %>%
+  summarise(
+    mean_l = mean(log_l_leaf_stem, na.rm = TRUE),
+    sd_l = sd(log_l_leaf_stem, na.rm = TRUE),
+    mean_n = mean(log_n_shoots_leaf, na.rm = TRUE),
+    sd_n = sd(log_n_shoots_leaf, na.rm = TRUE)
+  )
+
+# 4️⃣ Pasar a formato largo
+pepe1_long <- pepe1_summary %>%
+  pivot_longer(
+    cols = starts_with("mean_"),
+    names_to = "variable",
+    values_to = "mean"
+  ) %>%
+  mutate(
+    sd = ifelse(variable == "mean_l", sd_l, sd_n),
+    variable = recode(variable,
+                      "mean_l" = "log(l_leaf_stem)",
+                      "mean_n" = "log(n_shoots_leaf)")
+  )
+
+# 5️⃣ Gráfico de variables numéricas
+g_numpepe1 <- ggplot(pepe1_long, aes(x = elevation, y = mean, color = variable, group = variable)) +
+  geom_line(size = 0.8) +
+  geom_point(size = 1.5) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.1) +
+  facet_wrap(~ variable, scales = "free_y") +
+  theme_bw(base_size = 7) +
+  labs(
+    title = expression(paste(" ", italic("b)Peperomia sp1"))),
+    x = "Elevation (m.a.s.l.)",
+    y = "Mean (Logarithmic scale)"
+  ) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5, size = 8),
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    strip.text = element_text(size = 7, face = "bold")
+  )
+
+# 6️⃣ Herbivoría
+pepe1_herbi_summary <- pepe1_pobstru %>%
+  group_by(elevation, herbi) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(prop = count / sum(count))
+
+g_herbipepe1 <- ggplot(pepe1_herbi_summary, aes(x = factor(elevation), y = prop, fill = factor(herbi))) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_bw(base_size = 7) +
+  labs(x = "Elevation (m.a.s.l.)", y = "Proportion", fill = "Herbivory") +
+  scale_y_continuous(labels = percent) +
+  facet_wrap(~ "Herbivory", nrow = 1) +
+  theme(
+    strip.background = element_rect(fill = "grey85"),
+    strip.text = element_text(face = "bold", size = 7),
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    legend.text = element_text(size = 6),
+    legend.title = element_text(size = 7)
+  )
+
+# 7️⃣ Variables categóricas
+vars_cat <- c("life_stage", "reprod_stage")
+pepe1_cat_summary <- pepe1_pobstru %>%
+  pivot_longer(cols = all_of(vars_cat), names_to = "variable", values_to = "category") %>%
+  group_by(elevation, variable, category) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(prop = count / sum(count))
+
+g_catpepe1 <- ggplot(pepe1_cat_summary, aes(x = factor(elevation), y = prop, fill = category)) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_bw(base_size = 7) +
+  labs(x = "Elevation (m.a.s.l.)", y = NULL, fill = "Category") +
+  scale_y_continuous(labels = percent) +
+  facet_wrap(~ variable, nrow = 1) +
+  theme(
+    strip.background = element_rect(fill = "grey85"),
+    strip.text = element_text(face = "bold", size = 7),
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    legend.text = element_text(size = 6),
+    legend.title = element_text(size = 7)
+  )
+
+# 8️⃣ Combinar los tres gráficos
+final_pepe1 <- g_numpepe1 + g_herbipepe1 + g_catpepe1 +
+  plot_layout(nrow = 1, widths = c(1, 0.5, 1)) +
+  plot_annotation(
+    theme = theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 9))
+  )
+
+final_pepe1
+
+```
+Graphic by specie Pachyphyllum sp2
+```{r}
+# 1️⃣ Filtrar solo la especie Pachyphyllum sp2
+pachy2_pobstru <- POBSTRU %>%
+  filter(morphospe == "Pachyphyllum sp2")
+
+# 2️⃣ Transformar las variables numéricas a logaritmo
+pachy2_log <- pachy2_pobstru %>%
+  mutate(
+    log_l_leaf_stem = log(l_leaf_stem + 1),
+    log_n_shoots_leaf = log(n_shoots_leaf + 1)
+  )
+
+# 3️⃣ Calcular media y desviación estándar por elevación
+pachy2_summary <- pachy2_log %>%
+  group_by(elevation) %>%
+  summarise(
+    mean_l = mean(log_l_leaf_stem, na.rm = TRUE),
+    sd_l = sd(log_l_leaf_stem, na.rm = TRUE),
+    mean_n = mean(log_n_shoots_leaf, na.rm = TRUE),
+    sd_n = sd(log_n_shoots_leaf, na.rm = TRUE)
+  )
+
+# 4️⃣ Pasar a formato largo
+pachy2_long <- pachy2_summary %>%
+  pivot_longer(
+    cols = starts_with("mean_"),
+    names_to = "variable",
+    values_to = "mean"
+  ) %>%
+  mutate(
+    sd = ifelse(variable == "mean_l", sd_l, sd_n),
+    variable = recode(variable,
+                      "mean_l" = "log(l_leaf_stem)",
+                      "mean_n" = "log(n_shoots_leaf)")
+  )
+
+# 5️⃣ Gráfico de variables numéricas
+g_numpachy2 <- ggplot(pachy2_long, aes(x = elevation, y = mean, color = variable, group = variable)) +
+  geom_line(size = 0.8) +
+  geom_point(size = 1.5) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.1) +
+  facet_wrap(~ variable, scales = "free_y") +
+  theme_bw(base_size = 7) +
+  labs(
+    title = expression(paste(italic("c)Pachyphyllum sp2"))),
+    x = "Elevation (m.a.s.l.)",
+    y = "Mean (Logarithmic scale)"
+  ) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5, size = 8),
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    strip.text = element_text(size = 7, face = "bold")
+  )
+
+# 6️⃣ Herbivoría
+pachy2_herbi_summary <- pachy2_pobstru %>%
+  group_by(elevation, herbi) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(prop = count / sum(count))
+
+g_herbipachy2 <- ggplot(pachy2_herbi_summary, aes(x = factor(elevation), y = prop, fill = factor(herbi))) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_bw(base_size = 7) +
+  labs(x = "Elevation (m.a.s.l.)", y = "Proportion", fill = "Herbivory") +
+  scale_y_continuous(labels = percent) +
+  facet_wrap(~ "Herbivory", nrow = 1) +
+  theme(
+    strip.background = element_rect(fill = "grey85"),
+    strip.text = element_text(face = "bold", size = 7),
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    legend.text = element_text(size = 6),
+    legend.title = element_text(size = 7)
+  )
+
+# 7️⃣ Variables categóricas
+vars_cat <- c("life_stage", "reprod_stage")
+pachy2_cat_summary <- pachy2_pobstru %>%
+  pivot_longer(cols = all_of(vars_cat), names_to = "variable", values_to = "category") %>%
+  group_by(elevation, variable, category) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(prop = count / sum(count))
+
+g_catpachy2 <- ggplot(pachy2_cat_summary, aes(x = factor(elevation), y = prop, fill = category)) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_bw(base_size = 7) +
+  labs(x = "Elevation (m.a.s.l.)", y = NULL, fill = "Category") +
+  scale_y_continuous(labels = percent) +
+  facet_wrap(~ variable, nrow = 1) +
+  theme(
+    strip.background = element_rect(fill = "grey85"),
+    strip.text = element_text(face = "bold", size = 7),
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    legend.text = element_text(size = 6),
+    legend.title = element_text(size = 7)
+  )
+
+# 8️⃣ Combinar los tres gráficos
+final_pachy2 <- g_numpachy2 + g_herbipachy2 + g_catpachy2 +
+  plot_layout(nrow = 1, widths = c(1, 0.5, 1)) +
+  plot_annotation(
+        theme = theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 9))
+  )
+
+final_pachy2
+
+```
+Graphic by specie Demosthenesia buxifolia
+```{r}
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+library(scales)
+library(tidyr)
+
+# 1️⃣ Filtrar solo la especie Demosthenesia buxifolia
+demosbu_pobstru <- POBSTRU %>%
+  filter(morphospe == "Demosthenesia buxifolia")
+
+# 2️⃣ Transformar variables numéricas a logaritmo
+demosbu_log <- demosbu_pobstru %>%
+  mutate(
+    log_l_leaf_stem = log(l_leaf_stem + 1),
+    log_n_shoots_leaf = log(n_shoots_leaf + 1)
+  )
+
+# 3️⃣ Calcular media y desviación estándar por elevación
+demosbu_summary <- demosbu_log %>%
+  group_by(elevation) %>%
+  summarise(
+    mean_l = mean(log_l_leaf_stem, na.rm = TRUE),
+    sd_l = sd(log_l_leaf_stem, na.rm = TRUE),
+    mean_n = mean(log_n_shoots_leaf, na.rm = TRUE),
+    sd_n = sd(log_n_shoots_leaf, na.rm = TRUE)
+  )
+
+# 4️⃣ Formato largo
+demosbu_long <- demosbu_summary %>%
+  pivot_longer(
+    cols = starts_with("mean_"),
+    names_to = "variable",
+    values_to = "mean"
+  ) %>%
+  mutate(
+    sd = ifelse(variable == "mean_l", sd_l, sd_n),
+    variable = recode(variable,
+                      "mean_l" = "log(l_leaf_stem)",
+                      "mean_n" = "log(n_shoots_leaf)")
+  )
+
+# --- Tema base uniforme (letras pequeñas, proporciones iguales)
+tema_base <- theme_bw(base_size = 8) +
+  theme(
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    strip.text = element_text(size = 7, face = "bold"),
+    legend.text = element_text(size = 6),
+    legend.title = element_text(size = 7),
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 8)
+  )
+
+# --- Gráfico 1: Variables numéricas
+g_numdemosbu <- ggplot(demosbu_long, aes(x = elevation, y = mean, color = variable, group = variable)) +
+  geom_line(size = 0.8) +
+  geom_point(size = 1.5) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.1) +
+  facet_wrap(~ variable, scales = "free_y", nrow = 1) +
+  labs(
+    title = expression(paste(italic("d)Demosthenesia buxifolia"))),
+    x = "Elevation (m.a.s.l.)",
+    y = "Mean (Logarithmic scale)"
+  ) +
+  tema_base +
+  theme(legend.position = "none")
+
+# --- Gráfico 2: Herbivoría
+demosbu_herbi_summary <- demosbu_pobstru %>%
+  group_by(elevation, herbi) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(prop = count / sum(count))
+
+g_herbidemosbu <- ggplot(demosbu_herbi_summary, aes(x = factor(elevation), y = prop, fill = factor(herbi))) +
+  geom_bar(stat = "identity", position = "fill") +
+  labs(x = "Elevation (m.a.s.l.)", y = "Proportion", fill = "Herbivory") +
+  scale_y_continuous(labels = percent) +
+  facet_wrap(~ "Herbivory", nrow = 1) +
+  tema_base +
+  theme(strip.background = element_rect(fill = "grey85"))
+
+# --- Gráfico 3: Variables categóricas
+vars_cat <- c("life_stage", "reprod_stage")
+demosbu_cat_summary <- demosbu_pobstru %>%
+  pivot_longer(cols = all_of(vars_cat), names_to = "variable", values_to = "category") %>%
+  group_by(elevation, variable, category) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(prop = count / sum(count))
+
+g_catdemosbu <- ggplot(demosbu_cat_summary, aes(x = factor(elevation), y = prop, fill = category)) +
+  geom_bar(stat = "identity", position = "fill") +
+  labs(x = "Elevation (m.a.s.l.)", y = NULL, fill = "Category") +
+  scale_y_continuous(labels = percent) +
+  facet_wrap(~ variable, nrow = 1) +
+  tema_base +
+  theme(strip.background = element_rect(fill = "grey85"))
+
+# --- Combinar todo
+final_demosbu <- g_numdemosbu + g_herbidemosbu + g_catdemosbu +
+  plot_layout(nrow = 1, widths = c(1, 0.5, 1)) +
+  plot_annotation(
+       theme = theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 9))
+  )
+
+final_demosbu
+
+```
+
+graphics all together
+```{r}
+library(patchwork)
+# Combinar graficos
+final_hymesp1 / final_elavul/final_melpope/final_elaphome/final_pepe1/final_pachy2/final_demosbu +
+  plot_annotation(
+    title = "Variation of population´s structure along the treeline",
+    subtitle = " ",
+    theme = theme(plot.title = element_text(hjust = 0.5))
+  )
+
+```
+graphic one per family
+```{r}
+final_elavul/final_pepe1/final_pachy2/final_demosbu +
+  plot_annotation(
+    title = "Variation of population´s structure along the treeline",
+    subtitle = " ",
+    theme = theme(plot.title = element_text(hjust = 0.5))
+  )
+```
+
+Statistical analysis: Are there significant differences between the variables and the elevations?
+```{r}
+###todas epifitas
+#Var numericas
+# --- Kruskal-Wallis ---
+kruskal.test(log_l_leaf_stem ~ elevation, data = POBSTRU)
+# --- Dunn post-hoc ---
+dunnTest(log_l_leaf_stem ~ elevation, data = POBSTRU, method = "holm")
+# --- Kruskal-Wallis ---
+kruskal.test(log_n_shoots_leaf ~ elevation, data = POBSTRU)
+# --- Dunn post-hoc ---
+dunnTest(log_n_shoots_leaf ~ elevation, data = POBSTRU, method = "holm")
+#var categoricas
+##################Crear función general para post-hoc Fisher con simulación
+posthoc_fisher_sim <- function(df, var_cat, var_group) {
+  
+  # niveles del factor
+  levs <- sort(unique(df[[var_group]]))
+  
+  # todas las combinaciones de pares
+  pairs <- combn(levs, 2, simplify = FALSE)
+  
+  # correr Fisher para cada par
+  resultados <- lapply(pairs, function(p) {
+    tab <- table(
+      df[[var_cat]][df[[var_group]] %in% p],
+      df[[var_group]][df[[var_group]] %in% p]
+    )
+    
+    test <- fisher.test(tab, simulate.p.value = TRUE, B = 10000)
+    
+    data.frame(
+      Comparacion = paste(p[1], "vs", p[2]),
+      p_value = test$p.value
+    )
+  })
+  
+  # combinamos en tabla
+  resultados <- do.call(rbind, resultados)
+  
+  # ajuste de p-values
+  resultados$p_adj <- p.adjust(resultados$p_value, method = "bonferroni")
+  
+  return(resultados)
+}
+#################
+# --- HERBIVORY ---
+chisq.test(table(POBSTRU$herbi, POBSTRU$elevation))
+posthoc_herbi <- posthoc_fisher_sim(POBSTRU, "herbi", "elevation")
+posthoc_herbi
+# --- LIFE STAGE ---
+chisq.test(table(POBSTRU$life_stage, POBSTRU$elevation))
+posthoc_life <- posthoc_fisher_sim(POBSTRU, "life_stage", "elevation")
+posthoc_life
+# --- REPRODUCTIVE STAGE ---
+chisq.test(table(POBSTRU$reprod_stage, POBSTRU$elevation))
+posthoc_reprod <- posthoc_fisher_sim(POBSTRU, "reprod_stage", "elevation")
+posthoc_reprod
+
+
+```
+Statistical analysis per abundant species
+```{r}
+#######################Hymenophyllum sp1
+#Var numericas
+# --- KRUSKAL-WALLIS ---
+kruskal.test(log_l_leaf_stem ~ factor(elevation), data = hymeno_log)
+# --- Dunn post-hoc ---
+dunnTest(log_l_leaf_stem ~ factor(elevation), data = hymeno_log, method = "holm")
+# --- KRUSKAL-WALLIS ---
+kruskal.test(log(n_shoots_leaf) ~ factor(elevation), data = hymeno_log)
+# --- Dunn post-hoc ---
+dunnTest(log(n_shoots_leaf) ~ factor(elevation), data = hymeno_log, method = "holm")
+#var categoricas
+chisq.test(table(hymeno_log$herbi, hymeno_log$elevation))
+posthoc_herbi_hymeno <- posthoc_fisher_sim(hymeno_log, "herbi", "elevation")
+posthoc_herbi_hymeno
+chisq.test(table(hymeno_log$life_stage, hymeno_log$elevation))
+posthoc_life_hymeno <- posthoc_fisher_sim(hymeno_log, "life_stage", "elevation")
+posthoc_life_hymeno
+chisq.test(table(hymeno_log$reprod_stage, hymeno_log$elevation))
+posthoc_reprod_hymeno <- posthoc_fisher_sim(hymeno_log, "reprod_stage", "elevation")
+posthoc_reprod_hymeno
+
+####################Elaphoglossum vulcanicum
+#Var numericas
+# --- KRUSKAL-WALLIS ---
+kruskal.test(log_l_leaf_stem ~ factor(elevation), data = elapho_log)
+# --- Dunn post-hoc ---
+dunnTest(log_l_leaf_stem ~ factor(elevation), data = elapho_log, method = "holm")
+# --- KRUSKAL-WALLIS ---
+kruskal.test(log(n_shoots_leaf) ~ factor(elevation), data = elapho_log)
+# --- Dunn post-hoc ---
+dunnTest(log(n_shoots_leaf) ~ factor(elevation), data = elapho_log, method = "holm")
+#var categoricas
+chisq.test(table(elapho_log$herbi, elapho_log$elevation))
+posthoc_herbi_elapho <- posthoc_fisher_sim(elapho_log, "herbi", "elevation")
+posthoc_herbi_elapho
+chisq.test(table(elapho_log$life_stage, elapho_log$elevation))
+posthoc_life_elapho <- posthoc_fisher_sim(elapho_log, "life_stage", "elevation")
+posthoc_life_elapho
+chisq.test(table(elapho_log$reprod_stage, elapho_log$elevation))
+posthoc_reprod_elapho <- posthoc_fisher_sim(elapho_log, "reprod_stage", "elevation")
+posthoc_reprod_elapho
+
+#######################Melpomene personata
+# --- KRUSKAL-WALLIS ---
+kruskal.test(log_l_leaf_stem ~ factor(elevation), data = melpope_log)
+# --- Dunn post-hoc ---
+dunnTest(log_l_leaf_stem ~ factor(elevation), data = melpope_log, method = "holm")
+# --- KRUSKAL-WALLIS ---
+kruskal.test(log(n_shoots_leaf) ~ factor(elevation), data = melpope_log)
+# --- Dunn post-hoc ---
+dunnTest(log(n_shoots_leaf) ~ factor(elevation), data = melpope_log, method = "holm")
+#var categoricas
+chisq.test(table(melpope_log$herbi, melpope_log$elevation))
+posthoc_herbi_melpope <- posthoc_fisher_sim(melpope_log, "herbi", "elevation")
+posthoc_herbi_melpope
+chisq.test(table(melpope_log$life_stage, melpope_log$elevation))
+posthoc_life_melpope <- posthoc_fisher_sim(melpope_log, "life_stage", "elevation")
+posthoc_life_melpope
+chisq.test(table(melpope_log$reprod_stage, melpope_log$elevation))
+posthoc_reprod_melpope <- posthoc_fisher_sim(melpope_log, "reprod_stage", "elevation")
+posthoc_reprod_melpope
+
+###########################Elaphoglossum metallicum
+# --- KRUSKAL-WALLIS ---
+kruskal.test(log_l_leaf_stem ~ factor(elevation), data = elaphome_log)
+# --- Dunn post-hoc ---
+dunnTest(log_l_leaf_stem ~ factor(elevation), data = elaphome_log, method = "holm")
+# --- KRUSKAL-WALLIS ---
+kruskal.test(log(n_shoots_leaf) ~ factor(elevation), data = elaphome_log)
+# --- Dunn post-hoc ---
+dunnTest(log(n_shoots_leaf) ~ factor(elevation), data = elaphome_log, method = "holm")
+#var categoricas
+chisq.test(table(elaphome_log$herbi, elaphome_log$elevation))
+posthoc_herbi_elaphome <- posthoc_fisher_sim(elaphome_log, "herbi", "elevation")
+posthoc_herbi_elaphome
+chisq.test(table(elaphome_log$life_stage, elaphome_log$elevation))
+posthoc_life_elaphome <- posthoc_fisher_sim(elaphome_log, "life_stage", "elevation")
+posthoc_life_elaphome
+chisq.test(table(elaphome_log$reprod_stage, elaphome_log$elevation))
+posthoc_reprod_elaphome <- posthoc_fisher_sim(elaphome_log, "reprod_stage", "elevation")
+posthoc_reprod_elaphome
+
+############################Peperomia sp1
+# --- KRUSKAL-WALLIS ---
+kruskal.test(log_l_leaf_stem ~ factor(elevation), data = pepe1_log)
+# --- Dunn post-hoc ---
+dunnTest(log_l_leaf_stem ~ factor(elevation), data = pepe1_log, method = "holm")
+# --- KRUSKAL-WALLIS ---
+kruskal.test(log(n_shoots_leaf) ~ factor(elevation), data = pepe1_log)
+# --- Dunn post-hoc ---
+dunnTest(log(n_shoots_leaf) ~ factor(elevation), data = pepe1_log, method = "holm")
+#var categoricas
+chisq.test(table(pepe1_log$herbi, pepe1_log$elevation))
+posthoc_herbi_pepe1 <- posthoc_fisher_sim(pepe1_log, "herbi", "elevation")
+posthoc_herbi_pepe1
+chisq.test(table(pepe1_log$life_stage, pepe1_log$elevation))
+posthoc_life_pepe1 <- posthoc_fisher_sim(pepe1_log, "life_stage", "elevation")
+posthoc_life_pepe1
+chisq.test(table(pepe1_log$reprod_stage, pepe1_log$elevation))
+posthoc_reprod_pepe1 <- posthoc_fisher_sim(pepe1_log, "reprod_stage", "elevation")
+posthoc_reprod_pepe1
+
+##############################Pachyphyllum sp2
+# --- KRUSKAL-WALLIS ---
+kruskal.test(log_l_leaf_stem ~ factor(elevation), data = pachy2_log)
+# --- Dunn post-hoc ---
+dunnTest(log_l_leaf_stem ~ factor(elevation), data = pachy2_log, method = "holm")
+# --- KRUSKAL-WALLIS ---
+kruskal.test(log(n_shoots_leaf) ~ factor(elevation), data = pachy2_log)
+# --- Dunn post-hoc ---
+dunnTest(log(n_shoots_leaf) ~ factor(elevation), data = pachy2_log, method = "holm")
+#var categoricas
+chisq.test(table(pachy2_log$herbi, pachy2_log$elevation))
+posthoc_herbi_pachy2 <- posthoc_fisher_sim(pachy2_log, "herbi", "elevation")
+posthoc_herbi_pachy2
+chisq.test(table(pachy2_log$life_stage, pachy2_log$elevation))
+posthoc_life_pachy2 <- posthoc_fisher_sim(pachy2_log, "life_stage", "elevation")
+posthoc_life_pachy2
+chisq.test(table(pachy2_log$reprod_stage, pachy2_log$elevation))
+posthoc_reprod_pachy2 <- posthoc_fisher_sim(pachy2_log, "reprod_stage", "elevation")
+posthoc_reprod_pachy2
+
+#############################Demosthenesia buxifolia
+# --- KRUSKAL-WALLIS ---
+kruskal.test(log_l_leaf_stem ~ factor(elevation), data = demosbu_log)
+# --- Dunn post-hoc ---
+dunnTest(log_l_leaf_stem ~ factor(elevation), data = demosbu_log, method = "holm")
+# --- KRUSKAL-WALLIS ---
+kruskal.test(log(n_shoots_leaf) ~ factor(elevation), data = demosbu_log)
+# --- Dunn post-hoc ---
+dunnTest(log(n_shoots_leaf) ~ factor(elevation), data = demosbu_log, method = "holm")
+#var categoricas
+chisq.test(table(demosbu_log$herbi, demosbu_log$elevation))
+posthoc_herbi_demosbu <- posthoc_fisher_sim(demosbu_log, "herbi", "elevation")
+posthoc_herbi_demosbu
+chisq.test(table(demosbu_log$life_stage, demosbu_log$elevation))
+posthoc_life_demosbu <- posthoc_fisher_sim(demosbu_log, "life_stage", "elevation")
+posthoc_life_demosbu
+chisq.test(table(demosbu_log$reprod_stage, demosbu_log$elevation))
+posthoc_reprod_demosbu <- posthoc_fisher_sim(demosbu_log, "reprod_stage", "elevation")
+posthoc_reprod_demosbu
+```
+
+structure of forest
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+estforest <- read.csv("treeforesttreeline.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+str(estforest)      # Estructura de la base de datos
+head(estforest)
+
+library(dplyr)
+resumen_estforest <- estforest %>%
+  group_by(plot) %>%
+  summarise(
+    mean_dap = mean(dap, na.rm = TRUE),
+    sd_dap = sd(dap, na.rm = TRUE),
+    min_dap = min(dap, na.rm = TRUE),
+    max_dap = max(dap, na.rm = TRUE),
+    mean_high = mean(high, na.rm = TRUE),
+    sd_high = sd(high, na.rm = TRUE),
+    min_high = min(high, na.rm = TRUE),
+    max_high = max(high, na.rm = TRUE)
+  )
+resumen_estforest
+
+##area basal
+estforest <- estforest %>%
+  mutate(area_basal = pi * (dap / 200)^2)
+
+area_basal_plot <- estforest %>%
+  group_by(plot) %>%
+  summarise(area_basal_total = sum(area_basal, na.rm = TRUE))
+area_basal_plot
+
+conteo_arboles <- estforest %>%
+  distinct(foro_cod, .keep_all = TRUE) %>%  # elimina duplicados si los hubiera
+  group_by(plot) %>%
+  summarise(n_arboles = n())
+conteo_arboles
+
+conteo_forof <- data %>%
+  distinct(forof, .keep_all = TRUE) %>%  # elimina duplicados si los hubiera
+  group_by(plot) %>%
+  summarise(n_forofitos = n())
+conteo_forof
+```
+
