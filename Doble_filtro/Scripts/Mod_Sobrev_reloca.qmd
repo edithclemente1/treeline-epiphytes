@@ -7,6 +7,8 @@ editor: visual
 
 ## Relocación Epifitas a la puna
 
+Paquetes
+
 ```{r}
 #| warning: false
 #| message: false
@@ -23,6 +25,7 @@ Base de datos y preparacion de las variables para los modelos.
 Quite los individuos despues de muertos
 
 ```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/Data")
 expdata <- read.csv("relocadata.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
 str(expdata)      # Estructura de la base de datos
 
@@ -76,25 +79,17 @@ Todas las muertes se dieron en la puna y ninguna en el bosque, ¿produce separac
 
 los datos en los diferentes tiempos se van reduciendo porque solo quedan los vivos.
 
+## Pregunta
+
+¿Disminuye la supervivencia de las epífitas cuando son trasladadas del treeline a condiciones de puna?
+
 ## Modelos
 
-modelo rama efecto fijo
+#### Modelo interacción: si la relocacion afecta la sobrevivencia y cambia con el tiempo 
+
+No produce sobredispercion,
 
 ```{r}
-
-model_glm_bra <- glm(
-  survive ~ relocation + time + branch_ID,
-  family = binomial,
-  data = data_model
-)
-summary(model_glm_bra)
-Anova(model_glm_bra)
-```
-
-Modelo interacción
-
-```{r}
-
 model_glm_int <- glm(
   survive ~ relocation*time,
   family = binomial,
@@ -104,17 +99,20 @@ summary(model_glm_int)
 Anova(model_glm_int)
 #SOBREDISPERSION
 check_overdispersion(model_glm_int)
-#DIAGNOSTICO GENERAL
+#DIAGNOSTICO con residuos simulados
 sim_res <- simulateResiduals(model_glm_int)
 plot(sim_res)
-#PostHOC
-emmeans(model_glm_int, pairwise ~ time)
-#interaccion 
-emmeans(model_glm_int, pairwise ~ relocation | time)
+#Revisar los supuestos 
+dev.new()
+check_model(model_glm_int)
 
 ```
 
-modelo interaccion con rama fijo
+Nota: se observa la colinearidad entre la interaccion y sus partes pero es porque son parte
+
+### Modelo interaccion con rama fijo:
+
+Provoca sobreparametrizacion y produce overfitting
 
 ```{r}
 model_glm_intb <- glm(
@@ -125,14 +123,19 @@ model_glm_intb <- glm(
 summary(model_glm_intb)
 Anova(model_glm_intb)
 #SOBREDISPERSION
-check_overdispersion(model_glm_intb)
+check_overdispersion(model_glm_intb)#sin sobredispersion
 ##DIAGNOSTICO GENERAL
-sim_resb <- simulateResiduals(model_glm_intb)
+sim_resb <- simulateResiduals(model_glm_intb)#El modelo NO está capturando bien la relación
 plot(sim_resb)
-#PostHOC
-emmeans(model_glm_int, pairwise ~ time)
-#interaccion 
-emmeans(model_glm_int, pairwise ~ relocation | time)
+dev.new()
+check_model(model_glm_intb)
+
 ```
 
-hgjhjhghjhkjhjkshdjkhkjggk
+Solo tiene efecto significativo el tiempo, en la relocacion el modelo no puede evaluarlo correctamente probablemente por la sobreparametrizacion y la separacion perfecta de puna y bosque (todos vivos) .
+
+Al igual que el otro modelo posee colinearidad.
+
+#### NOTA
+
+Ambos modelos poseen coeficientes bajisimos, errores estandar gigantes y p_valores raros, será porque el efecto es muy fuerte?
