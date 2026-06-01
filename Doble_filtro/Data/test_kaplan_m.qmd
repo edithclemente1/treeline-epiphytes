@@ -1,0 +1,127 @@
+---
+title: "Test de kaplan - meier"
+format: html
+editor: visual
+---
+
+## Test de Kaplan-meier o analisis de supervivencia
+
+Se usa para estimar y comparar la probabilidad de supervivencia en el tiempo responde a:
+
+¿Cuál es la probabilidad de supervivencia después de cierto tiempo? En el bosque, la probabilidad de supervivencia se mantiene en 1 durante todo el experimento. En la puna, la probabilidad disminuye rápidamente, con una caída abrupta alrededor del mes 5 y una mediana de supervivencia de 5 meses.
+
+¿Son diferentes las probabilidades de supervivencia entre puna vs bosque a lo largo del tiempo? test de log-rank Sí, son drásticamente diferentes.
+
+subir datos
+
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/Data")
+expdata <- read.csv("relocadata.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+str(expdata)      # Estructura de la base de datos
+head(expdata)
+```
+
+preparar datos
+
+```{r}
+#paquetes
+library(dplyr)
+library(survival)
+library(survminer)
+#preparar datos 
+supervivencia <- expdata %>% arrange(epi_ID, time, branch_ID)
+supervivencia <- supervivencia %>%
+  mutate(
+    relocation = as.logical(relocation),
+    dead_alive = as.character(dead_alive),
+    time_num = as.numeric(gsub("T", "", time))
+  )
+#crear tabala de supervivencia
+str(surv_data)
+surv_data <- supervivencia %>%
+  arrange(epi_ID, time_num) %>%
+  group_by(epi_ID) %>%
+  summarise(
+    group = first(relocation),        # TRUE = puna, FALSE = bosque
+    event = any(dead_alive == "dead"),
+    time_event = ifelse(
+      event,
+      min(time_num[dead_alive == "dead"]),  # primer dead
+      max(time_num)                          # último censo si sigue viva
+    ),
+    .groups = "drop"
+  )
+#convertir censo a tiempo real 
+surv_data <- surv_data %>%
+  dplyr:: mutate(
+    time_months = dplyr:: recode(
+      time_event,
+      `1` = 0,
+      `2` = 2,
+      `3` = 4,
+      `4` = 8,
+      `5` = 11
+    )
+  )
+table(surv_data$epi_ID, surv_data$time_months)##tabla del evento mortalidad x nepi y time(#mes)
+#Crear el objeto de supervivencia
+#library(survival)
+S <- Surv(
+  time  = surv_data$time_months,
+  event = surv_data$event
+)
+
+#Ajustar Kaplan–Meier por grupo (Puna vs Bosque)
+km_fit <- survfit(S ~ group, data = surv_data)
+#Log-rank test
+survdiff(S ~ group, data = surv_data)
+
+
+```
+
+Gráfico español
+
+```{r}
+ggsurvplot(
+  km_fit,
+  data = surv_data,
+  risk.table = TRUE,
+  pval = TRUE,
+  conf.int = FALSE,
+  legend.labs = c("Bosque", "Puna"),
+  legend.title = "Hábitat",
+  palette = c("darkgreen", "brown"),
+  linewidth = 1,
+  xlab = "Tiempo desde el inicio (meses)",
+  ylab = "Probabilidad de supervivencia",
+  break.time.by = 1
+)
+summary(km_fit)#comprobacion rapida
+
+
+```
+
+Grafico en inglés
+
+```{r}
+g <- ggsurvplot(
+  km_fit,
+  data = surv_data,
+  risk.table = TRUE,
+  pval = TRUE,
+  conf.int = FALSE,
+  legend.labs = c("Forest", "Puna"),
+  legend.title = "Habitat",
+  palette = c("darkgreen", "brown"),
+  linewidth = 1,
+  xlab = "Time since the start (months)",
+  ylab = "Survival probability",
+  break.time.by = 1,
+  xlim = c(0, 11)   # 🔥 AQUÍ LA CLAVE
+)
+png("KaplanMeier.png", width = 2000, height = 1600, res = 300)
+print(g)
+dev.off()
+```
+
+Kaplan–Meier survival analysis showed that the probability of survival remained at 1.0 for forest controls throughout the study, whereas epiphytes translocated to the puna experienced a sharp decline in survival probability, with median survival of five months.

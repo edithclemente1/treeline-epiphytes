@@ -6,7 +6,7 @@ output: html_document
 ---
 data
 ```{r}
-setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/Data")
 expdata <- read.csv("relocadata.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
 str(expdata)      # Estructura de la base de datos
 head(expdata)
@@ -572,6 +572,7 @@ surv_data <- surv_data %>%#T1 conviene transformarlo a número:
   mutate(
     time_num = as.numeric(gsub("T", "", time_to_event))
   )
+
 #Crear el objeto de supervivencia
 library(survival)
 

@@ -18,6 +18,8 @@ library(dplyr)
 library(performance)
 library(DHARMa)
 library(emmeans)
+#install.packages("brglm2")
+library(brglm2)
 ```
 
 Base de datos y preparacion de las variables para los modelos.
@@ -41,7 +43,7 @@ data_model$time <- factor(data_model$time)
 #recodificar variables 
 data_model$survive <- ifelse(data_model$dead_alive == "alive", 1, 0)
 data_model$relocation[data_model$relocation == "true"] <- "puna"
-data_model$relocation[data_model$relocation == "false"] <- "bosque"
+data_model$relocation[data_model$relocation == "false"] <- "forest"
 data_model$relocation <- factor(data_model$relocation)
 data_model$branch_ID <- factor(data_model$branch_ID)
 data_model$epi_ID <- factor(data_model$epi_ID)
@@ -54,11 +56,7 @@ data_model <- data_model %>%
   filter(!dead_seen_before) %>%
   ungroup() %>%
   dplyr::select(-dead_seen_before)
-#Verificacion
-data_model %>%
-  arrange(epi_ID, time) %>%
-    dplyr::select(epi_ID, time, dead_alive, survive) %>%
-  print(n = 150)
+
 table(data_model$epi_ID)#cuenta cuantas observaciones por individuo
 table(data_model$time, data_model$survive)#ver los vivos o muertos por tiempos
 #write.csv(data_model, "data_model.csv", row.names = FALSE)
@@ -146,21 +144,7 @@ Al igual que el otro modelo posee colinearidad.
 
 Ambos modelos poseen coeficientes bajisimos, errores estandar gigantes y p_valores raros, será porque el efecto es muy fuerte?
 
-
-
-
-
-
-
-
-
-
-
-
-
-Glenda's
-Do forest and puna differ in survival over censuses?
-
+Glenda's Do forest and puna differ in survival over censuses?
 
 ```{r}
 data_surv <- subset(data_model, time != "T1")
@@ -181,6 +165,7 @@ model_br <- glm(
 )
 
 summary(model_br)
+drop1(model_br, test = "Chisq")#opcion a Anova evalua con interaccion y  sin interaccion: la interaccion no mejora el modelo 
 #Anova(model_br)
 
 #This is often the best replacement for your current glm() when there is separation.
@@ -224,24 +209,22 @@ anova(m_add, model_br, test = "LRT")
 
 #This tests:
 
-#Does relocation × time improve the model?
+#Does relocation × time improve the model? NO mejora el ajuste Incluso parece ajustar peor que el modelo sin interacción
 
 #2) Test relocation effect
 anova(m_time, m_add, test = "LRT")
 
 #This tests:
 
-#Does adding relocation improve the model beyond time alone?
+#Does adding relocation improve the model beyond time alone? Si Agregar relocation explica una gran parte de la variación en la supervivencia que el tiempo por sí solo no explica. 
 
 #3) Test time effect
 anova(m_rel, m_add, test = "LRT")
 
 #This tests:
 
-#Does adding time improve the model beyond relocation alone?
+#Does adding time improve the model beyond relocation alone? Sí, el tiempo mejora significativamente el modelo.
 ```
-
-
 
 ```{r}
 
@@ -314,13 +297,12 @@ ggplot() +
     y = "Survival probability",
     color = "Relocation"
   ) +
+   scale_color_manual(values = c("puna" = "#D55E00", "forest" = "#009E73"))+
   theme_classic()
 
+ggsave("Survival_probability.png", width = 8, height = 4, dpi = 300)
 #This is probably the best figure for your paper/presentation.
 ```
-
-
-
 
 ```{r}
 #⚙️ Step 1 — Prepare the data
@@ -330,7 +312,7 @@ ggplot() +
 library(dplyr)
 
 data_model <- data_model %>%
-  mutate(time = factor(time, levels = c("T1", "T2", "T3", "T4")))
+  mutate(time = factor(time, levels = c("T1", "T2", "T3", "T4", "T5")))
 
 #⚙️ Step 2 — Create numeric time
 
@@ -345,6 +327,7 @@ T1 = 1
 T2 = 2
 T3 = 3
 T4 = 4
+T5 = 5
 #⚙️ Step 3 — Collapse to one row per individual
 
 #This is the key step:
@@ -367,9 +350,11 @@ surv_data <- data_model %>%
   ungroup()
 #🔍 Check the result
 table(surv_data$event)
-summary(surv_data$time_to_event)
-head(surv_data)
-
+table(surv_data$time_to_event)
+view(surv_data)
+table(surv_data$relocation)
+table(surv_data$relocation, surv_data$event)
+summary(surv_data)
 
 #Firth-corrected Cox model
 #install.packages("coxphf")
@@ -384,8 +369,11 @@ cox_firth <- coxphf(
 summary(cox_firth)
 ```
 
-Survival differed strongly between relocation treatments. Standard Cox regression showed evidence of quasi/complete separation, indicating extremely uneven mortality between groups, so treatment effects should be interpreted using penalized Cox regression and Kaplan–Meier/log-rank comparisons rather than ordinary maximum-likelihood Cox estimates.
+Resultado Cox:
 
+Penalized Cox regression indicated that relocation had a strong effect on survival, with individuals in the puna treatment showing a substantially higher mortality risk (HR = 38.11, 95% CI: 5.06–4885.16, p \< 0.001).
+
+Survival differed strongly between relocation treatments. Standard Cox regression showed evidence of quasi/complete separation, indicating extremely uneven mortality between groups, so treatment effects should be interpreted using penalized Cox regression and Kaplan–Meier/log-rank comparisons rather than ordinary maximum-likelihood Cox estimates.
 
 ```{r}
 
@@ -396,6 +384,7 @@ Survival differed strongly between relocation treatments. Standard Cox regressio
 library(brglm2)
 library(car)
 library(DHARMa)
+#install.packages("pROC")
 library(pROC)
 
 model_br <- glm(
@@ -406,9 +395,10 @@ model_br <- glm(
 )
 
 # 1. Summary + ORs
-summary(model_br)
-confint(model_br)
-exp(cbind(OR = coef(model_br), confint(model_br)))
+summary(model_br)#Res:Survival differed markedly between treatments. Both relocation and time improved model fit, although their interaction was not supported. Survival remained high in the control group but declined under puna conditions over time. Penalized Cox regression confirmed a strong effect of relocation, with substantially higher mortality risk in the puna treatment (HR = 38.11, p < 0.001).
+
+confint(model_br)#intervalos de confianza (IC) al 95% para cada coeficiente del modelo.
+exp(cbind(OR = coef(model_br), confint(model_br)))#convierte coeficientes (log-odds) a Odds Ratios (OR)
 
 # 2. Sparse cells / separation structure
 with(data_surv, table(relocation, time, survive))
@@ -452,21 +442,20 @@ auc(roc_obj)
 
 ```
 
+De todos estos test lo importante notar es:
+
+Survival analyses revealed strong differences between treatments. Bias-reduced logistic regression indicated high survival in the control group, with wide confidence intervals reflecting data sparsity and quasi-complete separation (no mortality in control). Both relocation and time contributed to survival patterns, although interaction effects were not supported. Penalized Cox regression confirmed a strong effect of relocation, with substantially higher mortality risk in the puna treatment (HR = 38.11, p \< 0.001). Model diagnostics indicated no overdispersion, outliers, or multicollinearity.
+
 How to write this up in a paper / thesis
 
 A clean write-up would be:
 
-Because the binomial GLM showed evidence of separation, we refit the model using bias-reduced logistic regression (brglm2, method = "brglmFit"). Model diagnostics included inspection of deviance residuals, leverage, Cook’s distance, variance inflation factors, and simulated residuals. Sparse outcome combinations were also examined directly using contingency tables. No severe residual misfit or undue influence was observed / [or describe what you found].
+Because the binomial GLM showed evidence of separation, we refit the model using bias-reduced logistic regression (brglm2, method = "brglmFit"). Model diagnostics included inspection of deviance residuals, leverage, Cook’s distance, variance inflation factors, and simulated residuals. Sparse outcome combinations were also examined directly using contingency tables. No severe residual misfit or undue influence was observed / \[or describe what you found\].
 
 Bottom line
 
 For Firth / bias-reduced logistic regression, the most useful diagnostics are:
 
-cross-tabulation of predictors vs outcome (to understand separation),
-deviance residuals,
-leverage / Cook’s distance,
-VIF,
-DHARMa simulated residuals,
-and AUC/calibration if prediction matters.
+cross-tabulation of predictors vs outcome (to understand separation), deviance residuals, leverage / Cook’s distance, VIF, DHARMa simulated residuals, and AUC/calibration if prediction matters.
 
 If you want, paste your summary(model_br) output (and whether time is continuous or categorical), and I can tell you exactly which diagnostics matter most for your model and how to interpret them.

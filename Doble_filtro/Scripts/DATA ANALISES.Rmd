@@ -10,7 +10,7 @@ OB.1: Cuantificar la variación en la riqueza, abundancia y composición de epí
 
 Data Epis treeline
 ```{r}
-setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/Data")
 #FOROFITOS
 data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
 str(data)
@@ -1263,6 +1263,7 @@ supervivencia <- supervivencia %>%
     time_num = as.numeric(gsub("T", "", time))
   )
 #crear tabala de supervivencia
+str(surv_data)
 surv_data <- supervivencia %>%
   arrange(epi_ID, time_num) %>%
   group_by(epi_ID) %>%
@@ -1283,8 +1284,9 @@ surv_data <- surv_data %>%
       time_event,
       `1` = 0,
       `2` = 2,
-      `3` = 5,
-      `4` = 8
+      `3` = 4,
+      `4` = 8,
+      `5` = 11
     )
   )
 table(surv_data$epi_ID, surv_data$time_months)##tabla del evento mortalidad x nepi y time(#mes)
