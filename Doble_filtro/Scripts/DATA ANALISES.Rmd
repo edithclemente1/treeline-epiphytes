@@ -50,6 +50,8 @@ Entender la data:
 ```{r}
 
 str(data)
+length(unique(data$subplot))
+unique(data$subplot)
 
 # data
 summary(data[,c(2,8,9,11,17,19,20)])
@@ -72,7 +74,6 @@ table(data$elevation, data$subplot)
 
 
 OB.1: Cuantificar la variación en la riqueza, abundancia y composición de epífitas vasculares a lo largo del gradiente elevacional hacia el treeline.
-
 
 Riqueza
 ```{r}
@@ -104,8 +105,131 @@ richness <- comm %>%
 
 ```
 
+RIQUEZA (CAMBIO DE ELEVACION POR PLOT (subplot en la tabla))
+```{r}
+#Crear matriz de abundancia
+comm <- data %>%
+  group_by(forof, elevation,subplot, morphospe) %>%
+  summarise(abundance = n(), .groups="drop") %>%
+  pivot_wider(names_from = morphospe, 
+              values_from = abundance, 
+              values_fill = 0)
+
+#Matriz ambiental del árbol
+env_tree <- data %>%
+  distinct(forof, elevation, dap, height, 
+           plot, subplot, tree_name, genera_tree)
+
+#RIQUEZA DE EPÍFITAS POR ÁRBOL
+
+##corregir el nombre raro
+colnames(comm) <- iconv(
+  colnames(comm),
+  from = "",
+  to = "UTF-8",
+  sub = ""
+)
+colnames(comm) <- gsub("\u00A0", " ", colnames(comm))
+#ver si corrigio
+species_cols <- names(comm)[!names(comm) %in% c("forof", "elevation","subplot")]
+colnames(comm)[40]
+#riqueza por forof por subplot
+richness <- comm %>%
+  mutate(richness = rowSums(across(all_of(species_cols), ~ . > 0))) %>%
+  dplyr::select(forof, elevation, subplot, richness)
+
+#modelo
+richness$elev_f <- factor(richness$elevation)
+richness$subplot_f <- factor(richness$subplot)
+
+m_rich <- glmer(richness ~ elev_f + (1|subplot_f),
+                family = poisson, data = richness)
+summary(m_rich)
+Anova(m_rich)
+dev.new()
+check_model(m_rich)
+#revisar overdispersion
+check_overdispersion(m_rich)#sin overdispercion
+#grafico boxplot
+riq_el<- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot() +
+  geom_jitter(width=0.1, alpha=0.4) +
+  theme_classic() +
+  ylab("Epiphyte species richness per tree") +
+  xlab("Elevation (m)")
+riq_el
+#grafico boxplot simple con promedio aritmetico
+riq_el <- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot() +
+  stat_summary(
+    fun = mean,
+    geom = "crossbar",
+    width = 0.6,
+    colour = "red",
+    linewidth = 0.4
+  ) +
+  geom_jitter(width = 0.1, alpha = 0.4) +
+  theme_classic() +
+  ylab("Epiphyte species richness per tree") +
+  xlab("Elevation (m)")
+riq_el
+##########
+#Extraer las comparaciones de emmeans como data frame
+emm <- emmeans(m_rich, ~ elev_f)
+pairs_df <- pairs(emm, adjust = "tukey") %>%
+  as.data.frame()
+#data frame para ggplot
+pairs_df <- pairs_df %>%
+  separate(contrast, into = c("group1", "group2"), sep = " - ") %>%
+  mutate(
+    group1 = gsub("elev_f", "", group1),
+    group2 = gsub("elev_f", "", group2),
+    y.position = max(richness$richness) + 
+                 seq(0.2, by = 0.2, length.out = n())
+  )
+#GRAFICO con asteriscos
+colnames(pairs_df)
+pairs_df <- pairs_df %>%
+  mutate(
+    p.signif = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*",
+      TRUE            ~ "ns"
+    )
+  )
+#plot con correcciones visuales 
+pairs_sig <- pairs_df %>%
+  filter(p.value < 0.05)
+pairs_sig <- pairs_sig %>%
+  mutate(
+    y.position = max(richness$richness, na.rm = TRUE) +
+                 seq(2, by = 2, length.out = n())
+  )
+riq_el <- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot(width = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.5, size = 1.8) +
+  stat_pvalue_manual(
+    pairs_sig,
+    label = "p.signif",
+    tip.length = 0.01
+  ) +
+  stat_summary(
+    fun = mean,
+    geom = "crossbar",
+    width = 0.6,
+    colour = "red",
+    linewidth = 0.4
+  ) +
+  theme_classic(base_size = 14) +
+  ylab("Epiphyte species richness per tree") +
+  xlab("Elevation (m)")
+riq_el
+```
+cambie el modelo cambiando el factor aleatorio de forof a subplot=equivale a plots, grafico cambio un poquito y que ahora es tiene 4 comparaciones significativas y antes eran 3.
 
 
+RUIQUEZA
 ```{r}
 
 #MODELOS A LO LARGO DEL GRADIENTE ELEVACIONAL
