@@ -1,5 +1,0 @@
-"0",""
-"0","points(scr$sites,"
-"0","       pch = 21,"
-"0","       bg = as.factor(env$plot),"
-"0","       cex = 1.3)"
