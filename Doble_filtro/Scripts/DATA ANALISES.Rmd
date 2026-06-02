@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 ---
 title: "PAPER"
 author: "Edith"
@@ -6,16 +6,8 @@ date: "2026-01-30"
 output: DATA ANALISES
 ---
 
-OB.1: Cuantificar la variación en la riqueza, abundancia y composición de epífitas vasculares a lo largo del gradiente elevacional hacia el treeline.
 
-Data Epis treeline
-```{r}
-setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/Data")
-#FOROFITOS
-data <- read.csv("estrucPOB.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
-str(data)
-```
-paquetes
+Paquetes
 ```{r}
 library(dplyr)
 library(tidyr)
@@ -38,18 +30,69 @@ library(ggpubr)
 
 ```
 
-riqueza
+
+Data Epis treeline
+```{r}
+# No necesitas esto:
+# setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/Data")
+
+# Tienes que decirle a R donde está dentro del repositorio:
+#FOROFITOS
+data <- read.csv("./Doble_filtro/Data/estrucPOB.csv",
+                 header = TRUE, sep = ";",
+                 stringsAsFactors = FALSE)
+str(data)
+```
+
+
+
+Entender la data:
+```{r}
+
+str(data)
+
+# data
+summary(data[,c(2,8,9,11,17,19,20)])
+
+# categorias
+table(data$plot)
+table(data$subplot)
+table(data$treecod)
+table(data$forof)
+length(table(data$treecod))
+length(table(data$forof))
+table(data$genera_tree)
+
+# total plots per elevación
+table(data$elevation, data$subplot)
+
+```
+
+
+
+
+OB.1: Cuantificar la variación en la riqueza, abundancia y composición de epífitas vasculares a lo largo del gradiente elevacional hacia el treeline.
+
+
+Riqueza
 ```{r}
 #Crear matriz de abundancia
 comm <- data %>%
   group_by(forof, elevation, morphospe) %>%
   summarise(abundance = n(), .groups="drop") %>%
-  pivot_wider(names_from = morphospe, values_from = abundance, values_fill = 0)
+  pivot_wider(names_from = morphospe, 
+              values_from = abundance, 
+              values_fill = 0)
+
+
 #Matriz ambiental del árbol
 env_tree <- data %>%
-  distinct(forof, elevation, dap, height, plot, subplot, tree_name, genera_tree)
+  distinct(forof, elevation, dap, height, 
+           plot, subplot, tree_name, genera_tree)
+
 #RIQUEZA DE EPÍFITAS POR ÁRBOL
 species_cols <- names(comm)[!names(comm) %in% c("forof","elevation")]
+
 #datos raros nombres
 data$morphospe <- stri_trans_general(data$morphospe, "Latin-ASCII")
 data$morphospe <- gsub("[^[:alnum:] ]", "", data$morphospe)
@@ -58,16 +101,26 @@ richness <- comm %>%
   mutate(richness = rowSums(across(all_of(species_cols), ~ . > 0))) %>%
   dplyr::select(forof, elevation, richness)
 
+
+```
+
+
+
+```{r}
+
 #MODELOS A LO LARGO DEL GRADIENTE ELEVACIONAL
 #Riqueza mejor fit con elevacion como factor y hacer anova con grafico de boxplot con resultados de pairwise. 20FEB
+
 str(richness)
+
 richness$elev_f <- factor(richness$elevation)
 
 m_rich <- glmer(richness ~ elev_f + (1|forof),
-                family=poisson, data=richness)
+                family = poisson, data = richness)
 summary(m_rich)
 Anova(m_rich)
 check_model(m_rich)###valuar de forma rápida y visual si un modelo estadístico está bien especificado y si cumple los supuestos.1. linealidad, 2. homocedasticidad, 3. Normalidad de residuos, 4. Valores atipicos e influencia, 4. Colinearidad, Ajuste general del modelo
+
 library(performance)##cuando no muestra el plot hace otra ventana
 dev.new()
 check_model(m_rich)
@@ -75,6 +128,8 @@ check_model(m_rich)
 emmeans(m_rich, list(pairwise ~ elev_f), adjust = "tukey")
 #revisar overdispersion
 check_overdispersion(m_rich)#sin overdispercion
+
+
 
 #regresion
 richness$elev_z <- scale(richness$elevation)
@@ -86,10 +141,12 @@ plot(richness$elevation, richness$richness)
 check_model(m_richz)#
 plot(m_richz)
 #comparacion por pares
-emmeans(m_richz, list(pairwise ~ elev_z), adjust = "tukey")
+emmeans(m_richz, 
+        list(pairwise ~ elev_z), adjust = "tukey")
 plot_model(m_richz,
 type = "pred",
-terms = "elev_z")
+terms = "elev_z",
+bias_correction = TRUE)
 
 ###La elevación se trató como una variable categórica debido a que solo se muestrearon cuatro niveles discretos, lo que impide el uso de enfoques de suavizamiento continuo como los GAM
 #grafico
@@ -99,7 +156,29 @@ riq_el<- ggplot(richness, aes(elev_f, richness)) +
   theme_classic() +
   ylab("Epiphyte species richness per tree") +
   xlab("Elevation (m)")
+riq_el
+
+
+riq_el <- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot() +
+  stat_summary(
+    fun = mean,
+    geom = "crossbar",
+    width = 0.6,
+    colour = "red",
+    linewidth = 0.4
+  ) +
+  geom_jitter(width = 0.1, alpha = 0.4) +
+  theme_classic() +
+  ylab("Epiphyte species richness per tree") +
+  xlab("Elevation (m)")
+
+riq_el
 ```
+
+
+
+
 RIQUEZA grafico completo con comparaciones
 ```{r}
 #Extraer las comparaciones de emmeans como data frame
@@ -155,6 +234,13 @@ riq_el <- ggplot(richness, aes(elev_f, richness)) +
     label = "p.signif",
     tip.length = 0.01
   ) +
+  stat_summary(
+    fun = mean,
+    geom = "crossbar",
+    width = 0.6,
+    colour = "red",
+    linewidth = 0.4
+  ) +
   theme_classic(base_size = 14) +
   ylab("Epiphyte species richness per tree") +
   xlab("Elevation (m)")
@@ -174,7 +260,7 @@ abund <- data %>%
   summarise(abundance = n(), .groups="drop")
 #modelo 
 m_abund <- glmer(abundance ~ elev_f + (1|forof),
-                 family = poisson, data = abund)
+                 family = poisson, data = abundance)
 summary(m_abund)
 #modelo elegido###################################
 abundance$elev_f <- factor(abundance$elevation)
@@ -213,6 +299,8 @@ ggplot(abundance, aes(elev_f, abundance)) +
   ylab("Epiphyte abundance per tree") +
   xlab("Elevation (m)")
 ```
+
+
 Grafico ABUNDANCE completo con las comparaciones
 ```{r}
 ############################################
