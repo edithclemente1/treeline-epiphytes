@@ -1,9 +1,8 @@
-
 ---
-title: "PAPER"
-author: "Edith"
-date: "2026-01-30"
-output: DATA ANALISES
+title: "Analyses_Final"
+author: "ECA & GML"
+format: html
+editor: visual
 ---
 
 
@@ -27,14 +26,14 @@ library(readr)
 library(lubridate)
 library(emmeans)
 library(ggpubr)
+library(glmmTMB)
+library(DHARMA)
 
 ```
 
 
 Data Epis treeline
 ```{r}
-# No necesitas esto:
-# setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/Data")
 
 # Tienes que decirle a R donde está dentro del repositorio:
 #FOROFITOS
@@ -72,10 +71,7 @@ table(data$elevation, data$subplot)
 
 
 
-
-OB.1: Cuantificar la variación en la riqueza, abundancia y composición de epífitas vasculares a lo largo del gradiente elevacional hacia el treeline.
-
-Riqueza
+Procesar la data creando datasets necesarios para los análisis:
 ```{r}
 
 #datos raros nombres
@@ -85,7 +81,7 @@ data$morphospe <- gsub("[^[:alnum:] ]", "", data$morphospe)
 
 #Crear matriz de abundancia
 comm <- data %>%
-  group_by(forof, elevation, morphospe) %>%
+  group_by(forof, elevation, subplot, morphospe) %>%
   summarise(abundance = n(), .groups="drop") %>%
   pivot_wider(names_from = morphospe, 
               values_from = abundance, 
@@ -97,35 +93,6 @@ env_tree <- data %>%
   distinct(forof, elevation, dap, height, 
            plot, subplot, tree_name, genera_tree)
 
-#RIQUEZA DE EPÍFITAS POR ÁRBOL
-species_cols <- names(comm)[!names(comm) %in% c("forof","elevation")]
-
-
-
-richness <- comm %>%
-  mutate(richness = rowSums(across(all_of(species_cols), ~ . > 0))) %>%
-  dplyr::select(forof, elevation, richness)
-
-
-```
-
-
-RIQUEZA (CAMBIO DE ELEVACION POR PLOT (subplot en la tabla))
-```{r}
-#Crear matriz de abundancia
-comm <- data %>%
-  group_by(forof, elevation,subplot, morphospe) %>%
-  summarise(abundance = n(), .groups="drop") %>%
-  pivot_wider(names_from = morphospe, 
-              values_from = abundance, 
-              values_fill = 0)
-
-#Matriz ambiental del árbol
-env_tree <- data %>%
-  distinct(forof, elevation, dap, height, 
-           plot, subplot, tree_name, genera_tree)
-
-#RIQUEZA DE EPÍFITAS POR ÁRBOL
 
 ##corregir el nombre raro
 colnames(comm) <- iconv(
@@ -138,50 +105,69 @@ colnames(comm) <- gsub("\u00A0", " ", colnames(comm))
 #ver si corrigio
 species_cols <- names(comm)[!names(comm) %in% c("forof", "elevation","subplot")]
 colnames(comm)[40]
+
+#RIQUEZA DE EPÍFITAS POR ÁRBOL
+species_cols <- names(comm)[!names(comm) %in% c("forof","elevation")]
+
+
 #riqueza por forof por subplot
 richness <- comm %>%
   mutate(richness = rowSums(across(all_of(species_cols), ~ . > 0))) %>%
   dplyr::select(forof, elevation, subplot, richness)
 
-#modelo
+
+```
+
+
+OB.1: Cuantificar la variación en la riqueza, abundancia y composición de epífitas vasculares a lo largo del gradiente elevacional hacia el treeline.
+
+Riqueza
+
+RIQUEZA (CAMBIO DE ELEVACION POR PLOT (subplot en la tabla)
+```{r}
+
+# convertir a factores
 richness$elev_f <- factor(richness$elevation)
 richness$subplot_f <- factor(richness$subplot)
 
+
+#modelo
 m_rich <- glmer(richness ~ elev_f + (1|subplot_f),
                 family = poisson, data = richness)
+
+# resultados
 summary(m_rich)
 Anova(m_rich)
 windows()
 check_model(m_rich)
 #revisar overdispersion
-check_overdispersion(m_rich)#sin overdispercion
-#grafico boxplot
-riq_el<- ggplot(richness, aes(elev_f, richness)) +
-  geom_boxplot() +
-  geom_jitter(width=0.1, alpha=0.4) +
-  theme_classic() +
-  ylab("Epiphyte species richness per tree") +
-  xlab("Elevation (m)")
-riq_el
-#grafico boxplot simple con promedio aritmetico
-riq_el <- ggplot(richness, aes(elev_f, richness)) +
-  geom_boxplot() +
-  stat_summary(
-    fun = mean,
-    geom = "crossbar",
-    width = 0.6,
-    colour = "red",
-    linewidth = 0.4
-  ) +
-  geom_jitter(width = 0.1, alpha = 0.4) +
-  theme_classic() +
-  ylab("Epiphyte species richness per tree") +
-  xlab("Elevation (m)")
-riq_el
-##########
+check_overdispersion(m_rich)# overdispercion
+
+
+
+# Solucionando la sobre dispersión
+m_rich_nb <- glmmTMB(
+  richness ~ elev_f + (1 | subplot_f),
+  family = nbinom2,
+  data = richness
+) # modelo final!
+
+# Diferencia entre modelos (poisson vs nv)
+AIC(m_rich, m_rich_nb)# si la diferencia entre valores de AIC es mayor a 10, es significativa 
+
+# Resultados:
+summary(m_rich_nb)
+Anova(m_rich_nb)
+
+# Revisando
+windows()
+check_overdispersion(m_rich_nb)# no sobredispersión
+check_model(m_rich_nb)
+
+
 
 #Extraer las comparaciones de emmeans como data frame
-emm <- emmeans(m_rich, ~ elev_f)
+emm <- emmeans(m_rich_nb, ~ elev_f)
 pairs_df <- pairs(emm, adjust = "tukey") %>%
   as.data.frame()
 #data frame para ggplot
@@ -193,6 +179,8 @@ pairs_df <- pairs_df %>%
     y.position = max(richness$richness) + 
                  seq(0.2, by = 0.2, length.out = n())
   )
+
+
 #GRAFICO con asteriscos
 colnames(pairs_df)
 pairs_df <- pairs_df %>%
@@ -230,90 +218,51 @@ riq_el <- ggplot(richness, aes(elev_f, richness)) +
   theme_classic(base_size = 14) +
   ylab("Epiphyte species richness per tree") +
   xlab("Elevation (m)")
+
+# plot
 riq_el
 ```
 cambie el modelo cambiando el factor aleatorio de forof a subplot=equivale a plots, grafico cambio un poquito y que ahora es tiene 4 comparaciones significativas y antes eran 3.
+[el cambio no debería ser porque hay mas o menos comparaciones sinigificativas, sino por la correccion del modelo, que cumpla los prerequisitos y responda tu pregunta]
+
+Metodología:
+Because the Poisson GLMM showed overdispersion, epiphyte species richness was modelled using a negative binomial GLMM. The negative binomial model provided a better fit than the Poisson model, based on AIC comparison, and residual diagnostics indicated that overdispersion was no longer a major issue. The final model included elevation as a fixed effect and subplot as a random intercept. Model fit was assessed using diagnostic plots and overdispersion tests, and the effect of elevation was evaluated using Type II Wald chi-square tests.
 
 
-RUIQUEZA
+RIQUEZA regresión
 ```{r}
 
 #MODELOS A LO LARGO DEL GRADIENTE ELEVACIONAL
 #Riqueza mejor fit con elevacion como factor y hacer anova con grafico de boxplot con resultados de pairwise. 20FEB
 
-str(richness)
-
-richness$elev_f <- factor(richness$elevation)
-
-m_rich <- glmer(richness ~ elev_f + (1|forof),
-                family = poisson, data = richness)
-summary(m_rich)
-Anova(m_rich)
-windows()
-check_model(m_rich)###valuar de forma rápida y visual si un modelo estadístico está bien especificado y si cumple los supuestos.1. linealidad, 2. homocedasticidad, 3. Normalidad de residuos, 4. Valores atipicos e influencia, 4. Colinearidad, Ajuste general del modelo
-
-library(performance)##cuando no muestra el plot hace otra ventana
-dev.new()
-check_model(m_rich)
-#comparacion por pares
-emmeans(m_rich, list(pairwise ~ elev_f), adjust = "tukey")
-#revisar overdispersion
-check_overdispersion(m_rich)#sin overdispercion
-
-
 
 #regresion
-richness$elev_z <- scale(richness$elevation)
-m_richz <- glmer(richness ~ elev_z + (1|forof),
+
+# scaling/centering
+richness$elev_z <- datawizard::standardize(as.numeric(richness$elevation), 
+                        center = TRUE,
+                        scale = TRUE)
+
+# model regression
+m_richz <- glmer(richness ~ elev_z + (1|subplot_f),
                 family=poisson, data=richness)
 summary(m_richz)
 Anova(m_richz)
-plot(richness$elevation, richness$richness)
+plot(richness$elevation, 
+     richness$richness)
+windows()
 check_model(m_richz)#
 plot(m_richz)
-#comparacion por pares
-emmeans(m_richz, 
-        list(pairwise ~ elev_z), adjust = "tukey")
-plot_model(m_richz,
-type = "pred",
-terms = "elev_z",
-bias_correction = TRUE)
 
-###La elevación se trató como una variable categórica debido a que solo se muestrearon cuatro niveles discretos, lo que impide el uso de enfoques de suavizamiento continuo como los GAM
-#grafico
-riq_el<- ggplot(richness, aes(elev_f, richness)) +
-  geom_boxplot() +
-  geom_jitter(width=0.1, alpha=0.4) +
-  theme_classic() +
-  ylab("Epiphyte species richness per tree") +
-  xlab("Elevation (m)")
-riq_el
-
-
-riq_el <- ggplot(richness, aes(elev_f, richness)) +
-  geom_boxplot() +
-  stat_summary(
-    fun = mean,
-    geom = "crossbar",
-    width = 0.6,
-    colour = "red",
-    linewidth = 0.4
-  ) +
-  geom_jitter(width = 0.1, alpha = 0.4) +
-  theme_classic() +
-  ylab("Epiphyte species richness per tree") +
-  xlab("Elevation (m)")
-
-riq_el
 ```
-
 
 
 
 RIQUEZA grafico completo con comparaciones
 ```{r}
+
 #Extraer las comparaciones de emmeans como data frame
-emm <- emmeans(m_rich, ~ elev_f)
+emm <- emmeans(m_rich_nb, ~ elev_f)
 pairs_df <- pairs(emm, adjust = "tukey") %>%
   as.data.frame()
 #data frame para ggplot
@@ -337,19 +286,6 @@ pairs_df <- pairs_df %>%
       TRUE            ~ "ns"
     )
   )
-riq_el <- ggplot(richness, aes(elev_f, richness)) +
-  geom_boxplot() +
-  geom_jitter(width = 0.1, alpha = 0.4) +
-  stat_pvalue_manual(
-    pairs_df,
-    label = "p.signif",
-    tip.length = 0.01
-  ) +
-  theme_classic() +
-  ylab("Epiphyte species richness per tree") +
-  xlab("Elevation (m)")
-riq_el
-#corregir visualmente
 pairs_sig <- pairs_df %>%
   filter(p.value < 0.05)
 pairs_sig <- pairs_sig %>%
@@ -379,57 +315,168 @@ riq_el
 #caption grafico: Boxes show median and interquartile range. Points represent individual trees.Asterisks indicate significant pairwise differences among elevations based on Tukey-adjusted estimated marginal means derived from the GLMM (* p < 0.05, ** p < 0.01).
 ```
 
+
+
 ABUNDANCIA
 ```{r}
+
 #ABUNDANCIA TOTAL
 abundance <- comm %>%
   mutate(abundance = rowSums(dplyr::select(., -forof, -elevation))) %>%
-  dplyr::select(forof, elevation, abundance)
+  dplyr::select(forof, elevation,subplot, abundance)
+
 #Abundancia 
 abund <- data %>%
-  group_by(forof, elevation) %>%
+  group_by(forof, subplot, elevation) %>%
   summarise(abundance = n(), .groups="drop")
-#modelo 
-m_abund <- glmer(abundance ~ elev_f + (1|forof),
-                 family = poisson, data = abundance)
-summary(m_abund)
-#modelo elegido###################################
-abundance$elev_f <- factor(abundance$elevation)
 
-m_abun <- glmer(abundance ~ elev_f + (1|forof),
-                family=poisson, data=abundance)
-summary(m_abun)
-Anova(m_abun)
+# ------------------------------------------------------------
+# 1. Prepare data
+# ------------------------------------------------------------
 
-check_model(m_abun)###valuar de forma rápida y visual si un modelo estadístico está bien especificado y si cumple los supuestos.1. linealidad, 2. homocedasticidad, 3. Normalidad de residuos, 4. Valores atipicos e influencia, 4. Colinearidad, Ajuste general del modelo
-#comparacion por pares
-library(performance)##cuando no muestra el plot hace otra ventana
-dev.new()
-check_model(m_abun)
-#revisar overdispersion
-check_overdispersion(m_abun)#sin overdispercion
-emmeans(m_abun, list(pairwise ~ elev_f), adjust = "tukey")#comparando pares
+abund <- abund %>%
+  mutate(
+    elev_f = factor(elev_f),
+    subplot_f = factor(subplot_f),
+    obs = factor(seq_len(n()))
+  )
 
-#regresion PEOR AJUSTE
-abundance$elev_z <- scale(abundance$elevation)
-abundance$elev_z <- as.numeric(abundance$elev_z)
-m_abunz <- glmer(abundance ~ elev_z + (1|forof),
-                family=poisson, data=abundance)
-summary(m_abunz)
-Anova(m_abunz)
-check_model(m_abunz)#
-library(performance)##cuando no muestra el plot hace otra ventana
-dev.new()
-check_model(m_abunz)
+# ------------------------------------------------------------
+# 2. Candidate models for overdispersed abundance data
+# ------------------------------------------------------------
 
-#grafico solo sin log
-ggplot(abundance, aes(elev_f, abundance)) +
-  geom_boxplot() +
-  geom_jitter(width=0.1, alpha=0.4) +
-  theme_classic() +
-  ylab("Epiphyte abundance per tree") +
-  xlab("Elevation (m)")
+# Negative binomial type 2: variance increases quadratically with mean
+m_nb2 <- glmmTMB(
+  abundance ~ elev_f + (1 | subplot_f),
+  family = nbinom2,
+  data = abund
+)
+
+# Negative binomial type 2 with dispersion varying among elevations
+# This is useful when some elevations are much more variable than others
+m_nb2_disp <- glmmTMB(
+  abundance ~ elev_f + (1 | subplot_f),
+  dispformula = ~ elev_f,
+  family = nbinom2,
+  data = abund
+)
+
+# Zero-inflated negative binomial type 2
+# Use only if DHARMa suggests excess zeros
+m_zinb2 <- glmmTMB(
+  abundance ~ elev_f + (1 | subplot_f),
+  ziformula = ~ 1,
+  family = nbinom2,
+  data = abund
+)
+
+# Negative binomial without random effect
+# Useful because your subplot variance is basically zero
+m_nb2_noRE <- glmmTMB(
+  abundance ~ elev_f,
+  family = nbinom2,
+  data = abund
+)
+
+# ------------------------------------------------------------
+# 3. Compare candidate models
+# ------------------------------------------------------------
+
+AIC(
+  m_nb2,
+  m_nb2_disp,
+  m_zinb2,
+  m_nb2_noRE
+)
+
+
+# Replace this with the model with best AIC
+best_model <- m_nb2_disp
+
+sim_best <- simulateResiduals(best_model, n = 1000)
+
+plot(sim_best)
+testDispersion(sim_best)
+testZeroInflation(sim_best)
+testOutliers(sim_best)
+
+check_overdispersion(best_model)
+
+
+# Your DHARMa result is important:
+# 
+# testZeroInflation(sim_best)
+# ratioObsSim = 0, p-value = 0.002
+# 
+# This does not mean zero inflation. It means the opposite: your model simulates zeros, but your data have no zeros or fewer zeros than expected. So the problem is probably that your abundance data are zero-truncated.
+# 
+# In other words, if your dataset only includes trees with at least one individual/record, then a normal negative binomial is not ideal. Use a zero-truncated negative binomial.
+
+
+
+
+# ------------------------------------------------------------
+# 1. Check whether abundance has zeros
+# ------------------------------------------------------------
+
+table(abund$abundance == 0)
+min(abund$abundance)
+
+# If min(abundance) > 0, use a zero-truncated model.
+# This is likely your case.
+
+abund <- abund %>%
+  mutate(
+    elev_f = factor(elev_f),
+    subplot_f = factor(subplot_f)
+  )
+
+# ------------------------------------------------------------
+# 2. Final model candidate: zero-truncated NB2
+# with elevation-specific dispersion
+# ------------------------------------------------------------
+
+m_abund_final <- glmmTMB(
+  abundance ~ elev_f + (1 | subplot_f),
+  dispformula = ~ elev_f,
+  family = truncated_nbinom2,
+  data = abund
+)
+
+summary(m_abund_final)
+Anova(m_abund_final)
+
+# ------------------------------------------------------------
+# 3. Diagnostics
+# ------------------------------------------------------------
+
+sim_final <- DHARMa::simulateResiduals(m_abund_final, n = 1000)
+
+plot(sim_final)
+
+DHARMa::testDispersion(sim_final)
+DHARMa::testZeroInflation(sim_final)
+DHARMa::testOutliers(sim_final)
+
+check_overdispersion(m_abund_final)
+
+# ------------------------------------------------------------
+# 4. Estimated means and pairwise comparisons
+# ------------------------------------------------------------
+
+emm_abund <- emmeans(m_abund_final, ~ elev_f, type = "response")
+
+emm_abund
+pairs(emm_abund)
+
+
+# Comparisons:
+AIC(m_nb2, m_nb2_disp, m_abund_final)
+
 ```
+
+Para la metodología:
+Because the Poisson GLMM showed strong overdispersion, epiphyte abundance was modelled using negative binomial GLMMs. The standard negative binomial model improved the fit substantially, but residual diagnostics suggested that some dispersion remained and that the model simulated more zeros than were present in the observed data. Since the abundance data did not include zeros, we therefore used a zero-truncated negative binomial GLMM. The final model included elevation as a fixed effect and subplot as a random intercept, and allowed the dispersion parameter to vary among elevations to account for differences in variability across the gradient. Model fit was assessed using AIC and simulation-based residual diagnostics.
 
 
 Grafico ABUNDANCE completo con las comparaciones
@@ -3146,5 +3193,3 @@ ggsave(
 )
 
 ```
-
-
