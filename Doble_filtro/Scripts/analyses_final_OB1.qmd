@@ -1,0 +1,747 @@
+---
+title: "Analyses_Final"
+author: "ECA & GML"
+format: html
+editor: visual
+---
+
+Paquetes
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(car)
+library(stringi)
+library(lme4)
+library(performance)
+library(emmeans)
+library(sjmisc)
+library(sjPlot)
+library(ggplot2)
+library(vegan)
+library(betapart)
+library(MASS)
+library(patchwork)
+library(readr)
+library(lubridate)
+library(emmeans)
+library(ggpubr)
+library(glmmTMB)
+install.packages("DHARMa")
+library(DHARMa)
+library(purrr)   # para map
+
+
+```
+
+Data Epis treeline
+
+```{r}
+
+# Tienes que decirle a R donde está dentro del repositorio:
+#FOROFITOS
+data <- read.csv("./Doble_filtro/Data/estrucPOBa.csv",
+                 header = TRUE, sep = ";",
+                 stringsAsFactors = FALSE)
+data <- read.csv("estrucPOBa.csv", 
+                 header = TRUE,  sep = ";",
+                  stringsAsFactors = FALSE)
+str(data)
+```
+
+Entender la data:
+
+```{r}
+
+str(data)
+length(unique(data$subplot))
+unique(data$subplot)
+
+# data
+summary(data[,c(2,8,9,11,17,19,20)])
+
+# categorias
+table(data$plot)
+table(data$subplot)
+table(data$treecod)
+table(data$forof)
+length(table(data$treecod))
+length(table(data$forof))
+table(data$genera_tree)
+
+# total plots per elevación
+table(data$elevation, data$subplot)
+
+```
+
+Procesar la data creando datasets necesarios para los análisis:
+
+```{r}
+
+#datos raros nombres
+data$morphospe <- stri_trans_general(data$morphospe, "Latin-ASCII")
+data$morphospe <- gsub("[^[:alnum:] ]", "", data$morphospe)
+
+
+#Crear matriz de abundancia
+comm <- data %>%
+  group_by(forof, elevation, subplot, morphospe) %>%
+  summarise(abundance = n(), .groups="drop") %>%
+  pivot_wider(names_from = morphospe, 
+              values_from = abundance, 
+              values_fill = 0)
+
+
+#Matriz ambiental del árbol
+env_tree <- data %>%
+  distinct(forof, elevation, dap, height, 
+           plot, subplot, tree_name, genera_tree)
+
+
+##corregir el nombre raro
+colnames(comm) <- iconv(
+  colnames(comm),
+  from = "",
+  to = "UTF-8",
+  sub = ""
+)
+colnames(comm) <- gsub("\u00A0", " ", colnames(comm))
+#ver si corrigio
+species_cols <- names(comm)[!names(comm) %in% c("forof", "elevation","subplot")]
+colnames(comm)[40]
+
+#RIQUEZA DE EPÍFITAS POR ÁRBOL
+species_cols <- names(comm)[!names(comm) %in% c("forof","elevation")]
+
+
+#riqueza por forof por subplot
+richness <- comm %>%
+  mutate(richness = rowSums(across(all_of(species_cols), ~ . > 0))) %>%
+  dplyr::select(forof, elevation, subplot, richness)
+
+
+```
+
+OB.1: Cuantificar la variación en la riqueza, abundancia y composición de epífitas vasculares a lo largo del gradiente elevacional hacia el treeline.
+
+Riqueza
+
+RIQUEZA (CAMBIO DE ELEVACION POR PLOT (subplot en la tabla)
+
+```{r}
+
+# convertir a factores
+richness$elev_f <- factor(richness$elevation)
+richness$subplot_f <- factor(richness$subplot)
+
+
+#modelo
+m_rich <- glmer(richness ~ elev_f + (1|subplot_f),
+                family = poisson, data = richness)
+
+# resultados
+summary(m_rich)
+Anova(m_rich)
+windows()
+check_model(m_rich)
+#revisar overdispersion
+check_overdispersion(m_rich)# overdispercion
+
+# Solucionando la sobre dispersión
+m_rich_nb <- glmmTMB(
+  richness ~ elev_f + (1 | subplot_f),
+  family = nbinom2,
+  data = richness
+) # modelo final!
+
+# Diferencia entre modelos (poisson vs nv)
+AIC(m_rich, m_rich_nb)# si la diferencia entre valores de AIC es mayor a 10, es significativa 
+
+# Resultados:
+summary(m_rich_nb)
+Anova(m_rich_nb)
+
+# Revisando
+windows()
+check_overdispersion(m_rich_nb)# no sobredispersión
+check_model(m_rich_nb)
+
+#Extraer las comparaciones de emmeans como data frame
+emm <- emmeans(m_rich_nb, ~ elev_f)
+pairs_df <- pairs(emm, adjust = "tukey") %>%
+  as.data.frame()
+#data frame para ggplot
+pairs_df <- pairs_df %>%
+  separate(contrast, into = c("group1", "group2"), sep = " - ") %>%
+  mutate(
+    group1 = gsub("elev_f", "", group1),
+    group2 = gsub("elev_f", "", group2),
+    y.position = max(richness$richness) + 
+                 seq(0.2, by = 0.2, length.out = n())
+  )
+
+
+#GRAFICO con asteriscos
+colnames(pairs_df)
+pairs_df <- pairs_df %>%
+  mutate(
+    p.signif = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*",
+      TRUE            ~ "ns"
+    )
+  )
+#plot con correcciones visuales 
+pairs_sig <- pairs_df %>%
+  filter(p.value < 0.05)
+pairs_sig <- pairs_sig %>%
+  mutate(
+    y.position = max(richness$richness, na.rm = TRUE) +
+                 seq(2, by = 2, length.out = n())
+  )
+riq_el <- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot(width = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.5, size = 1.8) +
+  stat_pvalue_manual(
+    pairs_sig,
+    label = "p.signif",
+    tip.length = 0.01
+  ) +
+  stat_summary(
+    fun = mean,
+    geom = "crossbar",
+    width = 0.6,
+    colour = "red",
+    linewidth = 0.4
+  ) +
+  theme_classic(base_size = 14) +
+  ylab("Epiphyte species richness per tree") +
+  xlab("Elevation (m)")
+
+# plot
+riq_el
+```
+
+cambie el modelo cambiando el factor aleatorio de forof a subplot=equivale a plots, grafico cambio un poquito y que ahora es tiene 4 comparaciones significativas y antes eran 3. \[el cambio no debería ser porque hay mas o menos comparaciones sinigificativas, sino por la correccion del modelo, que cumpla los prerequisitos y responda tu pregunta\]
+
+Metodología: Because the Poisson GLMM showed overdispersion, epiphyte species richness was modelled using a negative binomial GLMM. The negative binomial model provided a better fit than the Poisson model, based on AIC comparison, and residual diagnostics indicated that overdispersion was no longer a major issue. The final model included elevation as a fixed effect and subplot as a random intercept. Model fit was assessed using diagnostic plots and overdispersion tests, and the effect of elevation was evaluated using Type II Wald chi-square tests.
+
+ABUNDANCIA
+
+```{r}
+
+#ABUNDANCIA TOTAL
+abundance <- comm %>%
+  mutate(abundance = rowSums(dplyr::select(., -forof, -elevation))) %>%
+  dplyr::select(forof, elevation,subplot, abundance)
+
+#Abundancia 
+abund <- data %>%
+  group_by(forof, subplot, elevation) %>%
+  summarise(abundance = n(), .groups="drop")
+
+abund$elev_f <- factor(abund$elevation)
+abund$subplot_f <- factor(abund$subplot)
+# ------------------------------------------------------------
+# 1. Prepare data
+# ------------------------------------------------------------
+
+abund <- abund %>%
+  mutate(
+    elev_f = factor(elev_f),
+    subplot_f = factor(subplot_f),
+    obs = factor(seq_len(n()))
+  )
+
+# ------------------------------------------------------------
+# 2. Candidate models for overdispersed abundance data
+# ------------------------------------------------------------
+
+# Negative binomial type 2: variance increases quadratically with mean
+m_nb2 <- glmmTMB(
+  abundance ~ elev_f + (1 | subplot_f),
+  family = nbinom2,
+  data = abund
+)
+
+# Negative binomial type 2 with dispersion varying among elevations
+# This is useful when some elevations are much more variable than others
+m_nb2_disp <- glmmTMB(
+  abundance ~ elev_f + (1 | subplot_f),
+  dispformula = ~ elev_f,
+  family = nbinom2,
+  data = abund
+)
+
+# Zero-inflated negative binomial type 2
+# Use only if DHARMa suggests excess zeros
+m_zinb2 <- glmmTMB(
+  abundance ~ elev_f + (1 | subplot_f),
+  ziformula = ~ 1,
+  family = nbinom2,
+  data = abund
+)
+
+# Negative binomial without random effect
+# Useful because your subplot variance is basically zero
+m_nb2_noRE <- glmmTMB(
+  abundance ~ elev_f,
+  family = nbinom2,
+  data = abund
+)
+
+# ------------------------------------------------------------
+# 3. Compare candidate models
+# ------------------------------------------------------------
+
+AIC(
+  m_nb2,
+  m_nb2_disp,
+  m_zinb2,
+  m_nb2_noRE
+)
+
+
+# Replace this with the model with best AIC
+best_model <- m_nb2_disp
+
+sim_best <- simulateResiduals(best_model, n = 1000)
+
+plot(sim_best)
+testDispersion(sim_best)
+testZeroInflation(sim_best)
+testOutliers(sim_best)
+
+check_overdispersion(best_model)
+
+
+# Your DHARMa result is important:
+# 
+# testZeroInflation(sim_best)
+# ratioObsSim = 0, p-value = 0.002
+# 
+# This does not mean zero inflation. It means the opposite: your model simulates zeros, but your data have no zeros or fewer zeros than expected. So the problem is probably that your abundance data are zero-truncated.
+# 
+# In other words, if your dataset only includes trees with at least one individual/record, then a normal negative binomial is not ideal. Use a zero-truncated negative binomial.
+
+
+
+
+# ------------------------------------------------------------
+# 1. Check whether abundance has zeros
+# ------------------------------------------------------------
+
+table(abund$abundance == 0)
+min(abund$abundance)
+
+# If min(abundance) > 0, use a zero-truncated model.
+# This is likely your case.
+
+abund <- abund %>%
+  mutate(
+    elev_f = factor(elev_f),
+    subplot_f = factor(subplot_f)
+  )
+
+# ------------------------------------------------------------
+# 2. Final model candidate: zero-truncated NB2
+# with elevation-specific dispersion
+# ------------------------------------------------------------
+
+m_abund_final <- glmmTMB(
+  abundance ~ elev_f + (1 | subplot_f),
+  dispformula = ~ elev_f,
+  family = truncated_nbinom2,
+  data = abund
+)
+
+summary(m_abund_final)
+Anova(m_abund_final)
+
+# ------------------------------------------------------------
+# 3. Diagnostics
+# ------------------------------------------------------------
+
+sim_final <- DHARMa::simulateResiduals(m_abund_final, n = 1000)
+
+plot(sim_final)
+
+DHARMa::testDispersion(sim_final)
+DHARMa::testZeroInflation(sim_final)
+DHARMa::testOutliers(sim_final)
+
+check_overdispersion(m_abund_final)
+
+# --------------------------------------------------
+
+
+# Comparisons:
+AIC(m_nb2, m_nb2_disp, m_abund_final)
+
+```
+
+Para la metodología: Because the Poisson GLMM showed strong overdispersion, epiphyte abundance was modelled using negative binomial GLMMs. The standard negative binomial model improved the fit substantially, but residual diagnostics suggested that some dispersion remained and that the model simulated more zeros than were present in the observed data. Since the abundance data did not include zeros, we therefore used a zero-truncated negative binomial GLMM. The final model included elevation as a fixed effect and subplot as a random intercept, and allowed the dispersion parameter to vary among elevations to account for differences in variability across the gradient. Model fit was assessed using AIC and simulation-based residual diagnostics.
+
+Grafico ABUNDANCIA
+
+```{r}
+############################################
+## EMMEANS Y COMPARACIONES (Tukey)
+############################################
+
+emm_abund <- emmeans(m_abund_final, ~ elev_f)
+
+pairs_df_ab <- pairs(
+  emm_abund,
+  adjust = "tukey"
+) %>%
+  as.data.frame()
+
+pairs_df_ab
+
+############################################
+## GRÁFICO FINAL
+############################################
+
+abu_el <- ggplot(abund, aes(elev_f, abundance)) +
+
+  # Boxplots
+  geom_boxplot(
+    width = 0.6,
+    outlier.shape = NA
+  ) +
+
+  # Puntos individuales
+  geom_jitter(
+    width = 0.12,
+    alpha = 0.5,
+    size = 1.8
+  ) +
+
+  # Media observada
+  stat_summary(
+    fun = mean,
+    geom = "crossbar",
+    width = 0.6,
+    colour = "red",
+    linewidth = 0.4
+  ) +
+
+  # Comparación significativa 3402 vs 3537
+  geom_segment(
+    aes(x = 2, xend = 3,
+        y = 390, yend = 390),
+    inherit.aes = FALSE
+  ) +
+
+  geom_segment(
+    aes(x = 2, xend = 2,
+        y = 370, yend = 390),
+    inherit.aes = FALSE
+  ) +
+
+  geom_segment(
+    aes(x = 3, xend = 3,
+        y = 370, yend = 390),
+    inherit.aes = FALSE
+  ) +
+
+  annotate(
+    "text",
+    x = 2.5,
+    y = 410,
+    label = "***",
+    size = 6
+  ) +
+
+  # Escala logarítmica visual
+  scale_y_log10() +
+
+  # Mantener rango adecuado
+  coord_cartesian(
+    ylim = c(1, 500)
+  ) +
+
+  theme_classic(base_size = 14) +
+
+  ylab("Epiphyte abundance per tree (log scale)") +
+  xlab("Elevation (m)")
+
+abu_el
+```
+
+grafico final Filtro Ambiental
+
+```{r}
+
+grap_filenv<- riq_el + abu_el
+ggsave(
+  filename = "Fig_richness_abundance elevation .png",
+  plot = grap_filenv,
+  width = 18,
+  height = 10,
+  units = "cm",
+  dpi = 300
+)
+
+
+```
+
+# Composición
+
+COMPARACION ESTADISTICA ENTRE PLOT PERMANOVA-PERMDISP
+
+```{r}
+##datos de los forofitos
+metadata <- data %>%
+  group_by(forof) %>%
+  summarise(
+    plot = unique(plot),
+    elevation = unique(elevation),
+    subplot = unique(subplot),
+    genera_tree = unique(genera_tree),
+    dap = unique(dap),
+    height = unique(height)
+  )
+metadata
+####matriz de distancias
+dist_chao <- vegdist(matriz_forof, method = "chao")
+##permanova
+adonis2(dist_chao ~ plot, data = metadata, permutations = 999)
+####RESULTADOS: F = 25.499 → Los plots difieren fuertemente en composición, R² = 0.296 → El plot explica el 29.6% de la variación en la composición de epífitas, p = 0.001 → La diferencia es altamente significativa.
+#Interpretación simple: La composición de epífitas es distinta entre los plots. Es decir, los forofitos que están en un plot tienden a tener especies diferentes a los forofitos de otros plots.
+
+##análisis de dispersiones (PERMDISP)
+disp <- betadisper(dist_chao, metadata$plot)
+anova(disp)
+##resultado:p < 0.05 → SIGNIFICATIVO Esto significa que las dispersiones (variabilidad interna) de los plots NO son iguales.
+
+#pairwise PERMANOVA
+# Convertir dist a matriz
+dist_mat <- as.matrix(dist_chao)
+# Vector de grupos
+grupos <- metadata$plot
+# Crear combinaciones de pares
+pares <- combn(unique(grupos), 2, simplify = FALSE)
+# Crear tabla vacía
+resultados <- data.frame(
+  plot1 = character(),
+  plot2 = character(),
+  F = numeric(),
+  R2 = numeric(),
+  p = numeric()
+)
+# Loop por cada par
+for (par in pares) {
+  g1 <- par[1]
+  g2 <- par[2]
+  # Filtrar grupos
+  idx <- grupos %in% c(g1, g2)
+  # PERMANOVA para el par
+  test <- adonis2(dist_mat[idx, idx] ~ grupos[idx], permutations = 999)
+  
+  resultados <- rbind(
+    resultados,
+    data.frame(
+      plot1 = g1,
+      plot2 = g2,
+      F = test$F[1],
+      R2 = test$R2[1],
+      p = test$`Pr(>F)`[1]
+    )
+  )
+}
+print(resultados)
+```
+
+PERMANOVA -PERMDISP MATRIX PRESENCIA AUSENCIA
+
+```{r}
+mat_pa_forof <- data %>%
+  mutate(pres = 1) %>%
+   dplyr::select(forof, morphospe, pres) %>%
+  distinct() %>%
+  pivot_wider(names_from = morphospe,
+              values_from = pres,
+              values_fill = 0)
+
+#2. Construir distancia Jaccard
+dist_jaccard_forof <- vegdist(mat_pa_forof[,-1],
+                              method = "jaccard",
+                              binary = TRUE)
+####METADATA 
+metadata_pa <- data %>%
+  distinct(forof, plot, elevation)
+permanova_pa <- adonis2(dist_jaccard_forof ~ plot,
+                        data = metadata_pa,
+                        permutations = 999)
+permanova_pa
+##PERMDISP
+disp_pa <- betadisper(dist_jaccard_forof, metadata_pa$plot)
+anova_pa <- anova(disp_pa)
+anova_pa
+permutest(disp_pa, permutations = 999)
+###PAIRWISE PERMANOSVA
+# 1. Niveles de plot
+plots <- sort(unique(metadata_pa$plot))
+
+# 2. Todas las combinaciones de 2 en 2
+comb_plots <- combn(plots, 2, simplify = FALSE)
+
+# 3. Función para correr adonis2 por par
+pair_fun <- function(gr) {
+  # gr es un vector de longitud 2: c("ACJ-01","APK-01"), etc.
+  idx <- metadata_pa$plot %in% gr
+  
+  # Submatriz de distancias para esos forófitos
+  sub_mat <- as.matrix(dist_jaccard_forof)[idx, idx]
+  sub_dist <- as.dist(sub_mat)
+  
+  # Metadata solo de esos forófitos
+  sub_meta <- droplevels(metadata_pa[idx, , drop = FALSE])
+  
+  # PERMANOVA para ese par
+  mod <- adonis2(sub_dist ~ plot,
+                 data = sub_meta,
+                 permutations = 999)
+  
+  # Extraer la primera fila (factor plot)
+  data.frame(
+    plot1 = gr[1],
+    plot2 = gr[2],
+    F     = mod$F[1],
+    R2    = mod$R2[1],
+    p     = mod$`Pr(>F)`[1]
+  )
+}
+
+# 4. Aplicar la función a todas las combinaciones
+pairwise_pa <- map_df(comb_plots, pair_fun)
+
+pairwise_pa
+
+
+```
+
+NMDS ABUNDANCIA CAMBIO NOMBRE PLOTS
+
+```{r}
+nmds_points <- nmds_points %>%
+  mutate(plot = dplyr::recode(plot,
+                       "APK-01" = "TLINE-3625",
+                       "ACJ-01" = "TLINE-3537",
+                       "TRU-01" = "TLINE-3402",
+                       "TRU-02" = "FORST-3261"))
+nmds_points %>% 
+  filter(plot == "FORST-3261") %>% 
+  arrange(desc(NMDS1)) %>% 
+  head()
+nmds_clean <- nmds_points %>%
+  filter(!(plot == "FORST-3261" & NMDS1 > 4))
+library(paletteer)
+nmds_abu <- ggplot(nmds_clean, aes(NMDS1, NMDS2, color = plot)) +
+  geom_point(size = 2.5, alpha = 0.7) +
+  stat_ellipse(level = 0.95, linewidth = 1) +
+  scale_color_paletteer_d("ghibli::PonyoMedium") +
+  theme_minimal(base_size = 12) +
+  labs(
+    x = "NMDS1",
+    y = "NMDS2",
+    color = "Locality",
+    title = "NMDS abundancia (Chao)"
+  ) +
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 11),
+    legend.text  = element_text(size = 10),
+    legend.position = "none"
+  )
+nmds_abu
+```
+
+NMDS PRESENCIA AUSENCIA
+
+```{r}
+#1. Preparar la matriz de presencia–ausencia
+mat_pa_forof <- data %>%
+  mutate(pres = 1) %>%
+  dplyr::select(forof, morphospe, pres) %>%
+  distinct() %>%
+  pivot_wider(names_from = morphospe,
+              values_from = pres,
+              values_fill = 0)
+
+#2. Construir distancia Jaccard
+dist_jaccard_forof <- vegdist(mat_pa_forof[,-1],
+                              method = "jaccard",
+                              binary = TRUE)
+#3. Ejecutar NMDS
+nmds_jac_forof <- metaMDS(dist_jaccard_forof, k = 2, trymax = 100)
+
+#4. Extraer coordenadas NMDS + unir con información del plot
+nmds_points_jac <- as.data.frame(scores(nmds_jac_forof, display = "sites"))
+nmds_points_jac$forof <- mat_pa_forof$forof
+
+# Añadir elevación o plot
+nmds_points_jac <- nmds_points_jac %>%
+  left_join(data %>% distinct(forof, plot, elevation))
+
+#Graficar NMDS con paleta Ghibli
+ggplot(nmds_points_jac, aes(NMDS1, NMDS2, color = plot)) +
+  geom_point(size = 2.5, alpha = 0.8) +
+  stat_ellipse(level = 0.95, linewidth = 1) +
+  scale_color_paletteer_d("ghibli::PonyoMedium") +
+  theme_minimal(base_size = 12) +
+  labs(
+    x = "NMDS1",
+    y = "NMDS2",
+    color = "Plot",
+    title = "NMDS (Jaccard) of Epiphyte Assemblages by Phorophyte"
+  ) +
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 11),
+    legend.text  = element_text(size = 10)
+  )
+
+###1. Filtrar el outlier extremo
+nmds_points_jac_clean <- nmds_points_jac %>%
+  filter(!forof %in% c("TRU-02_4124", "TRU-02_4251"))
+
+nmds_points_jac_clean <- nmds_points_jac_clean %>%
+  mutate(plot =  dplyr::recode(plot,
+                       "APK-01" = "TLINE-3625",
+                       "ACJ-01" = "TLINE-3537",
+                       "TRU-01" = "TLINE-3402",
+                       "TRU-02" = "FORST-3261"))
+
+#grafico
+nmds_pause <- ggplot(nmds_points_jac_clean, aes(NMDS1, NMDS2, color = plot)) +
+  geom_point(size = 2.5, alpha = 0.8) +
+  stat_ellipse(level = 0.95, linewidth = 1) +
+  scale_color_paletteer_d("ghibli::PonyoMedium") +
+  theme_minimal(base_size = 12) +
+  labs(
+    x = "NMDS1",
+    y = "NMDS2",
+    color = "Locality",
+    title = "NMDS Presencia-Ausencia (Jaccard)"
+  ) +
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.title = element_text(size = 11),
+    legend.text  = element_text(size = 10)
+  )
+
+grap_nmds <- (nmds_abu | nmds_pause) +
+    plot_annotation(
+    title = "NMDS Epiphyte assemblages by host",
+    theme = theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+  )
+
+ggsave("NMDS abundancia y pre-aus(without outliers).png", plot= grap_nmds, width = 10, height = 5, dpi = 300)
+
+```
+
+debo cambiar lo de plot a habitat, ubicacion o localidad
