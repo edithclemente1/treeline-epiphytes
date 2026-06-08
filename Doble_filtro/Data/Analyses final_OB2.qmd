@@ -144,7 +144,7 @@ arboles$elevation <- as.factor(arboles$elevation)
 arboles$subplot <- as.factor(arboles$subplot)
 
 #modelos sugeridos 
-#modelo1 <- dbh * height + (elevation|plot)
+
 #modelo2 <- dbh * height + (1|plot)
 #modelo3 <- dbh * height + (1|elevation)
 ##modelo Binomial negativo sugerido 

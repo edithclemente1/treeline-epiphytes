@@ -36,11 +36,18 @@ Data Epis treeline
 # No necesitas esto:
 # setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/Data")
 
-# Tienes que decirle a R donde está dentro del repositorio:
+
 #FOROFITOS
-data <- read.csv("./Doble_filtro/Data/estrucPOB.csv",
+getwd()#ver que carpeta esta trabajando 
+data <- read.csv("estrucPOBa.csv", 
+                 header = TRUE,  sep = ";",
+                  stringsAsFactors = FALSE)
+
+# Tienes que decirle a R donde está dentro del repositorio:
+data <- read.csv("./Doble_filtro/Data/estrucPOBa.csv",#no me funciono
                  header = TRUE, sep = ";",
                  stringsAsFactors = FALSE)
+
 str(data)
 ```
 
@@ -77,12 +84,6 @@ OB.1: Cuantificar la variación en la riqueza, abundancia y composición de epí
 
 Riqueza
 ```{r}
-
-#datos raros nombres
-data$morphospe <- stri_trans_general(data$morphospe, "Latin-ASCII")
-data$morphospe <- gsub("[^[:alnum:] ]", "", data$morphospe)
-
-
 #Crear matriz de abundancia
 comm <- data %>%
   group_by(forof, elevation, morphospe) %>%
@@ -100,7 +101,9 @@ env_tree <- data %>%
 #RIQUEZA DE EPÍFITAS POR ÁRBOL
 species_cols <- names(comm)[!names(comm) %in% c("forof","elevation")]
 
-
+#datos raros nombres
+data$morphospe <- stri_trans_general(data$morphospe, "Latin-ASCII")
+data$morphospe <- gsub("[^[:alnum:] ]", "", data$morphospe)
 
 richness <- comm %>%
   mutate(richness = rowSums(across(all_of(species_cols), ~ . > 0))) %>%
@@ -109,8 +112,7 @@ richness <- comm %>%
 
 ```
 
-
-RIQUEZA (CAMBIO DE ELEVACION POR PLOT (subplot en la tabla))
+RIQUEZA (CAMBIO DE ELEVACION POR PLOT PARA EL MODELO (subplot en la tabla))
 ```{r}
 #Crear matriz de abundancia
 comm <- data %>%
@@ -151,7 +153,7 @@ m_rich <- glmer(richness ~ elev_f + (1|subplot_f),
                 family = poisson, data = richness)
 summary(m_rich)
 Anova(m_rich)
-windows()
+dev.new()
 check_model(m_rich)
 #revisar overdispersion
 check_overdispersion(m_rich)#sin overdispercion
@@ -179,7 +181,6 @@ riq_el <- ggplot(richness, aes(elev_f, richness)) +
   xlab("Elevation (m)")
 riq_el
 ##########
-
 #Extraer las comparaciones de emmeans como data frame
 emm <- emmeans(m_rich, ~ elev_f)
 pairs_df <- pairs(emm, adjust = "tukey") %>%
@@ -249,7 +250,6 @@ m_rich <- glmer(richness ~ elev_f + (1|forof),
                 family = poisson, data = richness)
 summary(m_rich)
 Anova(m_rich)
-windows()
 check_model(m_rich)###valuar de forma rápida y visual si un modelo estadístico está bien especificado y si cumple los supuestos.1. linealidad, 2. homocedasticidad, 3. Normalidad de residuos, 4. Valores atipicos e influencia, 4. Colinearidad, Ajuste general del modelo
 
 library(performance)##cuando no muestra el plot hace otra ventana
@@ -3147,4 +3147,4 @@ ggsave(
 
 ```
 
-
+>>>>>>> efaca42398656e7b6a69722e456c773620ec3748
