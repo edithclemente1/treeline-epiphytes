@@ -2120,7 +2120,7 @@ elevation;plot;subplot;treecod;tree_name;genera_tree;dap;height;tree_str;name_ep
 3261;TRU-02;11;340;Weinmannia bangii;Weinmannia;14.64;10;III;Elaphoglossum metalicum;Elaphoglossum metallicum;Dryopteridaceae;Pteridophyta;9;adulto;22;9;esteril;0;TRU-02_340
 3261;TRU-02;11;340;Weinmannia bangii;Weinmannia;14.64;10;III;Tillandsia tigre;Tillandsia ionochroma;Bromeliaceae;Angiosperma;9;adulto;27;1;esteril;0;TRU-02_340
 3261;TRU-02;11;340;Weinmannia bangii;Weinmannia;14.64;10;III;Stelis superbiens ;Stelis superbiens ;Orchidaceae;Angiosperma;9.5;adulto;26;70;reproductivo;0;TRU-02_340
-3261;TRU-02;11;340;Weinmannia bangii;Weinmannia;14.64;10;III;Tillandsia rayas;Racinaea sp.7;Bromeliaceae;Angiosperma;10;adulto;25;1;reproductivo;0;TRU-02_340
+3261;TRU-02;11;340;Weinmannia bangii;Weinmannia;14.64;10;III;Tillandsia rayas;Racinaea sp.6;Bromeliaceae;Angiosperma;10;adulto;25;1;reproductivo;0;TRU-02_340
 3537;ACJ-01;9;342;Symplocos baehnii;Symplocos;14.2;9;III;Hymenophyllum 1;Hymenophyllum sp.1;Hymenophyllaceae;Pteridophyta;5;adulto;11.6;50;reproductivo;0;ACJ-01_342
 3537;ACJ-01;9;342;Symplocos baehnii;Symplocos;14.2;9;III;Melpomene 1;Grammitis athyrioides;Polypodiaceae;Pteridophyta;5.5;adulto;13.6;4;esteril;0;ACJ-01_342
 3537;ACJ-01;9;342;Symplocos baehnii;Symplocos;14.2;9;III;Hymenophyllum 1;Hymenophyllum sp.1;Hymenophyllaceae;Pteridophyta;6;adulto;7.6;10;esteril;0;ACJ-01_342
@@ -2306,7 +2306,7 @@ elevation;plot;subplot;treecod;tree_name;genera_tree;dap;height;tree_str;name_ep
 3261;TRU-02;11;351;Clusia alata;Clusia;40.04;16;IV;Maxillaria sp10;Maxillaria sp.10;Orchidaceae;Angiosperma;12.5;adulto;19.9;31;reproductivo;1;TRU-02_351
 3261;TRU-02;11;351;Clusia alata;Clusia;40.04;16;IV;Pleurothalis sp8;Pleurothallis sp.8;Orchidaceae;Angiosperma;13;adulto;32.2;9;reproductivo;1;TRU-02_351
 3261;TRU-02;11;351;Clusia alata;Clusia;40.04;16;IV;Myoxanthes parahybunensis;Myoxanthus parahybunensis;Orchidaceae;Angiosperma;13.5;adulto;40.8;7;esteril;1;TRU-02_351
-3261;TRU-02;11;351;Clusia alata;Clusia;40.04;16;IV;Tillandsia sp1;Tillandsia sp.1;Bromeliaceae;Angiosperma;13.5;juvenil;7;1;esteril;0;TRU-02_351
+3261;TRU-02;11;351;Clusia alata;Clusia;40.04;16;IV;Tillandsia sp1;Tillandsia sp.9;Bromeliaceae;Angiosperma;13.5;juvenil;7;1;esteril;0;TRU-02_351
 3261;TRU-02;11;351;Clusia alata;Clusia;40.04;16;V;Stelis superbiens ;Stelis superbiens ;Orchidaceae;Angiosperma;14;adulto;10;102;reproductivo;1;TRU-02_351
 3261;TRU-02;11;351;Clusia alata;Clusia;40.04;16;V;Elaphoglossum metalicum;Elaphoglossum metallicum;Dryopteridaceae;Pteridophyta;14;adulto;16.9;10;esteril;1;TRU-02_351
 3261;TRU-02;11;351;Clusia alata;Clusia;40.04;16;IV;Pachyphyllum 1;Fernandezia sp.4;Orchidaceae;Angiosperma;12;adulto;13.5;3;reproductivo;1;TRU-02_351
@@ -2363,7 +2363,7 @@ elevation;plot;subplot;treecod;tree_name;genera_tree;dap;height;tree_str;name_ep
 3261;TRU-02;15;422;Clusia alata;Clusia;39.63;19;III;Stelis superbiens;Stelis superbiens ;Orchidaceae;Angiosperma;6.3;adulto;12.9;17;esteril;0;TRU-02_422
 3261;TRU-02;15;422;Clusia alata;Clusia;39.63;19;III;Elaphoglossum metalicum;Elaphoglossum metallicum;Dryopteridaceae;Pteridophyta;6.3;adulto;22.2;2;esteril;0;TRU-02_422
 3261;TRU-02;15;422;Clusia alata;Clusia;39.63;19;III;Maxillaria sp7;Maxillaria sp.7;Orchidaceae;Angiosperma;6.3;adulto;32.8;8;reproductivo;0;TRU-02_422
-3261;TRU-02;15;422;Clusia alata;Clusia;39.63;19;III;Peperomia 2;Peperomia sp2;Piperaceae;Angiosperma;6.3;adulto;12.3;9;reproductivo;1;TRU-02_422
+3261;TRU-02;15;422;Clusia alata;Clusia;39.63;19;III;Peperomia 2;Peperomia sp.2;Piperaceae;Angiosperma;6.3;adulto;12.3;9;reproductivo;1;TRU-02_422
 3261;TRU-02;15;422;Clusia alata;Clusia;39.63;19;III;Stelis mediano;Stelis sp.14;Orchidaceae;Angiosperma;6.3;adulto;13.6;31;reproductivo;0;TRU-02_422
 3261;TRU-02;15;422;Clusia alata;Clusia;39.63;19;III;Stelis mediano;Stelis sp.15;Orchidaceae;Angiosperma;6.9;adulto;14;120;reproductivo;0;TRU-02_422
 3261;TRU-02;15;422;Clusia alata;Clusia;39.63;19;III;Tillandsia tigre;Tillandsia ionochroma;Bromeliaceae;Angiosperma;6.9;adulto;48.5;2;esteril;0;TRU-02_422
@@ -3582,7 +3582,7 @@ elevation;plot;subplot;treecod;tree_name;genera_tree;dap;height;tree_str;name_ep
 3402;TRU-01;23;563;Miconia setulosa;Miconia;18.24;8;III;Erica 1;Demosthenesia buxifolia;Ericaceae;Angiosperma;3.3;adulto;20;7;esteril;1;TRU-01_563
 3402;TRU-01;23;563;Miconia setulosa;Miconia;18.24;8;III;Elaphoglossum 5;Elaphoglossum muscosum;Dryopteridaceae;Pteridophyta;4;adulto;22;6;esteril;1;TRU-01_563
 3402;TRU-01;23;563;Miconia setulosa;Miconia;18.24;8;III;Hymenophyllum 1;Hymenophyllum sp.1;Hymenophyllaceae;Pteridophyta;4;adulto;11;14;esteril;0;TRU-01_563
-3402;TRU-01;23;563;Miconia setulosa;Miconia;18.24;8;III;Cavendisha 5;Satyra panurensis;Ericaceae;Angiosperma;4;adulto;24;3;esteril;2;TRU-01_563
+3402;TRU-01;23;563;Miconia setulosa;Miconia;18.24;8;III;Cavendisha 5;Satyria panurensis;Ericaceae;Angiosperma;4;adulto;24;3;esteril;2;TRU-01_563
 3402;TRU-01;23;563;Miconia setulosa;Miconia;18.24;8;III;Erica 1;Demosthenesia buxifolia;Ericaceae;Angiosperma;4;adulto;19;6;esteril;1;TRU-01_563
 3402;TRU-01;23;563;Miconia setulosa;Miconia;18.24;8;III;Peperomia 1;Peperomia microphylla;Piperaceae;Angiosperma;4.3;juvenil;10;9;esteril;0;TRU-01_563
 3402;TRU-01;23;563;Miconia setulosa;Miconia;18.24;8;IV;Melpomene 2;Grammitis personata ;Polypodiaceae;Pteridophyta;4.8;juvenil;15;1;esteril;0;TRU-01_563
@@ -4308,10 +4308,10 @@ elevation;plot;subplot;treecod;tree_name;genera_tree;dap;height;tree_str;name_ep
 3537;ACJ-01;21;731;Miconia AMM15963;Miconia;40.1;16;I;Melpomene 2;Grammitis personata ;Polypodiaceae;Pteridophyta;2.5;adulto;18.9;10;esteril;0;ACJ-01_731
 3537;ACJ-01;21;731;Miconia AMM15963;Miconia;40.1;16;II;Melpomene 1;Grammitis athyrioides;Polypodiaceae;Pteridophyta;4;adulto;48.2;13;reproductivo;1;ACJ-01_731
 3537;ACJ-01;21;732;Hedyosmum maximum;Hedyosmum;19.8;6;I;Asplenium 1;Asplenium fragans;Aspleniaceae;Pteridophyta;1.4;adulto;11.8;4;reproductivo;0;ACJ-01_732
-3537;ACJ-01;21;732;Hedyosmum maximum;Hedyosmum;19.8;6;I;Asplenium 2;Asplenium harpeoides;Aspleniaceae;Pteridophyta;1.5;adulto;31.5;6;esteril;0;ACJ-01_732
+3537;ACJ-01;21;732;Hedyosmum maximum;Hedyosmum;19.8;6;I;Asplenium 2;Asplenium harpeodes;Aspleniaceae;Pteridophyta;1.5;adulto;31.5;6;esteril;0;ACJ-01_732
 3537;ACJ-01;21;732;Hedyosmum maximum;Hedyosmum;19.8;6;I;Microgramma 1;Campyloneurum densifolium;Polypodiaceae;Pteridophyta;2;adulto;25.5;31;reproductivo;2;ACJ-01_732
 3537;ACJ-01;21;732;Hedyosmum maximum;Hedyosmum;19.8;6;I;Hymenophyllum 1;Hymenophyllum sp.1;Hymenophyllaceae;Pteridophyta;2;adulto;35.5;1;esteril;0;ACJ-01_732
-3537;ACJ-01;21;732;Hedyosmum maximum;Hedyosmum;19.8;6;I;Asplenium 2;Asplenium harpeoides;Aspleniaceae;Pteridophyta;2.3;adulto;64;31;reproductivo;0;ACJ-01_732
+3537;ACJ-01;21;732;Hedyosmum maximum;Hedyosmum;19.8;6;I;Asplenium 2;Asplenium harpeodes;Aspleniaceae;Pteridophyta;2.3;adulto;64;31;reproductivo;0;ACJ-01_732
 3537;ACJ-01;21;732;Hedyosmum maximum;Hedyosmum;19.8;6;II;Microgramma 1;Campyloneurum densifolium;Polypodiaceae;Pteridophyta;3;adulto;40.2;63;esteril;3;ACJ-01_732
 3537;ACJ-01;21;732;Hedyosmum maximum;Hedyosmum;19.8;6;II;Melpomene 1;Grammitis athyrioides;Polypodiaceae;Pteridophyta;3;adulto;35.2;8;reproductivo;1;ACJ-01_732
 3537;ACJ-01;21;734;Hedyosmum maximum;Hedyosmum;14.4;6;I;Microgramma 1;Campyloneurum densifolium;Polypodiaceae;Pteridophyta;1.5;juvenil;9.5;7;esteril;0;ACJ-01_734
@@ -4826,7 +4826,7 @@ elevation;plot;subplot;treecod;tree_name;genera_tree;dap;height;tree_str;name_ep
 3261;TRU-02;15;4123;Miconia WFR632;Axineae;15.92;10;V;Pleurothalis sp8;Pleurothallis sp.8;Orchidaceae;Angiosperma;8;adulto;13.1;16;esteril;1;TRU-02_4123
 3261;TRU-02;15;4124;Miconia WFR632;Miconia;13.11;7;I;Campyloneurum sp1;Campyloneurum sp.1;Polypodiaceae;Pteridophyta;1.2;juvenil;23.3;3;esteril;0;TRU-02_4124
 3261;TRU-02;15;4124;Miconia WFR633;Miconia;13.11;7;I;Campyloneurum sp1;Campyloneurum sp.1;Polypodiaceae;Pteridophyta;2;juvenil;8.6;7;esteril;0;TRU-02_4124
-3261;TRU-02;15;4124;Miconia WFR634;Miconia;13.11;7;II;Asplenium harpeoides;Asplenium harpeoides;Aspleniaceae;Pteridophyta;4;juvenil;15.5;4;esteril;1;TRU-02_4124
+3261;TRU-02;15;4124;Miconia WFR634;Miconia;13.11;7;II;Asplenium harpeoides;Asplenium harpeodes;Aspleniaceae;Pteridophyta;4;juvenil;15.5;4;esteril;1;TRU-02_4124
 3261;TRU-02;15;4124;Miconia WFR635;Miconia;13.11;7;II;Campyloneurum sp1;Campyloneurum sp.1;Polypodiaceae;Pteridophyta;5;adulto;18.7;4;esteril;1;TRU-02_4124
 3402;TRU-01;23;4150;Miconia WFR632;Miconia;11.46;7;III;Elaphoglossum 1;Elaphoglossum vulcanicum;Dryopteridaceae;Pteridophyta;4;adulto;15;16;esteril;1;TRU-01_4150
 3402;TRU-01;23;4150;Miconia WFR632;Miconia;11.46;7;III;Melpomene 2;Grammitis personata ;Polypodiaceae;Pteridophyta;3.7;adulto;11;4;esteril;0;TRU-01_4150
@@ -4930,7 +4930,7 @@ elevation;plot;subplot;treecod;tree_name;genera_tree;dap;height;tree_str;name_ep
 3261;TRU-02;15;4249;Miconia nigricans ;Miconia;11.33;8;III;Melpomene personata;Grammitis personata ;Polypodiaceae;Pteridophyta;5;adulto;20.6;7;reproductivo;3;TRU-02_4249
 3261;TRU-02;15;4249;Miconia nigricans ;Miconia;11.33;8;IV;Melpomene personata;Grammitis personata ;Polypodiaceae;Pteridophyta;7;adulto;29.6;5;esteril;0;TRU-02_4249
 3261;TRU-02;15;4251;Miconia WFR632;Miconia;11.43;8;I;Campyloneurum sp1;Campyloneurum sp.1;Polypodiaceae;Pteridophyta;2;juvenil;22.6;5;esteril;1;TRU-02_4251
-3261;TRU-02;15;4251;Miconia WFR633;Miconia;11.43;8;I;Asplenium harpeoides;Asplenium harpeoides;Aspleniaceae;Pteridophyta;2;juvenil;20.5;3;esteril;0;TRU-02_4251
+3261;TRU-02;15;4251;Miconia WFR633;Miconia;11.43;8;I;Asplenium harpeoides;Asplenium harpeodes;Aspleniaceae;Pteridophyta;2;juvenil;20.5;3;esteril;0;TRU-02_4251
 3261;TRU-02;15;4252;Miconia WFR632;Miconia;11.94;8;I;Peperomia 1;Peperomia microphylla;Piperaceae;Angiosperma;1.6;adulto;8.8;17;esteril;0;TRU-02_4252
 3261;TRU-02;15;4252;Miconia WFR632;Miconia;11.94;8;I;Alansmia sp3;Grammitis sp.4;Polypodiaceae;Pteridophyta;1.6;juvenil;2.8;3;esteril;1;TRU-02_4252
 3261;TRU-02;15;4252;Miconia WFR632;Miconia;11.94;8;I;Melpomene personata;Grammitis personata ;Polypodiaceae;Pteridophyta;1.5;adulto;28.3;3;reproductivo;1;TRU-02_4252
