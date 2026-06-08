@@ -19,7 +19,7 @@ TRU-02;3261;15;429;TRU-02_429;Cyatheaceae;Cyathea;ruiziana;Cyathea ruiziana;13.9
 TRU-02;3261;15;430;TRU-02_430;Cunoniaceae;Weinmannia;bangii;Weinmannia bangii;47.24;27;
 TRU-02;3261;15;431;TRU-02_431;Cunoniaceae;Weinmannia;bangii;Weinmannia bangii;42.37;27;
 TRU-02;3261;15;433;TRU-02_433;Cyatheaceae;Cyathea;austropallescens;Cyathea austropallescens;18.75;6;
-TRU-02;3261;21;636;TRU-02_636;Clusiaceae;Clusia;alata;Clusia alata;18.18;14;agregado
+TRU-02;3261;15;636;TRU-02_636;Clusiaceae;Clusia;alata;Clusia alata;18.18;14;agregado
 TRU-02;3261;11;4097;TRU-02_4097;Cyatheaceae;Cyathea;austropallescens;Cyathea austropallescens;11.14;5;
 TRU-02;3261;11;4098;TRU-02_4098;Primulaceae;Myrsine;coriacea;Myrsine coriacea;19.89;14;
 TRU-02;3261;15;4115;TRU-02_4115;Melastomataceae;Miconia;WFR632;Miconia WFR632;11.52;12;
@@ -35,7 +35,7 @@ TRU-02;3261;11;4192;TRU-02_4192;Melastomataceae;Miconia;dispar;Miconia dispar;12
 TRU-02;3261;15;4200;TRU-02_4200;Melastomataceae;Miconia;WFR632;Miconia WFR632;11.33;7;
 TRU-02;3261;15;4202;TRU-02_4202;Melastomataceae;Miconia;WFR632;Miconia WFR632;10.44;10;
 TRU-02;3261;15;4204;TRU-02_4204;Melastomataceae;Axinaea;pennellii;Axinaea pennellii;15.2;10;
-TRU-02;3261;10;4237;TRU-02_4237;Clusiaceae;Clusia;alata;Clusia alata;10.89;6;agregado
+TRU-02;3261;15;4237;TRU-02_4237;Clusiaceae;Clusia;alata;Clusia alata;10.89;6;agregado
 TRU-02;3261;11;4238;TRU-02_4238;Melastomataceae;Miconia ;brevistylis;Miconia  brevistylis;43.51;8;
 TRU-02;3261;15;4247;TRU-02_4247;Melastomataceae;Miconia;WFR632;Miconia WFR632;18.75;8;
 TRU-02;3261;15;4248;TRU-02_4248;Melastomataceae;Axinaea ;pennellii;Axinaea  pennellii;19.42;10;
@@ -43,7 +43,7 @@ TRU-02;3261;15;4249;TRU-02_4249;Melastomataceae;Miconia;nigricans;Miconia nigric
 TRU-02;3261;15;4250;TRU-02_4250;Melastomataceae;Miconia;WFR632;Miconia WFR632;10.5;9;
 TRU-02;3261;15;4251;TRU-02_4251;Melastomataceae;Miconia;WFR632;Miconia WFR632;10.5;8;
 TRU-02;3261;15;4252;TRU-02_4252;Melastomataceae;Miconia;WFR632;Miconia WFR632;15.92;8;
-TRU-02;3261;19;4264;TRU-02_4264;Clusiaceae;Clusia;alata;Clusia alata;11.94;7.5;agregado
+TRU-02;3261;15;4264;TRU-02_4264;Clusiaceae;Clusia;alata;Clusia alata;11.94;7.5;agregado
 TRU-01;3402;1;1;TRU-01_1;Cunoniaceae;Weinmannia;cochensis;Weinmannia cochensis;22.3;5;
 TRU-01;3402;1;2;TRU-01_2;Lauraceae;Persea;ferruginea;Persea ferruginea;22.6;5;
 TRU-01;3402;1;4;TRU-01_4;Cunoniaceae;Weinmannia;cochensis;Weinmannia cochensis;32.5;11;
@@ -187,8 +187,8 @@ APK-01;3625;5;4015;APK-01_4015;Solanaceae;Saracha;punctata;Saracha punctata;11.1
 APK-01;3625;5;4017;APK-01_4017;Symplocaceae;Symplocos;baehnii;Symplocos baehnii;15;10;
 APK-01;3625;14;4036;APK-01_4036;Melastomataceae;Miconia;AMM15963;Miconia AMM15963;20.4;11;
 APK-01;3625;14;4037;APK-01_4037;Cunoniaceae;Weinmannia;fagaroides;Weinmannia fagaroides;10.8;9;
-APK-01;3625;15;4098;APK-01_4098;Melastomataceae;Miconia;AMM15963;Miconia AMM15963;10.8;8;agregado
-APK-01;3625;15;4099;APK-01_4099;Melastomataceae;Miconia;AMM15963;Miconia AMM15963;12.6;7;agregado
+APK-01;3625;14;4098;APK-01_4098;Melastomataceae;Miconia;AMM15963;Miconia AMM15963;10.8;8;agregado
+APK-01;3625;14;4099;APK-01_4099;Melastomataceae;Miconia;AMM15963;Miconia AMM15963;12.6;7;agregado
 APK-01;3625;14;4100;APK-01_4100;Melastomataceae;Miconia;AMM15963;Miconia AMM15963;14.5;11;
 APK-01;3625;14;4101;APK-01_4101;Melastomataceae;Miconia;alpina;Miconia alpina;13.4;7;
 APK-01;3625;14;4127;APK-01_4127;Melastomataceae;Miconia;AMM15963;Miconia AMM15963;11.8;6;

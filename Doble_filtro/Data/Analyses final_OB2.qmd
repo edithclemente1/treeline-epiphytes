@@ -1,0 +1,741 @@
+---
+title: "analyses final_OB2"
+format: html
+editor: visual
+---
+
+## OB.2: Evaluar la influencia de la estructura (DAP y altura)  del árbol hospedero sobre la riqueza, abundancia y composicion de las epífitas, controlando el efecto de la elevación.
+
+Paquetes
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(car)
+library(stringi)
+library(lme4)
+library(performance)
+library(emmeans)
+library(sjmisc)
+library(sjPlot)
+library(ggplot2)
+library(vegan)
+library(betapart)
+library(MASS)
+library(patchwork)
+library(readr)
+library(lubridate)
+library(emmeans)
+library(ggpubr)
+
+```
+
+base de datos
+
+```{r}
+library(dplyr)
+
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/DATA")
+
+#----------------------------------------------------
+# FOROFITOS CON EPIFITAS
+#----------------------------------------------------
+
+data <- read.csv(
+  "estrucPOBa.csv",
+  header = TRUE,
+  sep = ";",
+  stringsAsFactors = FALSE
+)
+
+hospepi <- data %>%
+  dplyr::select(
+    plot,
+    elevation,
+    forof,
+    morphospe,
+    family,
+    subplot,
+    dap,
+    height
+  )
+
+#----------------------------------------------------
+# ARBOLES
+#----------------------------------------------------
+
+trees <- read.csv(
+  "treealtu.csv",
+  header = TRUE,
+  sep = ";",
+  stringsAsFactors = FALSE
+)
+
+tree <- trees %>%
+  dplyr::select(
+    plot,
+    elevation,
+    tagtree,
+    family,
+    subplot,
+    NC,
+    DBH,
+    H
+  )
+
+#----------------------------------------------------
+# RENOMBRAR VARIABLES DE ARBOLES
+#----------------------------------------------------
+
+tree2 <- tree %>%
+  rename(
+    forof = tagtree,
+    dap = DBH,
+    height = H
+  )
+
+#----------------------------------------------------
+# RESUMEN DE EPIFITAS POR FOROFITO
+#----------------------------------------------------
+
+epi_por_arbol <- hospepi %>%
+  group_by(forof) %>%
+  summarise(
+    presencia_epifitas = 1,
+    riqueza = n_distinct(morphospe),
+    abundancia_total = n(),
+    .groups = "drop"
+  )
+
+#----------------------------------------------------
+# UNIR TABLAS
+#----------------------------------------------------
+
+arboles <- tree2 %>%
+  left_join(
+    epi_por_arbol,
+    by = "forof"
+  ) %>%
+  mutate(
+    presencia_epifitas = ifelse(is.na(presencia_epifitas), 0, presencia_epifitas),
+    riqueza = ifelse(is.na(riqueza), 0, riqueza),
+    abundancia_total = ifelse(is.na(abundancia_total), 0, abundancia_total)
+  )
+
+#----------------------------------------------------
+# VERIFICAR
+#----------------------------------------------------
+
+str(arboles)
+
+table(arboles$presencia_epifitas)
+
+table(arboles$plot, arboles$presencia_epifitas)
+
+```
+
+Modelos Riqueza
+
+```{r}
+#preparacion de datos escalar var numericas y genero como factor 
+arboles$dap_z <- scale(arboles$dap)
+arboles$height_z <- scale(arboles$height)
+arboles$elevation <- as.factor(arboles$elevation)
+arboles$subplot <- as.factor(arboles$subplot)
+
+#modelos sugeridos 
+#modelo1 <- dbh * height + (elevation|plot)
+#modelo2 <- dbh * height + (1|plot)
+#modelo3 <- dbh * height + (1|elevation)
+##modelo Binomial negativo sugerido 
+library(glmmTMB)
+
+#MODELOS CON INTERACCION
+m_ric_nb1 <- glmmTMB(
+  riqueza ~ dap_z * height_z +(1|subplot),
+  family = nbinom2,
+  data = arboles
+)
+summary(m_ric_nb1)
+Anova(m_ric_nb1, type = "II")#importancia de cada variable 
+#evaluar residuos con DHARMa
+res_ric1 <- simulateResiduals(m_ric_nb1)
+plot(res_ric1)
+testUniformity(res_ric1)#Residuales compatibles con la distribución esperada
+testDispersion(res_ric1)#No hay evidencia de sobre- o subdispersión
+testZeroInflation(res_ric1)#No hay evidencia significativa de exceso de ceros
+
+m_ric_nb2 <- glmmTMB(
+  riqueza ~ dap_z * height_z +(1|elevation),
+  family = nbinom2,
+  data = arboles
+)
+summary(m_ric_nb2)
+Anova(m_ric_nb2, type = "II")#importancia de cada variable 
+#evaluar residuos con DHARMa
+res_ric2 <- simulateResiduals(m_ric_nb2)
+plot(res_ric2)
+testUniformity(res_ric2)#Residuales compatibles con la distribución esperada
+testDispersion(res_ric2)#No hay evidencia de sobre- o subdispersión
+testZeroInflation(res_ric2)#No hay evidencia significativa de exceso de ceros(cerca al limite)
+
+summary(arboles$subplot)
+m_ric_nb3 <- glmmTMB(
+  riqueza ~ dap_z * height_z  + (1 | elevation/subplot),
+  family = nbinom2,
+  data = arboles
+)
+summary(m_ric_nb3)
+Anova(m_ric_nb3, type = "II")#importancia de cada variable 
+#evaluar residuos con DHARMa
+res_ric3 <- simulateResiduals(m_ric_nb3)
+plot(res_ric3)
+testUniformity(res_ric3)#Residuales compatibles con la distribución esperada
+testDispersion(res_ric3)#No hay evidencia de sobre- o subdispersión
+testZeroInflation(res_ric3)#No hay evidencia significativa de exceso de ceros
+
+#MODELOS SIN INTERACCION 
+m_ric_nb4 <- glmmTMB(
+  riqueza ~ dap_z + height_z +(1|subplot),
+  family = nbinom2,
+  data = arboles
+)
+
+m_ric_nb5 <- glmmTMB(
+  riqueza ~ dap_z + height_z +(1|elevation),
+  family = nbinom2,
+  data = arboles
+)
+
+m_ric_nb6 <- glmmTMB(
+  riqueza ~ dap_z + height_z  + (1 | elevation/subplot),
+  family = nbinom2,
+  data = arboles
+)
+##SELECCION DEL MODELO
+AIC(m_ric_nb1,
+    m_ric_nb2,
+    m_ric_nb3)
+
+AIC(m_ric_nb1, m_ric_nb4)
+AIC(m_ric_nb2, m_ric_nb5)
+AIC(m_ric_nb3, m_ric_nb6)
+
+length(unique(arboles$subplot))
+sort(unique(tree$subplot))
+sort(unique(data$subplot))
+
+#MEJOR MODELO 4 Y EL 6 porque es mas simple  y menor AIC el modelo 4, el 6 representa la jerarquia
+
+#TAbla de resultados 
+summary(m_ric_nb4)
+Anova(m_ric_nb4, type = "II")#importancia de cada variable 
+
+```
+
+la tabla de riqueza seria esta para este modeo
+
+| Response variable | Predictor  | Model   | χ² (df)   | p-value | Effect   |
+|-------------------|------------|---------|-----------|---------|----------|
+| Richness          | DBH (z)    | NB GLMM | 53.22 (1) | \<0.001 | Positive |
+| Richness          | Height (z) | NB GLMM | 79.58 (1) | \<0.001 | Positive |
+
+Modelos Abundancia
+
+```{r}
+#=========================================
+# MODELOS DE ABUNDANCIA
+#=========================================
+
+# CON INTERACCION
+
+m_ab_nb1 <- glmmTMB(
+  abundancia_total ~ dap_z * height_z + (1|subplot),
+  family = nbinom2,
+  data = arboles
+)
+
+m_ab_nb2 <- glmmTMB(
+  abundancia_total ~ dap_z * height_z + (1|elevation),
+  family = nbinom2,
+  data = arboles
+)
+
+m_ab_nb3 <- glmmTMB(
+  abundancia_total ~ dap_z * height_z +
+    (1|elevation/subplot),
+  family = nbinom2,
+  data = arboles
+)
+
+#=========================================
+# DIAGNOSTICOS
+#=========================================
+
+summary(m_ab_nb1)
+Anova(m_ab_nb1, type = "II")
+
+res_ab1 <- simulateResiduals(m_ab_nb1)
+plot(res_ab1)
+testUniformity(res_ab1)
+testDispersion(res_ab1)
+testZeroInflation(res_ab1)
+
+
+summary(m_ab_nb2)
+Anova(m_ab_nb2, type = "II")
+
+res_ab2 <- simulateResiduals(m_ab_nb2)
+plot(res_ab2)
+testUniformity(res_ab2)
+testDispersion(res_ab2)
+testZeroInflation(res_ab2)
+
+
+summary(m_ab_nb3)
+Anova(m_ab_nb3, type = "II")
+
+res_ab3 <- simulateResiduals(m_ab_nb3)
+plot(res_ab3)
+testUniformity(res_ab3)
+testDispersion(res_ab3)
+testZeroInflation(res_ab3)
+
+#=========================================
+# MODELOS SIN INTERACCION
+#=========================================
+
+m_ab_nb4 <- glmmTMB(
+  abundancia_total ~ dap_z + height_z +
+    (1|subplot),
+  family = nbinom2,
+  data = arboles
+)
+
+m_ab_nb5 <- glmmTMB(
+  abundancia_total ~ dap_z + height_z +
+    (1|elevation),
+  family = nbinom2,
+  data = arboles
+)
+
+m_ab_nb6 <- glmmTMB(
+  abundancia_total ~ dap_z + height_z +
+    (1|elevation/subplot),
+  family = nbinom2,
+  data = arboles
+)
+
+#=========================================
+# SELECCION DE MODELO
+#=========================================
+
+AIC(m_ab_nb1,
+    m_ab_nb2,
+    m_ab_nb3)
+
+AIC(m_ab_nb1, m_ab_nb4)
+AIC(m_ab_nb2, m_ab_nb5)
+AIC(m_ab_nb3, m_ab_nb6)
+
+#=========================================
+# modelo elegido 4
+#=========================================
+summary(m_ab_nb4)
+Anova(m_ab_nb4, type = "II")
+
+res_ab4 <- simulateResiduals(m_ab_nb4)
+plot(res_ab4)
+testUniformity(res_ab4)
+testDispersion(res_ab4)
+testZeroInflation(res_ab4)
+#DHARMa detectó una ligera desviación asociada a la frecuencia de ceros (p = 0.024), aunque los ceros representaron únicamente el 3.6% de las observaciones y no se observaron problemas de dispersión ni de ajuste general del modelo.
+
+table(arboles$abundancia_total == 0)#ver cuantos tienen ceros
+
+##modelo con cero inflación:
+m_ab_zi <- glmmTMB(
+  abundancia_total ~ dap_z + height_z +
+    (1|subplot),
+  ziformula = ~1,
+  family = nbinom2,
+  data = arboles
+)
+
+AIC(m_ab_nb4, m_ab_zi)#no hay diferencia me quedo con m_ab_nb4
+
+
+```
+
+Graficar
+
+```{r}
+#RIQUEZA
+#DAP
+#crear datos para prediccion
+new_dap <- data.frame(
+  dap_z = seq(
+    min(arboles$dap_z),
+    max(arboles$dap_z),
+    length.out = 100
+  ),
+  height_z = 0
+)
+#obtener predicciones del modelo 
+pred <- predict(
+  m_ric_nb4,
+  newdata = new_dap,
+  type = "link",
+  se.fit = TRUE,
+  re.form = NA
+)
+#Calcular IC95%
+new_dap <- new_dap %>%
+  mutate(
+    fit = exp(pred$fit),
+    lwr = exp(pred$fit - 1.96 * pred$se.fit),
+    upr = exp(pred$fit + 1.96 * pred$se.fit)
+  )
+#Volver a la escala original de DAP
+dap_mean <- mean(arboles$dap)
+dap_sd   <- sd(arboles$dap)
+
+new_dap <- new_dap %>%
+  mutate(
+    dap = dap_z * dap_sd + dap_mean
+  )
+#graficar 
+gA <- ggplot(arboles,
+             aes(x = dap,
+                 y = riqueza)) +
+
+  geom_point(
+    alpha = 0.6,
+    size = 2,
+    color = "black"
+  ) +
+
+  geom_ribbon(
+    data = new_dap,
+    aes(x = dap,
+        ymin = lwr,
+        ymax = upr),
+    inherit.aes = FALSE,
+    alpha = 0.25
+  ) +
+
+  geom_line(
+    data = new_dap,
+    aes(x = dap,
+        y = fit),
+    inherit.aes = FALSE,
+    linewidth = 1.2
+  ) +
+
+  labs(
+    x = "DBH (cm)",
+    y = "Epiphyte species richness"
+  ) +
+
+  theme_classic(base_size = 13)
+gA
+
+#altura
+#----------------------------------------
+# DATOS PARA PREDICCION
+#----------------------------------------
+
+new_height <- data.frame(
+  dap_z = 0,  # DAP promedio
+  height_z = seq(
+    min(arboles$height_z),
+    max(arboles$height_z),
+    length.out = 100
+  )
+)
+
+#----------------------------------------
+# PREDICCIONES DEL MODELO
+#----------------------------------------
+
+pred <- predict(
+  m_ric_nb4,
+  newdata = new_height,
+  type = "link",
+  se.fit = TRUE,
+  re.form = NA
+)
+
+#----------------------------------------
+# INTERVALOS DE CONFIANZA
+#----------------------------------------
+
+new_height <- new_height %>%
+  mutate(
+    fit = exp(pred$fit),
+    lwr = exp(pred$fit - 1.96 * pred$se.fit),
+    upr = exp(pred$fit + 1.96 * pred$se.fit)
+  )
+
+#----------------------------------------
+# VOLVER A ESCALA ORIGINAL (m)
+#----------------------------------------
+
+height_mean <- mean(arboles$height)
+height_sd <- sd(arboles$height)
+
+new_height <- new_height %>%
+  mutate(
+    height = height_z * height_sd + height_mean
+  )
+
+#----------------------------------------
+# GRAFICO
+#----------------------------------------
+
+gB <- ggplot(arboles,
+             aes(x = height,
+                 y = riqueza)) +
+
+  geom_point(
+    alpha = 0.6,
+    size = 2,
+    color = "black"
+  ) +
+
+  geom_ribbon(
+    data = new_height,
+    aes(
+      x = height,
+      ymin = lwr,
+      ymax = upr
+    ),
+    inherit.aes = FALSE,
+    alpha = 0.25
+  ) +
+
+  geom_line(
+    data = new_height,
+    aes(
+      x = height,
+      y = fit
+    ),
+    inherit.aes = FALSE,
+    linewidth = 1
+  ) +
+
+  labs(
+    x = "Tree height (m)",
+    y = " "
+  ) +
+
+  theme_classic(base_size = 13)
+
+gB
+
+#Abundancia vs DAP
+#----------------------------------------
+# DATOS PARA PREDICCION
+#----------------------------------------
+
+new_dap_ab <- data.frame(
+  dap_z = seq(
+    min(arboles$dap_z),
+    max(arboles$dap_z),
+    length.out = 100
+  ),
+  height_z = 0
+)
+
+#----------------------------------------
+# PREDICCIONES DEL MODELO
+#----------------------------------------
+
+pred <- predict(
+  m_ab_nb4,
+  newdata = new_dap_ab,
+  type = "link",
+  se.fit = TRUE,
+  re.form = NA
+)
+
+#----------------------------------------
+# INTERVALOS DE CONFIANZA
+#----------------------------------------
+
+new_dap_ab <- new_dap_ab %>%
+  mutate(
+    fit = exp(pred$fit),
+    lwr = exp(pred$fit - 1.96 * pred$se.fit),
+    upr = exp(pred$fit + 1.96 * pred$se.fit)
+  )
+
+#----------------------------------------
+# VOLVER A ESCALA ORIGINAL (cm)
+#----------------------------------------
+
+dap_mean <- mean(arboles$dap)
+dap_sd <- sd(arboles$dap)
+
+new_dap_ab <- new_dap_ab %>%
+  mutate(
+    dap = dap_z * dap_sd + dap_mean
+  )
+
+#----------------------------------------
+# GRAFICO
+#----------------------------------------
+
+gC <- ggplot(arboles,
+             aes(x = dap,
+                 y = abundancia_total)) +
+
+  geom_point(
+    alpha = 0.6,
+    size = 2,
+    color = "black"
+  ) +
+
+  geom_ribbon(
+    data = new_dap_ab,
+    aes(
+      x = dap,
+      ymin = lwr,
+      ymax = upr
+    ),
+    inherit.aes = FALSE,
+    alpha = 0.25
+  ) +
+
+  geom_line(
+    data = new_dap_ab,
+    aes(
+      x = dap,
+      y = fit
+    ),
+    inherit.aes = FALSE,
+    linewidth = 1
+  ) +
+
+  scale_y_log10() +
+
+  labs(
+    x = "DBH (cm)",
+    y = "Epiphyte abundance (log scale)"
+  ) +
+
+  theme_classic(base_size = 13)
+
+gC
+
+#ALTURA
+#----------------------------------------
+# DATOS PARA PREDICCION
+#----------------------------------------
+
+new_height_ab <- data.frame(
+  dap_z = 0,
+  height_z = seq(
+    min(arboles$height_z),
+    max(arboles$height_z),
+    length.out = 100
+  )
+)
+
+#----------------------------------------
+# PREDICCIONES DEL MODELO
+#----------------------------------------
+
+pred <- predict(
+  m_ab_nb4,
+  newdata = new_height_ab,
+  type = "link",
+  se.fit = TRUE,
+  re.form = NA
+)
+
+#----------------------------------------
+# INTERVALOS DE CONFIANZA
+#----------------------------------------
+
+new_height_ab <- new_height_ab %>%
+  mutate(
+    fit = exp(pred$fit),
+    lwr = exp(pred$fit - 1.96 * pred$se.fit),
+    upr = exp(pred$fit + 1.96 * pred$se.fit)
+  )
+
+#----------------------------------------
+# VOLVER A ESCALA ORIGINAL (m)
+#----------------------------------------
+
+height_mean <- mean(arboles$height)
+height_sd <- sd(arboles$height)
+
+new_height_ab <- new_height_ab %>%
+  mutate(
+    height = height_z * height_sd + height_mean
+  )
+
+#----------------------------------------
+# GRAFICO
+#----------------------------------------
+
+gD <- ggplot(arboles,
+             aes(x = height,
+                 y = abundancia_total)) +
+
+  geom_point(
+    alpha = 0.6,
+    size = 2,
+    color = "black"
+  ) +
+
+  geom_ribbon(
+    data = new_height_ab,
+    aes(
+      x = height,
+      ymin = lwr,
+      ymax = upr
+    ),
+    inherit.aes = FALSE,
+    alpha = 0.25
+  ) +
+
+  geom_line(
+    data = new_height_ab,
+    aes(
+      x = height,
+      y = fit
+    ),
+    inherit.aes = FALSE,
+    linewidth = 1
+  ) +
+
+  scale_y_log10() +
+
+  labs(
+    x = "Tree height (m)",
+    y = NULL
+  ) +
+
+  theme_classic(base_size = 13)
+
+gD
+```
+
+FIGURA FINAL
+
+```{r}
+library(patchwork)
+
+(gA + gB) /
+(gC + gD)
+ggsave(
+  "Figure_host_tree_traits.png",
+  width = 18,
+  height = 18,
+  units = "cm",
+  dpi = 300
+)
+```
