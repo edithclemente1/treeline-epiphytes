@@ -1,0 +1,79 @@
+---
+title: "Forest structure"
+format: html
+editor: visual
+---
+
+## structure of forest
+
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes")
+
+estforest <- read.csv("treeforesttreeline.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+
+str(estforest)      # Estructura de la base de datos
+
+head(estforest)
+
+library(dplyr)
+
+resumen_estforest <- estforest %>%
+
+  group_by(plot) %>%
+
+  summarise(
+
+    mean_dap = mean(dap, na.rm = TRUE),
+
+    sd_dap = sd(dap, na.rm = TRUE),
+
+    min_dap = min(dap, na.rm = TRUE),
+
+    max_dap = max(dap, na.rm = TRUE),
+
+    mean_high = mean(high, na.rm = TRUE),
+
+    sd_high = sd(high, na.rm = TRUE),
+
+    min_high = min(high, na.rm = TRUE),
+
+    max_high = max(high, na.rm = TRUE)
+
+  )
+
+resumen_estforest
+
+##area basal
+
+estforest <- estforest %>%
+
+  mutate(area_basal = pi * (dap / 200)^2)
+
+area_basal_plot <- estforest %>%
+
+  group_by(plot) %>%
+
+  summarise(area_basal_total = sum(area_basal, na.rm = TRUE))
+
+area_basal_plot
+
+conteo_arboles <- estforest %>%
+
+  distinct(foro_cod, .keep_all = TRUE) %>%  # elimina duplicados si los hubiera
+
+  group_by(plot) %>%
+
+  summarise(n_arboles = n())
+
+conteo_arboles
+
+conteo_forof <- data %>%
+
+  distinct(forof, .keep_all = TRUE) %>%  # elimina duplicados si los hubiera
+
+  group_by(plot) %>%
+
+  summarise(n_forofitos = n())
+
+conteo_forof
+```
