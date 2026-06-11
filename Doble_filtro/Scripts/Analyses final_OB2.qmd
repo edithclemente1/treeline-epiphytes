@@ -27,6 +27,7 @@ library(readr)
 library(lubridate)
 library(emmeans)
 library(ggpubr)
+library(geosphere)
 
 ```
 
@@ -1249,3 +1250,209 @@ ggsave(
   dpi = 300
 )
 ```
+
+SI AGREGO Coordenadas goegraficas
+
+```{r}
+coordenadas <- data.frame(
+  locality = c("FORST-3261",
+               "TLINE-3402",
+               "TLINE-3537",
+               "TLINE-3625"),
+
+  latitude = c(-13.1105,
+               -13.1137,
+               -13.1469,
+               -13.0957),
+
+  longitude = c(-71.6041,
+                -71.6070,
+                -71.6323,
+                -71.6299)
+)
+metadata$locality <- plot_names[metadata$plot]
+
+metadata <- metadata %>%
+  left_join(coordenadas, by = "locality")
+names(metadata)
+
+mod_geo <- capscale(
+  comm ~ dap + height + elevation +
+    latitude + longitude + plot,
+  data = metadata,
+  distance = "chao"
+)
+anova(mod)
+anova(mod, by = "term")
+anova(mod_geo)
+anova(mod_geo, by = "term")
+
+RsquareAdj(mod_geo)
+vif.cca(mod_geo) #VIF (Variance Inflation Factor) es una medida que te dice si una variable explicativa está muy correlacionada con otras variables del modelo.   Elevation = 11.72
+#         Longitude = 13.20
+#⚠️ Hay colinealidad fuerte.
+RsquareAdj(mod)
+vif.cca(mod)
+
+#Al agregar las variables, plot,elevation,latitude,longitude están describiendo prácticamente el mismo patrón espacial.
+#Por eso el modelo no gana capacidad explicativa.
+```
+
+```{r}
+# =====================================================
+# DISTANCE-DECAY DE LA COMUNIDAD DE EPÍFITAS
+# Test de Mantel
+
+data$locality <- c(
+  "TRU-02" = "FORST-3261",
+  "TRU-01" = "TLINE-3402",
+  "ACJ-01" = "TLINE-3537",
+  "APK-01" = "TLINE-3625"
+)[data$plot]
+
+table(data$plot, data$locality)
+# =====================================================
+# 1. MATRIZ DE COMUNIDAD POR LOCALIDAD
+# =====================================================
+
+comm_localidad <- data %>%
+  group_by(locality, morphospe) %>%
+  summarise(abund = n(), .groups = "drop") %>%
+  pivot_wider(
+    names_from = morphospe,
+    values_from = abund,
+    values_fill = 0
+  )
+
+rownames(comm_localidad) <- comm_localidad$locality
+comm_localidad <- comm_localidad[, -1]
+dim(comm_localidad)
+rownames(comm_localidad)
+head(comm_localidad[,1:5])
+
+comm_localidad <- as.data.frame(comm_localidad)
+rownames(comm_localidad) <- comm_localidad$locality
+comm_localidad$locality <- NULL
+rownames(comm_localidad)
+# =====================================================
+# 2. COORDENADAS DE LAS LOCALIDADES
+# =====================================================
+
+coords <- data.frame(
+  locality = c(
+    "FORST-3261",
+    "TLINE-3402",
+    "TLINE-3537",
+    "TLINE-3625"
+  ),
+
+  latitude = c(
+    -13.1105,
+    -13.1137,
+    -13.1469,
+    -13.0957
+  ),
+
+  longitude = c(
+    -71.6041,
+    -71.6070,
+    -71.6323,
+    -71.6299
+  )
+)
+
+# ordenar igual que la matriz de comunidad
+coords <- coords[
+  match(
+    rownames(comm_localidad),
+    coords$locality
+  ),
+]
+
+# =====================================================
+# 3. MATRIZ DE DISTANCIA GEOGRÁFICA
+# =====================================================
+
+dist_geo <- as.dist(
+  distm(
+    coords[, c("longitude", "latitude")],
+    fun = distHaversine
+  )
+)
+
+dist_geo
+
+# =====================================================
+# 4. MATRIZ DE DISTANCIA EN COMPOSICIÓN
+# =====================================================
+
+dist_com <- vegdist(
+  comm_localidad,
+  method = "chao"
+)
+
+# alternativa:
+# dist_com <- vegdist(comm_localidad,
+#                     method = "jaccard")
+
+# =====================================================
+# 5. TEST DE MANTEL
+# =====================================================
+
+mantel_result <- mantel(
+  dist_com,
+  dist_geo,
+  permutations = 9999
+)
+
+mantel_result
+#r = -0.20 → la relación es débil y además negativa.
+#p = 0.708 → no significativa.
+#Por lo tanto: No se encontró evidencia de que las localidades geográficamente más cercanas tengan comunidades de epífitas más similares que las localidades más alejadas.
+#
+
+# =====================================================
+# 6. EXTRAER PARES DE DISTANCIAS
+# =====================================================
+
+df_mantel <- data.frame(
+  GeographicDistance = as.vector(dist_geo),
+  CommunityDistance  = as.vector(dist_com)
+)
+
+# =====================================================
+# 7. GRÁFICO
+# =====================================================
+
+ggplot(
+  df_mantel,
+  aes(
+    x = GeographicDistance / 1000,
+    y = CommunityDistance
+  )
+) +
+  geom_point(size = 3) +
+  geom_smooth(
+    method = "lm",
+    se = TRUE
+  ) +
+  labs(
+    x = "Geographic distance (km)",
+    y = "Community dissimilarity (Chao)"
+  ) +
+  theme_minimal(base_size = 14)
+
+# =====================================================
+# 8. CORRELACIÓN SIMPLE (OPCIONAL)
+# =====================================================
+
+cor.test(
+  df_mantel$GeographicDistance,
+  df_mantel$CommunityDistance,
+  method = "spearman"
+)
+
+
+```
+
+La distancia geográfica no explicó la variación en la composición de las comunidades de epífitas entre localidades. La prueba de Mantel no mostró una correlación significativa entre la distancia geográfica y la disimilitud de Chao (r = -0.20, p = 0.71), indicando ausencia de un patrón detectable de decaimiento de similitud con la distancia.
