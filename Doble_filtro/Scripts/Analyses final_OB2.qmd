@@ -1087,6 +1087,8 @@ mod <- capscale(
 
 anova(mod)
 anova(mod, by = "term")
+summary(mod)
+
 
 # =====================================================
 # 5. COORDENADAS DE LOS SITIOS
@@ -1251,7 +1253,15 @@ ggsave(
 )
 ```
 
-SI AGREGO Coordenadas goegraficas
+The dbRDA model was significant (F = 11.60, p = 0.001).
+
+Environmental variables explained 24.4% of the variation in epiphyte community composition (adjusted R² = 0.223).
+
+Elevation had the strongest effect on community composition, followed by plot identity, host-tree diameter (DAP), and host height (all p = 0.001).
+
+The first two constrained axes explained 68.9% of the constrained variation.
+
+SI GREGO Coordenadas goegraficas
 
 ```{r}
 coordenadas <- data.frame(
@@ -1297,6 +1307,8 @@ vif.cca(mod)
 #Al agregar las variables, plot,elevation,latitude,longitude están describiendo prácticamente el mismo patrón espacial.
 #Por eso el modelo no gana capacidad explicativa.
 ```
+
+test de mantel
 
 ```{r}
 # =====================================================
