@@ -1462,6 +1462,50 @@ coords <- coords[
   ),
 ]
 
+
+
+
+library(sf)
+
+# Geographic points
+coords_sf <- st_as_sf(
+  coords,
+  coords = c("longitude", "latitude"),
+  crs = 4326
+)
+
+# Project to UTM 19S for Cusco, Peru
+coords_utm <- st_transform(coords_sf, 32719)
+
+# Distance matrix in meters
+dist_mat <- st_distance(coords_utm)
+
+# Convert to regular matrix
+dist_mat <- as.matrix(dist_mat)
+
+# Add locality names
+rownames(dist_mat) <- coords$locality
+colnames(dist_mat) <- coords$locality
+
+dist_mat
+
+#If you want it in kilometers:
+
+dist_mat_km <- dist_mat / 1000
+dist_mat_km
+
+
+
+
+
+
+
+
+
+
+
+
+
 # =====================================================
 # 3. MATRIZ DE DISTANCIA GEOGRÁFICA
 # =====================================================
