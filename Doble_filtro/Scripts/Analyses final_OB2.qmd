@@ -27,7 +27,7 @@ library(readr)
 library(lubridate)
 library(emmeans)
 library(ggpubr)
-library(DHARMa)
+library(geosphere)
 
 ```
 
@@ -36,14 +36,14 @@ base de datos
 ```{r}
 library(dplyr)
 
-# setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/DATA")
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/DATA")
 
 #----------------------------------------------------
 # FOROFITOS CON EPIFITAS
 #----------------------------------------------------
 
 data <- read.csv(
-  "./Doble_filtro/DATA/estrucPOBa.csv",
+  "estrucPOBa.csv",
   header = TRUE,
   sep = ";",
   stringsAsFactors = FALSE
@@ -66,7 +66,7 @@ hospepi <- data %>%
 #----------------------------------------------------
 
 trees <- read.csv(
-  "./Doble_filtro/DATA/treealtu.csv",
+  "treealtu.csv",
   header = TRUE,
   sep = ";",
   stringsAsFactors = FALSE
@@ -135,7 +135,7 @@ table(arboles$plot, arboles$presencia_epifitas)
 
 ```
 
-Modelos Riqueza
+### RIQUEZA modelos
 
 ```{r}
 #preparacion de datos escalar var numericas y genero como factor 
@@ -241,7 +241,7 @@ la tabla de riqueza seria esta para este modeo
 | Richness          | DBH (z)    | NB GLMM | 53.22 (1) | \<0.001 | Positive |
 | Richness          | Height (z) | NB GLMM | 79.58 (1) | \<0.001 | Positive |
 
-Modelos Abundancia
+## ABUNDANCIA modelos
 
 ```{r}
 #=========================================
@@ -740,3 +740,732 @@ ggsave(
   dpi = 300
 )
 ```
+
+Gráficos con distinción de localidades
+
+```{r}
+#=========================================
+# COLORES Y ETIQUETAS
+#=========================================
+
+colores_localidad <- c(
+  "3261" = "#006400",  # verde oscuro
+  "3402" = "#A2CD5A",  # verde amarillento
+  "3537" = "#DAA520",  # mostaza
+  "3625" = "#8B4513"   # marrón
+)
+
+etiquetas_localidad <- c(
+  "3261" = "FORST-3261",
+  "3402" = "TLINE-3402",
+  "3537" = "TLINE-3537",
+  "3625" = "TLINE-3625"
+)
+
+#=========================================
+# PANEL A
+# RIQUEZA ~ DAP
+#=========================================
+
+gA <- ggplot(arboles,
+             aes(x = dap,
+                 y = riqueza,
+                 color = elevation)) +
+
+  geom_point(
+    alpha = 0.7,
+    size = 2
+  ) +
+
+  geom_ribbon(
+    data = new_dap,
+    aes(
+      x = dap,
+      ymin = lwr,
+      ymax = upr
+    ),
+    inherit.aes = FALSE,
+    alpha = 0.25,
+    fill = "grey70"
+  ) +
+
+  geom_line(
+    data = new_dap,
+    aes(
+      x = dap,
+      y = fit
+    ),
+    inherit.aes = FALSE,
+    linewidth = 1.2,
+    color = "black"
+  ) +
+
+  scale_color_manual(
+    values = colores_localidad,
+    labels = etiquetas_localidad
+  ) +
+
+  labs(
+    x = "DBH (cm)",
+    y = "Epiphyte species richness",
+    color = "Locality"
+  ) +
+
+  theme_classic(base_size = 13)
+
+#=========================================
+# PANEL B
+# RIQUEZA ~ HEIGHT
+#=========================================
+
+gB <- ggplot(arboles,
+             aes(x = height,
+                 y = riqueza,
+                 color = elevation)) +
+
+  geom_point(
+    alpha = 0.7,
+    size = 2
+  ) +
+
+  geom_ribbon(
+    data = new_height,
+    aes(
+      x = height,
+      ymin = lwr,
+      ymax = upr
+    ),
+    inherit.aes = FALSE,
+    alpha = 0.25,
+    fill = "grey70"
+  ) +
+
+  geom_line(
+    data = new_height,
+    aes(
+      x = height,
+      y = fit
+    ),
+    inherit.aes = FALSE,
+    linewidth = 1.2,
+    color = "black"
+  ) +
+
+  scale_color_manual(
+    values = colores_localidad,
+    labels = etiquetas_localidad
+  ) +
+
+  labs(
+    x = "Tree height (m)",
+    y = NULL,
+    color = "Locality"
+  ) +
+
+  theme_classic(base_size = 13)
+
+#=========================================
+# PANEL C
+# ABUNDANCIA ~ DAP
+#=========================================
+
+gC <- ggplot(arboles,
+             aes(x = dap,
+                 y = abundancia_total,
+                 color = elevation)) +
+
+  geom_point(
+    alpha = 0.7,
+    size = 2
+  ) +
+
+  geom_ribbon(
+    data = new_dap_ab,
+    aes(
+      x = dap,
+      ymin = lwr,
+      ymax = upr
+    ),
+    inherit.aes = FALSE,
+    alpha = 0.25,
+    fill = "grey70"
+  ) +
+
+  geom_line(
+    data = new_dap_ab,
+    aes(
+      x = dap,
+      y = fit
+    ),
+    inherit.aes = FALSE,
+    linewidth = 1.2,
+    color = "black"
+  ) +
+
+  scale_y_log10() +
+
+  scale_color_manual(
+    values = colores_localidad,
+    labels = etiquetas_localidad
+  ) +
+
+  labs(
+    x = "DBH (cm)",
+    y = "Epiphyte abundance (log scale)",
+    color = "Locality"
+  ) +
+
+  theme_classic(base_size = 13)
+
+#=========================================
+# PANEL D
+# ABUNDANCIA ~ HEIGHT
+#=========================================
+
+gD <- ggplot(arboles,
+             aes(x = height,
+                 y = abundancia_total,
+                 color = elevation)) +
+
+  geom_point(
+    alpha = 0.7,
+    size = 2
+  ) +
+
+  geom_ribbon(
+    data = new_height_ab,
+    aes(
+      x = height,
+      ymin = lwr,
+      ymax = upr
+    ),
+    inherit.aes = FALSE,
+    alpha = 0.25,
+    fill = "grey70"
+  ) +
+
+  geom_line(
+    data = new_height_ab,
+    aes(
+      x = height,
+      y = fit
+    ),
+    inherit.aes = FALSE,
+    linewidth = 1.2,
+    color = "black"
+  ) +
+
+  scale_y_log10() +
+
+  scale_color_manual(
+    values = colores_localidad,
+    labels = etiquetas_localidad
+  ) +
+
+  labs(
+    x = "Tree height (m)",
+    y = NULL,
+    color = "Locality"
+  ) +
+
+  theme_classic(base_size = 13)
+
+
+#AGREGAR LAS LETRAS 
+#=========================================
+gA <- gA +
+  annotate(
+    "text",
+    x = -Inf,
+    y = Inf,
+    label = "A",
+    hjust = -0.5,
+    vjust = 1.5,
+    size = 8,
+    fontface = "bold"
+  )
+
+gC <- gC +
+  annotate(
+    "text",
+    x = -Inf,
+    y = Inf,
+    label = "B",
+    hjust = -0.5,
+    vjust = 1.5,
+    size = 8,
+    fontface = "bold"
+  )
+
+
+
+# FIGURA COMPUESTA
+#=========================================
+
+(gA + gB) /
+(gC + gD) +
+  plot_layout(guides = "collect") &
+  theme(
+    legend.position = "bottom"
+  )
+
+ggsave(
+  "Figure_filter_host_tree.png",
+  width = 18,
+  height = 18,
+  units = "cm",
+  dpi = 300
+)
+```
+
+## Composición
+
+```{r}
+EPIDATA <- data %>% ###TABLA DE DATOS POBLACIONALES
+  dplyr::select(elevation,plot, subplot,forof, morphospe, dap, height)
+str(EPIDATA)
+```
+
+¿Qué variables del forófito explican la composición de epífitas? dbRDA (capscale)
+
+```{r}
+# =====================================================
+# 1. MATRIZ DE COMUNIDAD POR FORÓFITO
+# =====================================================
+
+ABUNDFO <- data %>%
+  group_by(forof, morphospe) %>%
+  summarise(ABUNDANCIA = n(), .groups = "drop")
+
+matrizf <- ABUNDFO %>%
+  pivot_wider(
+    names_from = morphospe,
+    values_from = ABUNDANCIA,
+    values_fill = 0
+  )
+
+matriz_forof <- matrizf %>%
+  group_by(forof) %>%
+  summarise(across(where(is.numeric), sum)) %>%
+  as.data.frame()
+
+rownames(matriz_forof) <- matriz_forof$forof
+matriz_forof$forof <- NULL
+
+# =====================================================
+# 2. VARIABLES AMBIENTALES
+# =====================================================
+
+metadata <- data %>%
+  group_by(forof) %>%
+  summarise(
+    plot = unique(plot),
+    elevation = unique(elevation),
+    subplot = unique(subplot),
+    genera_tree = unique(genera_tree),
+    dap = unique(dap),
+    height = unique(height),
+    .groups = "drop"
+  )
+
+# =====================================================
+# 3. dbRDA
+# =====================================================
+
+comm <- matriz_forof
+env  <- metadata
+
+mod <- capscale(
+  comm ~ dap + height + elevation + plot,
+  data = env,
+  distance = "chao"
+)
+
+# =====================================================
+# 4. SIGNIFICANCIA
+# =====================================================
+
+anova(mod)
+anova(mod, by = "term")
+summary(mod)
+
+
+# =====================================================
+# 5. COORDENADAS DE LOS SITIOS
+# =====================================================
+
+coords <- as.data.frame(
+  scores(mod, display = "sites")
+)
+
+coords$plot <- env$plot
+
+# =====================================================
+# 6. CENTROIDES
+# =====================================================
+
+centroides <- coords %>%
+  group_by(plot) %>%
+  summarise(
+    CAP1 = mean(CAP1),
+    CAP2 = mean(CAP2),
+    .groups = "drop"
+  )
+
+# =====================================================
+# 7. VARIABLES AMBIENTALES
+# =====================================================
+
+fit <- envfit(
+  mod,
+  env[, c("dap", "height", "elevation")],
+  permutations = 999
+)
+
+ar <- fit$vectors$arrows
+
+ar_norm <- ar / sqrt(rowSums(ar^2))
+
+ar_df <- data.frame(
+  var  = rownames(ar_norm),
+  xend = ar_norm[,1] * 1.2,
+  yend = ar_norm[,2] * 1.2
+)
+
+# =====================================================
+# 8. RENOMBRAR LOCALIDADES
+# =====================================================
+
+plot_names <- c(
+  "TRU-02" = "FORST-3261",
+  "TRU-01" = "TLINE-3402",
+  "ACJ-01" = "TLINE-3537",
+  "APK-01" = "TLINE-3625"
+)
+
+coords$plot_new <- plot_names[coords$plot]
+centroides$plot_new <- plot_names[centroides$plot]
+
+# =====================================================
+# 9. COLORES
+# =====================================================
+
+colores_localidad <- c(
+  "FORST-3261" = "#006400",
+  "TLINE-3402" = "#A2CD5A",
+  "TLINE-3537" = "#DAA520",
+  "TLINE-3625" = "#8B4513"
+)
+
+# =====================================================
+# 10. FIGURA FINAL
+# =====================================================
+
+dbRDA_plot <- ggplot() +
+
+  geom_point(
+    data = coords,
+    aes(CAP1, CAP2, fill = plot_new),
+    shape = 21,
+    color = "black",
+    size = 3
+  ) +
+
+  geom_text(
+    data = centroides,
+    aes(CAP1, CAP2, label = plot_new),
+    fontface = "bold",
+    size = 5
+  ) +
+
+  geom_segment(
+    data = ar_df,
+    aes(
+      x = 0,
+      y = 0,
+      xend = xend,
+      yend = yend
+    ),
+    arrow = arrow(length = unit(0.3, "cm")),
+    linewidth = 1.2,
+    color = "red"
+  ) +
+
+  geom_text(
+    data = ar_df,
+    aes(
+      x = xend * 1.1,
+      y = yend * 1.1,
+      label = var
+    ),
+    color = "red",
+    fontface = "bold",
+    size = 5
+  ) +
+
+  geom_hline(
+    yintercept = 0,
+    linetype = "dotted",
+    color = "grey50"
+  ) +
+
+  geom_vline(
+    xintercept = 0,
+    linetype = "dotted",
+    color = "grey50"
+  ) +
+
+  scale_fill_manual(
+    values = colores_localidad
+  ) +
+
+  labs(
+    x = "CAP1",
+    y = "CAP2",
+    fill = "Locality"
+  ) +
+
+  coord_equal() +
+
+  theme_minimal(base_size = 14) +
+
+  theme(
+    panel.border = element_rect(
+      colour = "black",
+      fill = NA
+    ),
+    legend.position = "right"
+  )
+
+dbRDA_plot
+
+# =====================================================
+# 11. EXPORTAR FIGURA
+# =====================================================
+
+ggsave(
+  "dbRDA_epifitas.png",
+  plot = dbRDA_plot,
+  width = 8,
+  height = 6,
+  units = "in",
+  dpi = 300
+)
+```
+
+The dbRDA model was significant (F = 11.60, p = 0.001).
+
+Environmental variables explained 24.4% of the variation in epiphyte community composition (adjusted R² = 0.223).
+
+Elevation had the strongest effect on community composition, followed by plot identity, host-tree diameter (DAP), and host height (all p = 0.001).
+
+The first two constrained axes explained 68.9% of the constrained variation.
+
+SI GREGO Coordenadas goegraficas
+
+```{r}
+coordenadas <- data.frame(
+  locality = c("FORST-3261",
+               "TLINE-3402",
+               "TLINE-3537",
+               "TLINE-3625"),
+
+  latitude = c(-13.1105,
+               -13.1137,
+               -13.1469,
+               -13.0957),
+
+  longitude = c(-71.6041,
+                -71.6070,
+                -71.6323,
+                -71.6299)
+)
+metadata$locality <- plot_names[metadata$plot]
+
+metadata <- metadata %>%
+  left_join(coordenadas, by = "locality")
+names(metadata)
+
+mod_geo <- capscale(
+  comm ~ dap + height + elevation +
+    latitude + longitude + plot,
+  data = metadata,
+  distance = "chao"
+)
+anova(mod)
+anova(mod, by = "term")
+anova(mod_geo)
+anova(mod_geo, by = "term")
+
+RsquareAdj(mod_geo)
+vif.cca(mod_geo) #VIF (Variance Inflation Factor) es una medida que te dice si una variable explicativa está muy correlacionada con otras variables del modelo.   Elevation = 11.72
+#         Longitude = 13.20
+#⚠️ Hay colinealidad fuerte.
+RsquareAdj(mod)
+vif.cca(mod)
+
+#Al agregar las variables, plot,elevation,latitude,longitude están describiendo prácticamente el mismo patrón espacial.
+#Por eso el modelo no gana capacidad explicativa.
+```
+
+test de mantel
+
+```{r}
+# =====================================================
+# DISTANCE-DECAY DE LA COMUNIDAD DE EPÍFITAS
+# Test de Mantel
+
+data$locality <- c(
+  "TRU-02" = "FORST-3261",
+  "TRU-01" = "TLINE-3402",
+  "ACJ-01" = "TLINE-3537",
+  "APK-01" = "TLINE-3625"
+)[data$plot]
+
+table(data$plot, data$locality)
+# =====================================================
+# 1. MATRIZ DE COMUNIDAD POR LOCALIDAD
+# =====================================================
+
+comm_localidad <- data %>%
+  group_by(locality, morphospe) %>%
+  summarise(abund = n(), .groups = "drop") %>%
+  pivot_wider(
+    names_from = morphospe,
+    values_from = abund,
+    values_fill = 0
+  )
+
+rownames(comm_localidad) <- comm_localidad$locality
+comm_localidad <- comm_localidad[, -1]
+dim(comm_localidad)
+rownames(comm_localidad)
+head(comm_localidad[,1:5])
+
+comm_localidad <- as.data.frame(comm_localidad)
+rownames(comm_localidad) <- comm_localidad$locality
+comm_localidad$locality <- NULL
+rownames(comm_localidad)
+# =====================================================
+# 2. COORDENADAS DE LAS LOCALIDADES
+# =====================================================
+
+coords <- data.frame(
+  locality = c(
+    "FORST-3261",
+    "TLINE-3402",
+    "TLINE-3537",
+    "TLINE-3625"
+  ),
+
+  latitude = c(
+    -13.1105,
+    -13.1137,
+    -13.1469,
+    -13.0957
+  ),
+
+  longitude = c(
+    -71.6041,
+    -71.6070,
+    -71.6323,
+    -71.6299
+  )
+)
+
+# ordenar igual que la matriz de comunidad
+coords <- coords[
+  match(
+    rownames(comm_localidad),
+    coords$locality
+  ),
+]
+
+# =====================================================
+# 3. MATRIZ DE DISTANCIA GEOGRÁFICA
+# =====================================================
+
+dist_geo <- as.dist(
+  distm(
+    coords[, c("longitude", "latitude")],
+    fun = distHaversine
+  )
+)
+
+dist_geo
+
+# =====================================================
+# 4. MATRIZ DE DISTANCIA EN COMPOSICIÓN
+# =====================================================
+
+dist_com <- vegdist(
+  comm_localidad,
+  method = "chao"
+)
+
+# alternativa:
+# dist_com <- vegdist(comm_localidad,
+#                     method = "jaccard")
+
+# =====================================================
+# 5. TEST DE MANTEL
+# =====================================================
+
+mantel_result <- mantel(
+  dist_com,
+  dist_geo,
+  permutations = 9999
+)
+
+mantel_result
+#r = -0.20 → la relación es débil y además negativa.
+#p = 0.708 → no significativa.
+#Por lo tanto: No se encontró evidencia de que las localidades geográficamente más cercanas tengan comunidades de epífitas más similares que las localidades más alejadas.
+#
+
+# =====================================================
+# 6. EXTRAER PARES DE DISTANCIAS
+# =====================================================
+
+df_mantel <- data.frame(
+  GeographicDistance = as.vector(dist_geo),
+  CommunityDistance  = as.vector(dist_com)
+)
+
+# =====================================================
+# 7. GRÁFICO
+# =====================================================
+
+ggplot(
+  df_mantel,
+  aes(
+    x = GeographicDistance / 1000,
+    y = CommunityDistance
+  )
+) +
+  geom_point(size = 3) +
+  geom_smooth(
+    method = "lm",
+    se = TRUE
+  ) +
+  labs(
+    x = "Geographic distance (km)",
+    y = "Community dissimilarity (Chao)"
+  ) +
+  theme_minimal(base_size = 14)
+
+# =====================================================
+# 8. CORRELACIÓN SIMPLE (OPCIONAL)
+# =====================================================
+
+cor.test(
+  df_mantel$GeographicDistance,
+  df_mantel$CommunityDistance,
+  method = "spearman"
+)
+
+
+```
+
+La distancia geográfica no explicó la variación en la composición de las comunidades de epífitas entre localidades. La prueba de Mantel no mostró una correlación significativa entre la distancia geográfica y la disimilitud de Chao (r = -0.20, p = 0.71), indicando ausencia de un patrón detectable de decaimiento de similitud con la distancia.
+
