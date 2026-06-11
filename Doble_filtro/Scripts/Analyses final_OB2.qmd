@@ -49,6 +49,13 @@ data <- read.csv(
   stringsAsFactors = FALSE
 )
 
+# data <- read.csv(
+#   "./Doble_filtro/Data/estrucPOBa.csv",
+#   header = TRUE,
+#   sep = ";",
+#   stringsAsFactors = FALSE
+# )
+
 hospepi <- data %>%
   dplyr::select(
     plot,
@@ -71,6 +78,14 @@ trees <- read.csv(
   sep = ";",
   stringsAsFactors = FALSE
 )
+
+
+# trees <- read.csv(
+#   "./Doble_filtro/Data/treealtu.csv",
+#   header = TRUE,
+#   sep = ";",
+#   stringsAsFactors = FALSE
+# )
 
 tree <- trees %>%
   dplyr::select(
@@ -1028,6 +1043,8 @@ str(EPIDATA)
 
 ¿Qué variables del forófito explican la composición de epífitas? dbRDA (capscale)
 
+
+Data
 ```{r}
 # =====================================================
 # 1. MATRIZ DE COMUNIDAD POR FORÓFITO
@@ -1052,6 +1069,8 @@ matriz_forof <- matrizf %>%
 rownames(matriz_forof) <- matriz_forof$forof
 matriz_forof$forof <- NULL
 
+
+
 # =====================================================
 # 2. VARIABLES AMBIENTALES
 # =====================================================
@@ -1067,6 +1086,68 @@ metadata <- data %>%
     height = unique(height),
     .groups = "drop"
   )
+
+
+str(matriz_forof)
+str(metadata)
+
+table(colSums(matriz_forof)<1)
+table(rowSums(matriz_forof)<1)
+
+```
+
+
+
+
+
+
+```{r}
+# Recommended model set
+# 
+# Use these three models depending on the exact question:
+# 
+# 1. Total environmental/site structure
+mod_site <- capscale(
+  comm ~ plot,
+  data = env,
+  distance = "chao"
+)
+anova(mod_site)
+RsquareAdj(mod_site)
+
+# Question answered:
+# Do epiphyte communities differ among plots/localities/elevations?
+# 
+# 2. Host-tree variables without accounting for plot
+mod_host_simple <- capscale(
+  comm ~ dap + height,
+  data = env,
+  distance = "chao"
+)
+anova(mod_host_simple)
+anova(mod_host_simple, by = "term")
+RsquareAdj(mod_host_simple)
+
+# Question answered:
+# Are DAP and height associated with epiphyte composition overall?
+
+# 3. Host-tree variables after controlling for plot
+mod_host_controlled <- capscale(
+  comm ~ dap + height + Condition(subplot),
+  data = env,
+  distance = "chao"
+)
+anova(mod_host_controlled)
+anova(mod_host_controlled, by = "term")
+RsquareAdj(mod_host_controlled)
+```
+
+
+
+
+
+```{r}
+
 
 # =====================================================
 # 3. dbRDA
