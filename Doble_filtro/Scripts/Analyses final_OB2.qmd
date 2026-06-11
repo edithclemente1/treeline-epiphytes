@@ -4,7 +4,7 @@ format: html
 editor: visual
 ---
 
-## OB.2: Evaluar la influencia de la estructura (DAP y altura)  del árbol hospedero sobre la riqueza, abundancia y composicion de las epífitas, controlando el efecto de la elevación.
+## OB.2: Evaluar la influencia de la estructura (DAP y altura) del árbol hospedero sobre la riqueza, abundancia y composicion de las epífitas, controlando el efecto de la elevación.
 
 Paquetes
 
@@ -27,6 +27,7 @@ library(readr)
 library(lubridate)
 library(emmeans)
 library(ggpubr)
+library(DHARMa)
 
 ```
 
@@ -35,14 +36,14 @@ base de datos
 ```{r}
 library(dplyr)
 
-setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/DATA")
+# setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/DATA")
 
 #----------------------------------------------------
 # FOROFITOS CON EPIFITAS
 #----------------------------------------------------
 
 data <- read.csv(
-  "estrucPOBa.csv",
+  "./Doble_filtro/DATA/estrucPOBa.csv",
   header = TRUE,
   sep = ";",
   stringsAsFactors = FALSE
@@ -65,7 +66,7 @@ hospepi <- data %>%
 #----------------------------------------------------
 
 trees <- read.csv(
-  "treealtu.csv",
+  "./Doble_filtro/DATA/treealtu.csv",
   header = TRUE,
   sep = ";",
   stringsAsFactors = FALSE
