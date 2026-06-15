@@ -228,6 +228,9 @@ m_ric_nb6 <- glmmTMB(
   family = nbinom2,
   data = arboles
 )
+Anova(m_ric_nb4, type = "II")
+Anova(m_ric_nb5, type = "II")
+Anova(m_ric_nb6, type = "II")
 ##SELECCION DEL MODELO
 AIC(m_ric_nb1,
     m_ric_nb2,
@@ -241,7 +244,7 @@ length(unique(arboles$subplot))
 sort(unique(tree$subplot))
 sort(unique(data$subplot))
 
-#MEJOR MODELO 4 Y EL 6 porque es mas simple  y menor AIC el modelo 4, el 6 representa la jerarquia
+#MEJOR MODELO 4 porque es mas simple  y menor AIC 
 
 #TAbla de resultados 
 summary(m_ric_nb4)
@@ -341,7 +344,9 @@ m_ab_nb6 <- glmmTMB(
   family = nbinom2,
   data = arboles
 )
-
+Anova(m_ab_nb4, type = "II")
+Anova(m_ab_nb5, type = "II")
+Anova(m_ab_nb6, type = "II")
 #=========================================
 # SELECCION DE MODELO
 #=========================================
@@ -771,10 +776,10 @@ colores_localidad <- c(
 )
 
 etiquetas_localidad <- c(
-  "3261" = "FORST-3261",
-  "3402" = "TLINE-3402",
-  "3537" = "TLINE-3537",
-  "3625" = "TLINE-3625"
+  "3261" = "FORST-3200",
+  "3402" = "TLINE-3400",
+  "3537" = "TLINE-3500",
+  "3625" = "TLINE-3600"
 )
 
 #=========================================
@@ -1043,8 +1048,8 @@ str(EPIDATA)
 
 ¿Qué variables del forófito explican la composición de epífitas? dbRDA (capscale)
 
-
 Data
+
 ```{r}
 # =====================================================
 # 1. MATRIZ DE COMUNIDAD POR FORÓFITO
@@ -1096,11 +1101,6 @@ table(rowSums(matriz_forof)<1)
 
 ```
 
-
-
-
-
-
 ```{r}
 # Recommended model set
 # 
@@ -1117,6 +1117,9 @@ RsquareAdj(mod_site)
 
 # Question answered:
 # Do epiphyte communities differ among plots/localities/elevations?
+#Rpta: La composición de las comunidades de epífitas difiere significativamente entre localidades/elevaciones.
+#Epiphyte community composition differed significantly among localities/elevations (dbRDA: F = 15.52, p = 0.001), with localities/elevations identity explaining 19.1% of the variation in community composition (adjusted R² = 0.191).
+
 # 
 # 2. Host-tree variables without accounting for plot
 mod_host_simple <- capscale(
@@ -1130,6 +1133,8 @@ RsquareAdj(mod_host_simple)
 
 # Question answered:
 # Are DAP and height associated with epiphyte composition overall?
+#Rpta:Existe una asociación significativa entre las características del hospedero y la composición de epífitas.pero es pequeña Adjusted R² = 0.046 porque DAP y altura tienen un efecto detectable, pero explican solo alrededor del 4.6% de la variación total.
+#Host-tree diameter (DAP) and height were significantly associated with epiphyte community composition (overall model: F = 5.41, p = 0.001), although together they explained a relatively small fraction of the variation (adjusted R² = 0.046).
 
 # 3. Host-tree variables after controlling for plot
 mod_host_controlled <- capscale(
@@ -1140,15 +1145,19 @@ mod_host_controlled <- capscale(
 anova(mod_host_controlled)
 anova(mod_host_controlled, by = "term")
 RsquareAdj(mod_host_controlled)
+#question answered:
+#Are the host -tree variables after controlling for "plot" associated with epiphyte composition ?
+#Rpta: Sí Incluso después de controlar estadísticamente el efecto del plot, DAP y altura siguen siendo significativos. La relación entre las características del hospedero y la composición de epífitas no se debe simplemente a diferencias espaciales entre plots.
+# Modelo                            | Adj. R² | #--------------------------------- | ------: |
+# DAP + Height                      |  0.0455 |
+# DAP + Height + Condition(subplot) |  0.0458 |
+#Son prácticamente idénticos.Eso indica que el efecto de DAP y altura es bastante robusto y no depende mucho de la estructura espacial representada por el subplot
+#The effects of DAP and host height remained significant after accounting for plot identity (F = 5.45, p = 0.001), indicating that host-tree characteristics influence epiphyte composition independently of local spatial structure.
 ```
 
-
-
-
+para el dbRDA deberia usar el modelo comm \~ dap + height + Condition(subplot) ¿DAP y altura están asociados con la composición de epífitas independientemente de la estructura espacial local (subplot)?
 
 ```{r}
-
-
 # =====================================================
 # 3. dbRDA
 # =====================================================
@@ -1157,7 +1166,7 @@ comm <- matriz_forof
 env  <- metadata
 
 mod <- capscale(
-  comm ~ dap + height + elevation + plot,
+  comm ~ dap + height + Condition(subplot),
   data = env,
   distance = "chao"
 )
@@ -1199,7 +1208,7 @@ centroides <- coords %>%
 
 fit <- envfit(
   mod,
-  env[, c("dap", "height", "elevation")],
+  env[, c("dap", "height")],
   permutations = 999
 )
 
@@ -1213,15 +1222,23 @@ ar_df <- data.frame(
   yend = ar_norm[,2] * 1.2
 )
 
+ar_df <- ar_df %>%
+  mutate(
+    var = dplyr::recode(
+      var,
+      dap = "DBH",
+      height = "Height"
+    )
+  )
 # =====================================================
 # 8. RENOMBRAR LOCALIDADES
 # =====================================================
 
 plot_names <- c(
-  "TRU-02" = "FORST-3261",
-  "TRU-01" = "TLINE-3402",
-  "ACJ-01" = "TLINE-3537",
-  "APK-01" = "TLINE-3625"
+  "TRU-02" = "FORST-3200",
+  "TRU-01" = "TLINE-3400",
+  "ACJ-01" = "TLINE-3500",
+  "APK-01" = "TLINE-3600"
 )
 
 coords$plot_new <- plot_names[coords$plot]
@@ -1232,16 +1249,15 @@ centroides$plot_new <- plot_names[centroides$plot]
 # =====================================================
 
 colores_localidad <- c(
-  "FORST-3261" = "#006400",
-  "TLINE-3402" = "#A2CD5A",
-  "TLINE-3537" = "#DAA520",
-  "TLINE-3625" = "#8B4513"
+  "FORST-3200" = "#006400",
+  "TLINE-3400" = "#A2CD5A",
+  "TLINE-3500" = "#DAA520",
+  "TLINE-3600" = "#8B4513"
 )
 
 # =====================================================
 # 10. FIGURA FINAL
 # =====================================================
-
 dbRDA_plot <- ggplot() +
 
   geom_point(
@@ -1252,11 +1268,15 @@ dbRDA_plot <- ggplot() +
     size = 3
   ) +
 
-  geom_text(
+  geom_text_repel(
     data = centroides,
     aes(CAP1, CAP2, label = plot_new),
     fontface = "bold",
-    size = 5
+    size = 5,
+    segment.color = NA,
+    box.padding = 0.4,
+    point.padding = 0.3,
+    max.overlaps = Inf
   ) +
 
   geom_segment(
@@ -1275,8 +1295,8 @@ dbRDA_plot <- ggplot() +
   geom_text(
     data = ar_df,
     aes(
-      x = xend * 1.1,
-      y = yend * 1.1,
+      x = xend * 1.45,
+      y = yend * 1.45,
       label = var
     ),
     color = "red",
@@ -1313,25 +1333,38 @@ dbRDA_plot <- ggplot() +
   theme(
     panel.border = element_rect(
       colour = "black",
-      fill = NA
+      fill = NA,
+      linewidth = 1
     ),
-    legend.position = "right"
+    legend.position = "right",
+    panel.grid.minor = element_line(
+      colour = "grey85",
+      linewidth = 0.3
+    )
   )
 
-dbRDA_plot
+dbRDA_plot2 <- dbRDA_plot +##PARA hacerlo cuadrado
+  scale_x_continuous(
+    limits = c(-4.5, 4.5)
+  ) +
+  scale_y_continuous(
+    limits = c(-4.5, 4.5)
+  )
 
+dbRDA_plot2
 # =====================================================
 # 11. EXPORTAR FIGURA
 # =====================================================
 
 ggsave(
-  "dbRDA_epifitas.png",
+  "dbRDA_epifitas1.png",
   plot = dbRDA_plot,
-  width = 8,
-  height = 6,
+  width = 7,
+  height = 7,
   units = "in",
   dpi = 300
 )
+
 ```
 
 The dbRDA model was significant (F = 11.60, p = 0.001).
@@ -1341,256 +1374,3 @@ Environmental variables explained 24.4% of the variation in epiphyte community c
 Elevation had the strongest effect on community composition, followed by plot identity, host-tree diameter (DAP), and host height (all p = 0.001).
 
 The first two constrained axes explained 68.9% of the constrained variation.
-
-SI GREGO Coordenadas goegraficas
-
-```{r}
-coordenadas <- data.frame(
-  locality = c("FORST-3261",
-               "TLINE-3402",
-               "TLINE-3537",
-               "TLINE-3625"),
-
-  latitude = c(-13.1105,
-               -13.1137,
-               -13.1469,
-               -13.0957),
-
-  longitude = c(-71.6041,
-                -71.6070,
-                -71.6323,
-                -71.6299)
-)
-metadata$locality <- plot_names[metadata$plot]
-
-metadata <- metadata %>%
-  left_join(coordenadas, by = "locality")
-names(metadata)
-
-mod_geo <- capscale(
-  comm ~ dap + height + elevation +
-    latitude + longitude + plot,
-  data = metadata,
-  distance = "chao"
-)
-anova(mod)
-anova(mod, by = "term")
-anova(mod_geo)
-anova(mod_geo, by = "term")
-
-RsquareAdj(mod_geo)
-vif.cca(mod_geo) #VIF (Variance Inflation Factor) es una medida que te dice si una variable explicativa está muy correlacionada con otras variables del modelo.   Elevation = 11.72
-#         Longitude = 13.20
-#⚠️ Hay colinealidad fuerte.
-RsquareAdj(mod)
-vif.cca(mod)
-
-#Al agregar las variables, plot,elevation,latitude,longitude están describiendo prácticamente el mismo patrón espacial.
-#Por eso el modelo no gana capacidad explicativa.
-```
-
-test de mantel
-
-```{r}
-# =====================================================
-# DISTANCE-DECAY DE LA COMUNIDAD DE EPÍFITAS
-# Test de Mantel
-
-data$locality <- c(
-  "TRU-02" = "FORST-3261",
-  "TRU-01" = "TLINE-3402",
-  "ACJ-01" = "TLINE-3537",
-  "APK-01" = "TLINE-3625"
-)[data$plot]
-
-table(data$plot, data$locality)
-# =====================================================
-# 1. MATRIZ DE COMUNIDAD POR LOCALIDAD
-# =====================================================
-
-comm_localidad <- data %>%
-  group_by(locality, morphospe) %>%
-  summarise(abund = n(), .groups = "drop") %>%
-  pivot_wider(
-    names_from = morphospe,
-    values_from = abund,
-    values_fill = 0
-  )
-
-rownames(comm_localidad) <- comm_localidad$locality
-comm_localidad <- comm_localidad[, -1]
-dim(comm_localidad)
-rownames(comm_localidad)
-head(comm_localidad[,1:5])
-
-comm_localidad <- as.data.frame(comm_localidad)
-rownames(comm_localidad) <- comm_localidad$locality
-comm_localidad$locality <- NULL
-rownames(comm_localidad)
-# =====================================================
-# 2. COORDENADAS DE LAS LOCALIDADES
-# =====================================================
-
-coords <- data.frame(
-  locality = c(
-    "FORST-3261",
-    "TLINE-3402",
-    "TLINE-3537",
-    "TLINE-3625"
-  ),
-
-  latitude = c(
-    -13.1105,
-    -13.1137,
-    -13.1469,
-    -13.0957
-  ),
-
-  longitude = c(
-    -71.6041,
-    -71.6070,
-    -71.6323,
-    -71.6299
-  )
-)
-
-# ordenar igual que la matriz de comunidad
-coords <- coords[
-  match(
-    rownames(comm_localidad),
-    coords$locality
-  ),
-]
-
-
-
-
-library(sf)
-
-# Geographic points
-coords_sf <- st_as_sf(
-  coords,
-  coords = c("longitude", "latitude"),
-  crs = 4326
-)
-
-# Project to UTM 19S for Cusco, Peru
-coords_utm <- st_transform(coords_sf, 32719)
-
-# Distance matrix in meters
-dist_mat <- st_distance(coords_utm)
-
-# Convert to regular matrix
-dist_mat <- as.matrix(dist_mat)
-
-# Add locality names
-rownames(dist_mat) <- coords$locality
-colnames(dist_mat) <- coords$locality
-
-dist_mat
-
-#If you want it in kilometers:
-
-dist_mat_km <- dist_mat / 1000
-dist_mat_km
-
-
-
-
-
-
-
-
-
-
-
-
-
-# =====================================================
-# 3. MATRIZ DE DISTANCIA GEOGRÁFICA
-# =====================================================
-
-dist_geo <- as.dist(
-  distm(
-    coords[, c("longitude", "latitude")],
-    fun = distHaversine
-  )
-)
-
-dist_geo
-
-# =====================================================
-# 4. MATRIZ DE DISTANCIA EN COMPOSICIÓN
-# =====================================================
-
-dist_com <- vegdist(
-  comm_localidad,
-  method = "chao"
-)
-
-# alternativa:
-# dist_com <- vegdist(comm_localidad,
-#                     method = "jaccard")
-
-# =====================================================
-# 5. TEST DE MANTEL
-# =====================================================
-
-mantel_result <- mantel(
-  dist_com,
-  dist_geo,
-  permutations = 9999
-)
-
-mantel_result
-#r = -0.20 → la relación es débil y además negativa.
-#p = 0.708 → no significativa.
-#Por lo tanto: No se encontró evidencia de que las localidades geográficamente más cercanas tengan comunidades de epífitas más similares que las localidades más alejadas.
-#
-
-# =====================================================
-# 6. EXTRAER PARES DE DISTANCIAS
-# =====================================================
-
-df_mantel <- data.frame(
-  GeographicDistance = as.vector(dist_geo),
-  CommunityDistance  = as.vector(dist_com)
-)
-
-# =====================================================
-# 7. GRÁFICO
-# =====================================================
-
-ggplot(
-  df_mantel,
-  aes(
-    x = GeographicDistance / 1000,
-    y = CommunityDistance
-  )
-) +
-  geom_point(size = 3) +
-  geom_smooth(
-    method = "lm",
-    se = TRUE
-  ) +
-  labs(
-    x = "Geographic distance (km)",
-    y = "Community dissimilarity (Chao)"
-  ) +
-  theme_minimal(base_size = 14)
-
-# =====================================================
-# 8. CORRELACIÓN SIMPLE (OPCIONAL)
-# =====================================================
-
-cor.test(
-  df_mantel$GeographicDistance,
-  df_mantel$CommunityDistance,
-  method = "spearman"
-)
-
-
-```
-
-La distancia geográfica no explicó la variación en la composición de las comunidades de epífitas entre localidades. La prueba de Mantel no mostró una correlación significativa entre la distancia geográfica y la disimilitud de Chao (r = -0.20, p = 0.71), indicando ausencia de un patrón detectable de decaimiento de similitud con la distancia.
-
