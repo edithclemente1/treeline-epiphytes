@@ -620,7 +620,10 @@ abu_loc <- ggplot(abund, aes(elev_f, abundance)) +
 # ============================================================
 
 grap_fenviromental <- riq_loc + abu_loc +
-  plot_layout(ncol = 2)
+  plot_layout(ncol = 2) +
+  plot_annotation(
+    tag_levels = "A"
+  )
 
 grap_fenviromental
 
@@ -735,508 +738,665 @@ ggsave(
 )
 ```
 
-# Composición
-
-COMPARACION ESTADISTICA ENTRE PLOT PERMANOVA-PERMDISP
+para tener Intervalos de confianza
 
 ```{r}
-##datos de los forofitos
-metadata <- data %>%
-  group_by(forof) %>%
-  summarise(
-    plot = unique(plot),
-    elevation = unique(elevation),
-    subplot = unique(subplot),
-    genera_tree = unique(genera_tree),
-    dap = unique(dap),
-    height = unique(height)
-  )
-metadata
-####matriz de distancias
-dist_chao <- vegdist(matriz_forof, method = "chao")
-##permanova
-adonis2(dist_chao ~ plot, data = metadata, permutations = 999)
-####RESULTADOS: F = 25.499 → Los plots difieren fuertemente en composición, R² = 0.296 → El plot explica el 29.6% de la variación en la composición de epífitas, p = 0.001 → La diferencia es altamente significativa.
-#Interpretación simple: La composición de epífitas es distinta entre los plots. Es decir, los forofitos que están en un plot tienden a tener especies diferentes a los forofitos de otros plots.
+##Función para bootstrap de números de Hill
 
-##análisis de dispersiones (PERMDISP)
-disp <- betadisper(dist_chao, metadata$plot)
-anova(disp)
-##resultado:p < 0.05 → SIGNIFICATIVO Esto significa que las dispersiones (variabilidad interna) de los plots NO son iguales.
+library(hillR)
+library(dplyr)
+library(tidyr)
+library(purrr)
 
-#pairwise PERMANOVA
-# Convertir dist a matriz
-dist_mat <- as.matrix(dist_chao)
-# Vector de grupos
-grupos <- metadata$plot
-# Crear combinaciones de pares
-pares <- combn(unique(grupos), 2, simplify = FALSE)
-# Crear tabla vacía
-resultados <- data.frame(
-  plot1 = character(),
-  plot2 = character(),
-  F = numeric(),
-  R2 = numeric(),
-  p = numeric()
-)
-# Loop por cada par
-for (par in pares) {
-  g1 <- par[1]
-  g2 <- par[2]
-  # Filtrar grupos
-  idx <- grupos %in% c(g1, g2)
-  # PERMANOVA para el par
-  test <- adonis2(dist_mat[idx, idx] ~ grupos[idx], permutations = 999)
-  
-  resultados <- rbind(
-    resultados,
-    data.frame(
-      plot1 = g1,
-      plot2 = g2,
-      F = test$F[1],
-      R2 = test$R2[1],
-      p = test$`Pr(>F)`[1]
+boot_hill <- function(abund, q, nboot = 1000){
+
+  N <- sum(abund)
+
+  valores <- replicate(nboot, {
+
+    muestra <- sample(
+      seq_along(abund),
+      size = N,
+      replace = TRUE,
+      prob = abund
     )
-  )
-}
-print(resultados)
-```
 
-PERMANOVA -PERMDISP MATRIX PRESENCIA AUSENCIA
+    abund_boot <- tabulate(
+      muestra,
+      nbins = length(abund)
+    )
 
-```{r}
-mat_pa_forof <- data %>%
-  mutate(pres = 1) %>%
-   dplyr::select(forof, morphospe, pres) %>%
-  distinct() %>%
-  pivot_wider(names_from = morphospe,
-              values_from = pres,
-              values_fill = 0)
+    hill_taxa(
+      matrix(abund_boot, nrow = 1),
+      q = q
+    )
+  })
 
-#2. Construir distancia Jaccard
-dist_jaccard_forof <- vegdist(mat_pa_forof[,-1],
-                              method = "jaccard",
-                              binary = TRUE)
-####METADATA 
-metadata_pa <- data %>%
-  distinct(forof, plot, elevation)
-permanova_pa <- adonis2(dist_jaccard_forof ~ plot,#locality
-                        data = metadata_pa,
-                        permutations = 999)
-permanova_pa
-##PERMDISP
-disp_pa <- betadisper(dist_jaccard_forof, 
-                      metadata_pa$plot) #locality
-anova_pa <- anova(disp_pa)
-anova_pa
-permutest(disp_pa, permutations = 999)
-###PAIRWISE PERMANOSVA
-# 1. Niveles de plot
-plots <- sort(unique(metadata_pa$plot))
-
-# 2. Todas las combinaciones de 2 en 2
-comb_plots <- combn(plots, 2, simplify = FALSE)
-
-# 3. Función para correr adonis2 por par
-pair_fun <- function(gr) {
-  # gr es un vector de longitud 2: c("ACJ-01","APK-01"), etc.
-  idx <- metadata_pa$plot %in% gr
-  
-  # Submatriz de distancias para esos forófitos
-  sub_mat <- as.matrix(dist_jaccard_forof)[idx, idx]
-  sub_dist <- as.dist(sub_mat)
-  
-  # Metadata solo de esos forófitos
-  sub_meta <- droplevels(metadata_pa[idx, , drop = FALSE])
-  
-  # PERMANOVA para ese par
-  mod <- adonis2(sub_dist ~ plot,##locality
-                 data = sub_meta,
-                 permutations = 999)
-  
-  # Extraer la primera fila (factor plot)
-  data.frame(
-    plot1 = gr[1],
-    plot2 = gr[2],
-    F     = mod$F[1],
-    R2    = mod$R2[1],
-    p     = mod$`Pr(>F)`[1]
+  c(
+    mean = mean(valores),
+    lwr = quantile(valores, 0.025),
+    upr = quantile(valores, 0.975)
   )
 }
 
-# 4. Aplicar la función a todas las combinaciones
-pairwise_pa <- map_df(comb_plots, pair_fun)
+#Calcular H0, H1y H2 con IC95%
+hill_ci <- map_dfr(
+  1:nrow(matriz_num),
+  function(i){
 
-print(pairwise_pa)
-```
+    abund <- as.numeric(matriz_num[i, ])
 
-NMDS ABUNDANCIA CAMBIO NOMBRE PLOTS
-
-```{r}
-nmds_points <- nmds_points %>%
-  mutate(plot = dplyr::recode(plot,
-                       "APK-01" = "TLINE-3625",
-                       "ACJ-01" = "TLINE-3537",
-                       "TRU-01" = "TLINE-3402",
-                       "TRU-02" = "FORST-3261"))
-nmds_points %>% 
-  filter(plot == "FORST-3261") %>% 
-  arrange(desc(NMDS1)) %>% 
-  head()
-nmds_clean <- nmds_points %>%
-  filter(!(plot == "FORST-3261" & NMDS1 > 4))
-
-nmds_abu <- ggplot(nmds_clean, aes(NMDS1, NMDS2, color = plot)) +
-  geom_point(size = 2.5, alpha = 0.7) +
-  stat_ellipse(level = 0.95, linewidth = 1) +
-  scale_color_paletteer_d("ghibli::PonyoMedium") +
-  theme_minimal(base_size = 12) +
-  labs(
-    x = "NMDS1",
-    y = "NMDS2",
-    color = "Locality",
-    title = "NMDS abundancia (Chao)"
-  ) +
-  theme(
-    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
-    legend.title = element_text(size = 11),
-    legend.text  = element_text(size = 10),
-    legend.position = "none"
-  )
-nmds_abu
-```
-
-NMDS PRESENCIA AUSENCIA
-
-```{r}
-#1. Preparar la matriz de presencia–ausencia
-mat_pa_forof <- data %>%
-  mutate(pres = 1) %>%
-  dplyr::select(forof, morphospe, pres) %>%
-  distinct() %>%
-  pivot_wider(names_from = morphospe,
-              values_from = pres,
-              values_fill = 0)
-
-#2. Construir distancia Jaccard
-dist_jaccard_forof <- vegdist(mat_pa_forof[,-1],
-                              method = "jaccard",
-                              binary = TRUE)
-#3. Ejecutar NMDS
-nmds_jac_forof <- metaMDS(dist_jaccard_forof, k = 2, trymax = 100)
-
-#4. Extraer coordenadas NMDS + unir con información del plot
-nmds_points_jac <- as.data.frame(scores(nmds_jac_forof, display = "sites"))
-nmds_points_jac$forof <- mat_pa_forof$forof
-
-# Añadir elevación o plot
-nmds_points_jac <- nmds_points_jac %>%
-  left_join(data %>% distinct(forof, plot, elevation))
-
-#Graficar NMDS con paleta Ghibli
-ggplot(nmds_points_jac, aes(NMDS1, NMDS2, color = plot)) +
-  geom_point(size = 2.5, alpha = 0.8) +
-  stat_ellipse(level = 0.95, linewidth = 1) +
-  scale_color_paletteer_d("ghibli::PonyoMedium") +
-  theme_minimal(base_size = 12) +
-  labs(
-    x = "NMDS1",
-    y = "NMDS2",
-    color = "Plot",
-    title = "NMDS (Jaccard) of Epiphyte Assemblages by Phorophyte"
-  ) +
-  theme(
-    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
-    legend.title = element_text(size = 11),
-    legend.text  = element_text(size = 10)
-  )
-
-###1. Filtrar el outlier extremo
-nmds_points_jac_clean <- nmds_points_jac %>%
-  filter(!forof %in% c("TRU-02_4124", "TRU-02_4251"))
-
-nmds_points_jac_clean <- nmds_points_jac_clean %>%
-  mutate(plot =  dplyr::recode(plot,
-                       "APK-01" = "TLINE-3625",
-                       "ACJ-01" = "TLINE-3537",
-                       "TRU-01" = "TLINE-3402",
-                       "TRU-02" = "FORST-3261"))
-
-#grafico
-nmds_pause <- ggplot(nmds_points_jac_clean, aes(NMDS1, NMDS2, color = plot)) +
-  geom_point(size = 2.5, alpha = 0.8) +
-  stat_ellipse(level = 0.95, linewidth = 1) +
-  scale_color_paletteer_d("ghibli::PonyoMedium") +
-  theme_minimal(base_size = 12) +
-  labs(
-    x = "NMDS1",
-    y = "NMDS2",
-    color = "Locality",
-    title = "NMDS Presencia-Ausencia (Jaccard)"
-  ) +
-  theme(
-    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
-    legend.title = element_text(size = 11),
-    legend.text  = element_text(size = 10)
-  )
-
-grap_nmds <- (nmds_abu | nmds_pause) +
-    plot_annotation(
-    title = "NMDS Epiphyte assemblages by host",
-    theme = theme(plot.title = element_text(hjust = 0.5, face = "bold"))
-  )
-
-ggsave("NMDS abundancia y pre-aus(without outliers).png", plot= grap_nmds, width = 10, height = 5, dpi = 300)
-
-```
-
-Cambiar los colores
-
-```{r}
-# =====================================================
-# COLORES DE LOCALIDADES
-# =====================================================
-
-colores_localidad <- c(
-  "FORST-3261" = "#006400",
-  "TLINE-3402" = "#A2CD5A",
-  "TLINE-3537" = "#DAA520",
-  "TLINE-3625" = "#8B4513"
-)
-
-# =====================================================
-# NMDS ABUNDANCIA (CHAO)
-# =====================================================
-
-nmds_clean <- nmds_points %>%
-
-  mutate(
-    plot =  dplyr::recode(
-      plot,
-      "APK-01" = "TLINE-3625",
-      "ACJ-01" = "TLINE-3537",
-      "TRU-01" = "TLINE-3402",
-      "TRU-02" = "FORST-3261"
-    )
-  ) %>%
-
-  filter(!(plot == "FORST-3261" & NMDS1 > 4))
-
-nmds_abu <- ggplot(
-  nmds_clean,
-  aes(NMDS1, NMDS2, color = plot)
-) +
-
-  geom_point(size = 2.5, alpha = 0.7) +
-  stat_ellipse(level = 0.95, linewidth = 1) +
-
-  scale_color_manual(
-  values = colores_localidad,
-  labels = c(
-    "FORST-3261" = "FORST-3200",
-    "TLINE-3402" = "TLINE-3400",
-    "TLINE-3537" = "TLINE-3500",
-    "TLINE-3625" = "TLINE-3600"
-  ),
-  name = "Locality"
-) +
-
-  theme_minimal(base_size = 12) +
-
-  labs(
-    x = "NMDS1",
-    y = "NMDS2",
-    title = "NMDS Abundance (Chao)"
-  ) +
-
-  theme(
-    plot.title = element_text(
-      size = 14,
-      face = "bold",
-      hjust = 0.5
-    ),
-    legend.position = "none"
-  )
-nmds_abu
-
-# =====================================================
-# NMDS PRESENCIA-AUSENCIA (JACCARD)
-# =====================================================
-
-mat_pa_forof <- data %>%
-  mutate(pres = 1) %>%
-  dplyr::select(forof, morphospe, pres) %>%
-  distinct() %>%
-  pivot_wider(
-    names_from = morphospe,
-    values_from = pres,
-    values_fill = 0
-  )
-
-dist_jaccard_forof <- vegdist(
-  mat_pa_forof[, -1],
-  method = "jaccard",
-  binary = TRUE
-)
-
-nmds_jac_forof <- metaMDS(
-  dist_jaccard_forof,
-  k = 2,
-  trymax = 100
-)
-
-nmds_points_jac <- as.data.frame(
-  scores(nmds_jac_forof, display = "sites")
-)
-
-nmds_points_jac$forof <- mat_pa_forof$forof
-
-nmds_points_jac <- nmds_points_jac %>%
-  left_join(
-    data %>%
-      distinct(forof, plot, elevation),
-    by = "forof"
-  ) %>%
-
-  mutate(
-    plot = dplyr::recode(
-      plot,
-      "APK-01" = "TLINE-3625",
-      "ACJ-01" = "TLINE-3537",
-      "TRU-01" = "TLINE-3402",
-      "TRU-02" = "FORST-3261"
-    )
-  ) %>%
-
-  filter(
-    !forof %in% c(##son los arboles que exclui porque son outliers
-      "TRU-02_4124",
-      "TRU-02_4251"
-    )
-  )
-
-nmds_pause <- ggplot(
-  nmds_points_jac,
-  aes(NMDS1, NMDS2, color = plot)
-) +
-
-  geom_point(size = 2.5, alpha = 0.8) +
-  stat_ellipse(level = 0.95, linewidth = 1) +
-
- scale_color_manual(
-  values = colores_localidad,
-  labels = c(
-    "FORST-3261" = "FORST-3200",
-    "TLINE-3402" = "TLINE-3400",
-    "TLINE-3537" = "TLINE-3500",
-    "TLINE-3625" = "TLINE-3600"
-  ),
-  name = "Locality"
-) +
-
-  theme_minimal(base_size = 12) +
-
-  labs(
-    x = "NMDS1",
-    y = "NMDS2",
-    title = "NMDS Presence–Absence (Jaccard)"
-  ) +
-
-  theme(
-    plot.title = element_text(
-      size = 14,
-      face = "bold",
-      hjust = 0.5
-    )
-  )
-
-# =====================================================
-# FIGURA COMPUESTA
-# =====================================================
-
-grap_nmds <- (nmds_abu | nmds_pause) +
-  plot_annotation(
-    title = " ",
-    theme = theme(
-      plot.title = element_text(
-        hjust = 0.5,
-        face = "bold"
+    bind_rows(
+      data.frame(
+        elevation = elevation[i],
+        q = 0,
+        t(boot_hill(abund, q = 0))
+      ),
+      data.frame(
+        elevation = elevation[i],
+        q = 1,
+        t(boot_hill(abund, q = 1))
+      ),
+      data.frame(
+        elevation = elevation[i],
+        q = 2,
+        t(boot_hill(abund, q = 2))
       )
     )
+  }
+)
+hill_ci
+
+#nuevo grafico con IC95%
+# Colores y etiquetas
+colores_localidad <- c(
+  "3261" = "#006400",
+  "3402" = "#A2CD5A",
+  "3537" = "#DAA520",
+  "3625" = "#8B4513"
+)
+
+etiquetas_localidad <- c(
+  "3261" = "FORST-3200",
+  "3402" = "TLINE-3400",
+  "3537" = "TLINE-3500",
+  "3625" = "TLINE-3600"
+)
+
+hill_ci$elevation <- factor(
+  hill_ci$elevation,
+  levels = c("3261","3402","3537","3625")
+)
+
+hill_plot_IC <- ggplot(
+  hill_ci,
+  aes(
+    x = q,
+    y = mean,
+    color = elevation,
+    group = elevation
   )
+) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 3) +
+  geom_errorbar(
+    aes(
+      ymin = lwr.2.5.,
+      ymax = upr.97.5.
+    ),
+    width = 0.08
+  ) +
+  scale_x_continuous(
+    breaks = c(0,1,2)
+  ) +
+  scale_color_manual(
+    values = colores_localidad,
+    labels = etiquetas_localidad,
+    name = "Locality"
+  ) +
+  labs(
+    x = "q",
+    y = "diversity profiles (Hill number)"
+  ) +
+  theme_minimal(base_size = 12)
+
+# Guardar figura
+ggsave(
+  filename = "Hill_profileIC.png",
+  plot = hill_plot_IC,
+  width = 6,
+  height = 5,
+  units = "in",
+  dpi = 300
+)
+```
+
+# Composición
+
+Community composition analyses (abundance data)
+
+```{r}
+
+matriz_forof <- data %>%
+  count(forof, morphospe) %>%
+  pivot_wider(
+    names_from = morphospe,
+    values_from = n,
+    values_fill = 0
+  )
+# ================================================
+
+# Metadata for host trees
+
+metadata <- data %>%
+group_by(forof) %>%
+summarise(
+plot = unique(plot),
+elevation = unique(elevation),
+subplot = unique(subplot),
+genera_tree = unique(genera_tree),
+dap = unique(dap),
+height = unique(height),
+.groups = "drop"
+)
+
+# ================================================
+
+# Dissimilarity matrix
+
+# ================================================
+
+dist_chao <- vegdist(matriz_forof, method = "chao")
+
+# ================================================
+
+# PERMANOVA
+
+# ================================================
+
+permanova_chao <- adonis2(
+dist_chao ~ plot,
+data = metadata,
+permutations = 999
+)
+
+permanova_chao
+
+# ================================================
+
+# PERMDISP
+
+# ================================================
+
+disp_chao <- betadisper(
+dist_chao,
+metadata$plot
+)
+
+permdisp_chao <- anova(disp_chao)
+
+permdisp_chao
+
+# ================================================
+
+# Pairwise PERMANOVA
+
+# ================================================
+
+dist_mat <- as.matrix(dist_chao)
+
+grupos <- metadata$plot
+
+pares <- combn(
+unique(grupos),
+2,
+simplify = FALSE
+)
+
+pairwise_chao <- data.frame()
+
+for (par in pares) {
+
+idx <- grupos %in% par
+
+test <- adonis2(
+dist_mat[idx, idx] ~ grupos[idx],
+permutations = 999
+)
+
+pairwise_chao <- rbind(
+pairwise_chao,
+data.frame(
+plot1 = par[1],
+plot2 = par[2],
+F = test$F[1],
+R2 = test$R2[1],
+p = test$`Pr(>F)`[1]
+)
+)
+}
+
+# Multiple-comparison correction
+
+pairwise_chao$p_adj <- p.adjust(
+pairwise_chao$p,
+method = "BH"
+)
+
+pairwise_chao
+
+```
+
+Community composition analyses (presence-absence data)
+
+```{r}
+# ================================================
+
+# Presence–absence matrix by host tree
+
+mat_pa_forof <- data %>%
+mutate(pres = 1) %>%
+dplyr::select(forof, morphospe, pres) %>%
+distinct() %>%
+pivot_wider(
+names_from = morphospe,
+values_from = pres,
+values_fill = 0
+)
+
+# ================================================
+
+# Metadata
+
+# ================================================
+
+metadata_pa <- data %>%
+distinct(
+forof,
+plot,
+subplot,
+elevation
+)
+
+# ================================================
+
+# Jaccard dissimilarity matrix
+
+# ================================================
+
+dist_jaccard_forof <- vegdist(
+mat_pa_forof[, -1],
+method = "jaccard",
+binary = TRUE
+)
+
+# ================================================
+
+# PERMANOVA
+
+# ================================================
+
+permanova_pa <- adonis2(
+dist_jaccard_forof ~ plot,
+data = metadata_pa,
+permutations = 999
+)
+
+permanova_pa
+
+# ================================================
+
+# PERMDISP
+
+# ================================================
+
+disp_pa <- betadisper(
+dist_jaccard_forof,
+metadata_pa$plot
+)
+
+permdisp_pa <- anova(disp_pa)
+
+permdisp_pa
+
+permutest(
+disp_pa,
+permutations = 999
+)
+
+# ================================================
+
+# Pairwise PERMANOVA
+
+# ================================================
+plots <- sort(
+unique(metadata_pa$plot)
+)
+
+comb_plots <- combn(
+plots,
+2,
+simplify = FALSE
+)
+
+pair_fun <- function(gr) {
+
+idx <- metadata_pa$plot %in% gr
+
+sub_dist <- as.dist(
+as.matrix(dist_jaccard_forof)[idx, idx]
+)
+
+sub_meta <- droplevels(
+metadata_pa[idx, , drop = FALSE]
+)
+
+mod <- adonis2(
+sub_dist ~ plot,
+data = sub_meta,
+permutations = 999
+)
+
+data.frame(
+plot1 = gr[1],
+plot2 = gr[2],
+F     = mod$F[1],
+R2    = mod$R2[1],
+p     = mod$`Pr(>F)`[1]
+)
+}
+
+pairwise_pa <- map_df(
+comb_plots,
+pair_fun
+)
+
+# Multiple-comparison correction
+
+pairwise_pa$p_adj <- p.adjust(
+pairwise_pa$p,
+method = "BH"
+)
+
+pairwise_pa
+
+```
+
+NMDS
+
+```{r}
+# ================================================
+
+# NMDS ORDINATION
+
+# ================================================
+
+# ------------------------------------------------
+
+# Colors for localities
+
+# ------------------------------------------------
+
+colores_localidad <- c(
+"FORST-3261" = "#006400",
+"TLINE-3402" = "#A2CD5A",
+"TLINE-3537" = "#DAA520",
+"TLINE-3625" = "#8B4513"
+)
+
+etiquetas_localidad <- c(
+"FORST-3261" = "FORST-3200",
+"TLINE-3402" = "TLINE-3400",
+"TLINE-3537" = "TLINE-3500",
+"TLINE-3625" = "TLINE-3600"
+)
+
+# ================================================
+
+# NMDS ABUNDANCE (CHAO)
+
+# ================================================
+
+nmds_chao <- metaMDS(
+dist_chao,
+k = 2,
+trymax = 100
+)
+
+nmds_chao$stress
+
+nmds_points <- as.data.frame(
+scores(nmds_chao, display = "sites")
+)
+
+nmds_points$forof <- rownames(nmds_points)
+
+nmds_points <- nmds_points %>%
+left_join(
+metadata,
+by = "forof"
+) %>%
+mutate(
+plot = dplyr::recode(
+plot,
+"APK-01" = "TLINE-3625",
+"ACJ-01" = "TLINE-3537",
+"TRU-01" = "TLINE-3402",
+"TRU-02" = "FORST-3261"
+)
+)
+
+# Remove only for visualization
+
+nmds_points_plot <- nmds_points %>%
+filter(
+!forof %in% c(
+"TRU-02_4124",
+"TRU-02_4251"
+)
+)
+
+nmds_abu <- ggplot(
+nmds_points_plot,
+aes(NMDS1, NMDS2, color = plot)
+) +
+geom_point(
+size = 2.5,
+alpha = 0.7
+) +
+stat_ellipse(
+level = 0.95,
+linewidth = 1
+) +
+scale_color_manual(
+values = colores_localidad,
+labels = etiquetas_localidad,
+name = "Locality"
+) +
+labs(
+x = "NMDS1",
+y = "NMDS2",
+title = "NMDS Abundance (Chao)"
+) +
+theme_minimal(base_size = 12) +
+theme(
+plot.title = element_text(
+size = 14,
+face = "bold",
+hjust = 0.5
+),
+legend.position = "none"
+)
+
+# ================================================
+
+# NMDS PRESENCE–ABSENCE (JACCARD)
+
+# ================================================
+
+nmds_jaccard <- metaMDS(
+dist_jaccard_forof,
+k = 2,
+trymax = 100
+)
+
+nmds_jaccard$stress
+
+nmds_points_jac <- as.data.frame(
+scores(
+nmds_jaccard,
+display = "sites"
+)
+)
+
+nmds_points_jac$forof <- mat_pa_forof$forof
+
+nmds_points_jac <- nmds_points_jac %>%
+left_join(
+metadata_pa,
+by = "forof"
+) %>%
+mutate(
+plot = dplyr::recode(
+plot,
+"APK-01" = "TLINE-3625",
+"ACJ-01" = "TLINE-3537",
+"TRU-01" = "TLINE-3402",
+"TRU-02" = "FORST-3261"
+)
+)
+
+# Remove only for visualization
+
+nmds_points_jac_plot <- nmds_points_jac %>%
+filter(
+!forof %in% c(
+"TRU-02_4124",
+"TRU-02_4251"
+)
+)
+
+nmds_pause <- ggplot(
+nmds_points_jac_plot,
+aes(NMDS1, NMDS2, color = plot)
+) +
+geom_point(
+size = 2.5,
+alpha = 0.8
+) +
+stat_ellipse(
+level = 0.95,
+linewidth = 1
+) +
+scale_color_manual(
+values = colores_localidad,
+labels = etiquetas_localidad,
+name = "Locality"
+) +
+labs(
+x = "NMDS1",
+y = "NMDS2",
+title = "NMDS Presence–Absence (Jaccard)"
+) +
+theme_minimal(base_size = 12) +
+theme(
+plot.title = element_text(
+size = 14,
+face = "bold",
+hjust = 0.5
+)
+)
+
+# ================================================
+
+# COMBINED FIGURE
+
+# ================================================
+
+grap_nmds <- (nmds_abu | nmds_pause) +
+plot_annotation(
+tag_levels = "A"
+)
 
 grap_nmds
 
-# =====================================================
-# EXPORTAR
-# =====================================================
+# ================================================
+
+# EXPORT FIGURE
+
+# ================================================
 
 ggsave(
-  "NMDS_abundance_presence_absence.png",
-  plot = grap_nmds,
-  width = 10,
-  height = 5,
-  dpi = 300
+filename = "NMDS_abundance_presence_absence.png",
+plot = grap_nmds,
+width = 10,
+height = 5,
+dpi = 300
 )
+
 ```
 
 test de mantel
 
 ```{r}
 # =====================================================
-# DISTANCE-DECAY DE LA COMUNIDAD DE EPÍFITAS
-# Test de Mantel
+# DISTANCE-DECAY OF EPIPHYTE COMMUNITIES
+# Mantel test
+# =====================================================
 
-data$locality <- c(
-  "TRU-02" = "FORST-3261",
-  "TRU-01" = "TLINE-3402",
-  "ACJ-01" = "TLINE-3537",
-  "APK-01" = "TLINE-3625"
-)[data$plot]
+data <- data %>%
+  mutate(
+    locality = dplyr::recode(
+      plot,
+      "TRU-02" = "FORST-3200",
+      "TRU-01" = "TLINE-3400",
+      "ACJ-01" = "TLINE-3500",
+      "APK-01" = "TLINE-3600",
+      .default = as.character(plot)
+    )
+  )
 
 table(data$plot, data$locality)
+
 # =====================================================
-# 1. MATRIZ DE COMUNIDAD POR LOCALIDAD
+# 1. COMMUNITY MATRIX BY LOCALITY
 # =====================================================
 
 comm_localidad <- data %>%
   group_by(locality, morphospe) %>%
-  summarise(abund = n(), .groups = "drop") %>%
+  summarise(
+    abund = n(),
+    .groups = "drop"
+  ) %>%
   pivot_wider(
     names_from = morphospe,
     values_from = abund,
     values_fill = 0
-  )
+  ) %>%
+  as.data.frame()
 
 rownames(comm_localidad) <- comm_localidad$locality
+
 comm_localidad <- comm_localidad[, -1]
-dim(comm_localidad)
-rownames(comm_localidad)
-head(comm_localidad[,1:5])
 
-comm_localidad <- as.data.frame(comm_localidad)
-rownames(comm_localidad) <- comm_localidad$locality
-comm_localidad$locality <- NULL
 rownames(comm_localidad)
 # =====================================================
-# 2. COORDENADAS DE LAS LOCALIDADES
+# 2. LOCALITY COORDINATES
 # =====================================================
 
 coords <- data.frame(
   locality = c(
-    "FORST-3261",
-    "TLINE-3402",
-    "TLINE-3537",
-    "TLINE-3625"
+    "FORST-3200",
+    "TLINE-3400",
+    "TLINE-3500",
+    "TLINE-3600"
   ),
-
   latitude = c(
     -13.1105,
     -13.1137,
     -13.1469,
     -13.0957
   ),
-
   longitude = c(
     -71.6041,
     -71.6070,
@@ -1245,7 +1405,7 @@ coords <- data.frame(
   )
 )
 
-# ordenar igual que la matriz de comunidad
+# Match order with community matrix
 coords <- coords[
   match(
     rownames(comm_localidad),
@@ -1253,39 +1413,44 @@ coords <- coords[
   ),
 ]
 
+# Verify coordinates before continuing
+coords
+
+# This should return 0 for all columns
+colSums(is.na(coords))
+
+
+unique(data$plot)
+unique(data$locality)
+table(data$locality, useNA = "ifany")
 # =====================================================
-# Correccion de las distancias geograficas
+# 3. GEOGRAPHIC DISTANCE MATRIX
 # =====================================================
 
-# Geographic points
+library(sf)
+
 coords_sf <- st_as_sf(
   coords,
   coords = c("longitude", "latitude"),
   crs = 4326
 )
 
-# Project to UTM 19S for Cusco, Peru
-coords_utm <- st_transform(coords_sf, 32719)
+coords_utm <- st_transform(
+  coords_sf,
+  32719
+)
 
-# Distance matrix in meters
 dist_mat <- st_distance(coords_utm)
 
-# Convert to regular matrix
 dist_mat <- as.matrix(dist_mat)
 
-# Add locality names
 rownames(dist_mat) <- coords$locality
 colnames(dist_mat) <- coords$locality
 
-dist_mat
-
-#If you want it in kilometers:
-
 dist_mat_km <- dist_mat / 1000
-dist_mat_km
 
 # =====================================================
-# 4. MATRIZ DE DISTANCIA EN COMPOSICIÓN
+# 4. COMMUNITY DISSIMILARITY MATRIX
 # =====================================================
 
 dist_com <- vegdist(
@@ -1293,43 +1458,35 @@ dist_com <- vegdist(
   method = "chao"
 )
 
-# alternativa:
-# dist_com <- vegdist(comm_localidad,
-#                     method = "jaccard")
-
 # =====================================================
-# 5. TEST DE MANTEL
+# 5. MANTEL TEST
 # =====================================================
 
 mantel_result <- mantel(
   dist_com,
-dist_mat_km,
+  as.dist(dist_mat_km),
   permutations = 9999
 )
 
 mantel_result
-#r = -0.20 → la relación es débil y además negativa.
-#p = 0.708 → no significativa.
-#Por lo tanto: No existe evidencia de una relación entre distancia geográfica y disimilitud en la composición de epífitas.
-#
 
 # =====================================================
-# 6. EXTRAER PARES DE DISTANCIAS
+# 6. EXTRACT DISTANCE PAIRS
 # =====================================================
 
 df_mantel <- data.frame(
-  GeographicDistance = as.vector(dist_geo),
-  CommunityDistance  = as.vector(dist_com)
+  GeographicDistance = as.vector(as.dist(dist_mat_km)),
+  CommunityDistance = as.vector(dist_com)
 )
 
 # =====================================================
-# 7. GRÁFICO
+# 7. PLOT
 # =====================================================
 
 ggplot(
   df_mantel,
   aes(
-    x = GeographicDistance / 1000,
+    x = GeographicDistance,
     y = CommunityDistance
   )
 ) +
@@ -1345,7 +1502,7 @@ ggplot(
   theme_minimal(base_size = 14)
 
 # =====================================================
-# 8. CORRELACIÓN SIMPLE (OPCIONAL)
+# 8. OPTIONAL CORRELATION
 # =====================================================
 
 cor.test(
@@ -1357,4 +1514,4 @@ cor.test(
 
 ```
 
-La distancia geográfica no explicó la variación en la composición de las comunidades de epífitas entre localidades. La prueba de Mantel no mostró una correlación significativa entre la distancia geográfica y la disimilitud de Chao (r = -0.20, p = 0.71), indicando ausencia de un patrón detectable de decaimiento de similitud con la distancia.
+La distancia geográfica no explicó la variación en la composición de las comunidades de epífitas entre localidades. La prueba de Mantel no mostró una correlación significativa entre la distancia geográfica y la disimilitud de Chao (r = -0.231, p = 0.667), indicando ausencia de un patrón detectable de decaimiento de similitud con la distancia.

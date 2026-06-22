@@ -111,7 +111,7 @@ g <- ggsurvplot(
   pval = TRUE,
   conf.int = FALSE,
   legend.labs = c("Forest", "Puna"),
-  legend.title = "Habitat",
+  legend.title = "Treatment",
   palette = c("darkgreen", "brown"),
   linewidth = 1,
   xlab = "Time since the start (months)",
@@ -122,6 +122,15 @@ g <- ggsurvplot(
 png("KaplanMeier.png", width = 2000, height = 1600, res = 300)
 print(g)
 dev.off()
+
+ggsave(
+  "KaplanMeier.png",
+  plot = print(g),
+  width = 10,
+  height = 8,
+  units = "in",
+  dpi = 300
+)
 ```
 
 Kaplan–Meier survival analysis showed that the probability of survival remained at 1.0 for forest controls throughout the study, whereas epiphytes translocated to the puna experienced a sharp decline in survival probability, with median survival of five months.

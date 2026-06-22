@@ -28,14 +28,14 @@ library(lubridate)
 library(emmeans)
 library(ggpubr)
 library(geosphere)
+library(stringr)
+library(glmmTMB)
 
 ```
 
 base de datos
 
 ```{r}
-library(dplyr)
-
 setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/DATA")
 
 #----------------------------------------------------
@@ -48,6 +48,19 @@ data <- read.csv(
   sep = ";",
   stringsAsFactors = FALSE
 )
+
+data <- data %>%
+  mutate(
+    morphospe = iconv(morphospe,
+                      from = "",
+                      to = "UTF-8",
+                      sub = ""),
+    
+    morphospe = gsub("\u00A0", " ", morphospe),
+
+    morphospe = str_squish(morphospe)
+  )
+sort(unique(data$morphospe))##revisar las especies
 
 # data <- read.csv(
 #   "./Doble_filtro/Data/estrucPOBa.csv",
@@ -150,6 +163,17 @@ table(arboles$plot, arboles$presencia_epifitas)
 
 ```
 
+```{r}
+str(data)
+nrow(data)
+length(unique(data$morphospe))#ver cuantas especies
+data %>%###para ver las familias y especies
+  distinct(family, morphospe) %>%
+  count(family, name = "n_species") %>%
+  arrange(desc(n_species))
+
+```
+
 ### RIQUEZA modelos
 
 ```{r}
@@ -164,7 +188,7 @@ arboles$subplot <- as.factor(arboles$subplot)
 #modelo2 <- dbh * height + (1|plot)
 #modelo3 <- dbh * height + (1|elevation)
 ##modelo Binomial negativo sugerido 
-library(glmmTMB)
+
 
 #MODELOS CON INTERACCION
 m_ric_nb1 <- glmmTMB(
@@ -1040,17 +1064,12 @@ ggsave(
 
 ## Composición
 
-```{r}
-EPIDATA <- data %>% ###TABLA DE DATOS POBLACIONALES
-  dplyr::select(elevation,plot, subplot,forof, morphospe, dap, height)
-str(EPIDATA)
-```
-
 ¿Qué variables del forófito explican la composición de epífitas? dbRDA (capscale)
 
 Data
 
 ```{r}
+
 # =====================================================
 # 1. MATRIZ DE COMUNIDAD POR FORÓFITO
 # =====================================================
@@ -1066,6 +1085,20 @@ matrizf <- ABUNDFO %>%
     values_fill = 0
   )
 
+# corregir encoding inmediatamente
+colnames(matrizf) <- iconv(
+  colnames(matrizf),
+  from = "",
+  to = "UTF-8",
+  sub = ""
+)
+
+colnames(matrizf) <- gsub(
+  "\u00A0",
+  " ",
+  colnames(matrizf)
+)
+
 matriz_forof <- matrizf %>%
   group_by(forof) %>%
   summarise(across(where(is.numeric), sum)) %>%
@@ -1074,11 +1107,9 @@ matriz_forof <- matrizf %>%
 rownames(matriz_forof) <- matriz_forof$forof
 matriz_forof$forof <- NULL
 
-
-
-# =====================================================
+# ==============================================
 # 2. VARIABLES AMBIENTALES
-# =====================================================
+# ==============================================
 
 metadata <- data %>%
   group_by(forof) %>%
@@ -1092,16 +1123,11 @@ metadata <- data %>%
     .groups = "drop"
   )
 
-
-str(matriz_forof)
-str(metadata)
-
-table(colSums(matriz_forof)<1)
-table(rowSums(matriz_forof)<1)
-
 ```
 
 ```{r}
+comm <- matriz_forof
+
 # Recommended model set
 # 
 # Use these three models depending on the exact question:
@@ -1144,6 +1170,7 @@ mod_host_controlled <- capscale(
 )
 anova(mod_host_controlled)
 anova(mod_host_controlled, by = "term")
+anova(mod_host_controlled, by = "margin")
 RsquareAdj(mod_host_controlled)
 #question answered:
 #Are the host -tree variables after controlling for "plot" associated with epiphyte composition ?
@@ -1158,11 +1185,12 @@ RsquareAdj(mod_host_controlled)
 para el dbRDA deberia usar el modelo comm \~ dap + height + Condition(subplot) ¿DAP y altura están asociados con la composición de epífitas independientemente de la estructura espacial local (subplot)?
 
 ```{r}
-# =====================================================
+# ==============================================
 # 3. dbRDA
-# =====================================================
+# ==============================================
 
 comm <- matriz_forof
+
 env  <- metadata
 
 mod <- capscale(
@@ -1170,19 +1198,18 @@ mod <- capscale(
   data = env,
   distance = "chao"
 )
-
-# =====================================================
+# ==============================================
 # 4. SIGNIFICANCIA
-# =====================================================
+# ==============================================
 
 anova(mod)
 anova(mod, by = "term")
 summary(mod)
 
 
-# =====================================================
+# ==============================================
 # 5. COORDENADAS DE LOS SITIOS
-# =====================================================
+# ==============================================
 
 coords <- as.data.frame(
   scores(mod, display = "sites")
@@ -1190,9 +1217,9 @@ coords <- as.data.frame(
 
 coords$plot <- env$plot
 
-# =====================================================
+# ==============================================
 # 6. CENTROIDES
-# =====================================================
+# ==============================================
 
 centroides <- coords %>%
   group_by(plot) %>%
@@ -1202,9 +1229,9 @@ centroides <- coords %>%
     .groups = "drop"
   )
 
-# =====================================================
+# ==============================================
 # 7. VARIABLES AMBIENTALES
-# =====================================================
+# ==============================================
 
 fit <- envfit(
   mod,
@@ -1212,16 +1239,20 @@ fit <- envfit(
   permutations = 999
 )
 
+# Direcciones de las flechas
 ar <- fit$vectors$arrows
 
-ar_norm <- ar / sqrt(rowSums(ar^2))
+# Fuerza de correlación
+r <- sqrt(fit$vectors$r)
 
+# Flechas escaladas según la correlación
 ar_df <- data.frame(
-  var  = rownames(ar_norm),
-  xend = ar_norm[,1] * 1.2,
-  yend = ar_norm[,2] * 1.2
+  var  = rownames(ar),
+  xend = ar[,1] * r * 3,
+  yend = ar[,2] * r * 3
 )
 
+# Cambiar nombres
 ar_df <- ar_df %>%
   mutate(
     var = dplyr::recode(
@@ -1255,9 +1286,10 @@ colores_localidad <- c(
   "TLINE-3600" = "#8B4513"
 )
 
-# =====================================================
+# ==============================================
 # 10. FIGURA FINAL
-# =====================================================
+# ==============================================
+library(ggrepel)
 dbRDA_plot <- ggplot() +
 
   geom_point(
@@ -1280,29 +1312,29 @@ dbRDA_plot <- ggplot() +
   ) +
 
   geom_segment(
-    data = ar_df,
-    aes(
-      x = 0,
-      y = 0,
-      xend = xend,
-      yend = yend
-    ),
-    arrow = arrow(length = unit(0.3, "cm")),
-    linewidth = 1.2,
-    color = "red"
-  ) +
+  data = ar_df,
+  aes(
+    x = 0,
+    y = 0,
+    xend = xend,
+    yend = yend
+  ),
+  arrow = arrow(length = unit(0.3, "cm")),
+  linewidth = 1.2,
+  color = "red"
+) +
 
-  geom_text(
-    data = ar_df,
-    aes(
-      x = xend * 1.45,
-      y = yend * 1.45,
-      label = var
-    ),
-    color = "red",
-    fontface = "bold",
-    size = 5
-  ) +
+geom_text(
+  data = ar_df,
+  aes(
+    x = xend * 1.10,
+    y = yend * 1.10,
+    label = var
+  ),
+  color = "red",
+  fontface = "bold",
+  size = 5
+) +
 
   geom_hline(
     yintercept = 0,
@@ -1342,6 +1374,7 @@ dbRDA_plot <- ggplot() +
       linewidth = 0.3
     )
   )
+dbRDA_plot
 
 dbRDA_plot2 <- dbRDA_plot +##PARA hacerlo cuadrado
   scale_x_continuous(
@@ -1352,12 +1385,12 @@ dbRDA_plot2 <- dbRDA_plot +##PARA hacerlo cuadrado
   )
 
 dbRDA_plot2
-# =====================================================
+# ==============================================
 # 11. EXPORTAR FIGURA
-# =====================================================
+# ==============================================
 
 ggsave(
-  "dbRDA_epifitas1.png",
+  "dbRDA_epifitas3.png",
   plot = dbRDA_plot,
   width = 7,
   height = 7,
@@ -1365,6 +1398,8 @@ ggsave(
   dpi = 300
 )
 
+summary(mod)
+all(rownames(matriz_forof) == metadata$forof)
 ```
 
 The dbRDA model was significant (F = 11.60, p = 0.001).
@@ -1374,3 +1409,22 @@ Environmental variables explained 24.4% of the variation in epiphyte community c
 Elevation had the strongest effect on community composition, followed by plot identity, host-tree diameter (DAP), and host height (all p = 0.001).
 
 The first two constrained axes explained 68.9% of the constrained variation.
+
+Resultados cambiaron esta tabla me sugiere colocar en anexos
+
+1\. Tabla con los resultados del dbRDA (obligatoria)
+
+| Source   | Df  | Sum of Squares | F    | p     |
+|----------|-----|----------------|------|-------|
+| DBH      | 1   | 0.491          | 1.01 | 0.500 |
+| Height   | 1   | 0.854          | 1.76 | 0.006 |
+| Residual | 182 | 88.035         |      |       |
+
+3\. Resultado global del modelo (en texto o tabla)
+
+| Statistic | Value  |
+|-----------|--------|
+| F         | 1.389  |
+| p         | 0.013  |
+| R²        | 0.0148 |
+| R² adj    | 0.0043 |
