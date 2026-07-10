@@ -1,0 +1,371 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+base de datos
+
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/DATA")
+
+#----------------------------------------------------
+# FOROFITOS CON EPIFITAS
+#----------------------------------------------------
+
+data <- read.csv(
+  "estrucPOBa.csv",
+  header = TRUE,
+  sep = ";",
+  stringsAsFactors = FALSE
+)
+
+data <- data %>%
+  mutate(
+    morphospe = iconv(morphospe,
+                      from = "",
+                      to = "UTF-8",
+                      sub = ""),
+    
+    morphospe = gsub("\u00A0", " ", morphospe),
+
+    morphospe = str_squish(morphospe)
+  )
+sort(unique(data$morphospe))##revisar las especies
+
+# data <- read.csv(
+#   "./Doble_filtro/Data/estrucPOBa.csv",
+#   header = TRUE,
+#   sep = ";",
+#   stringsAsFactors = FALSE
+# )
+
+hospepi <- data %>%
+  dplyr::select(
+    plot,
+    elevation,
+    forof,
+    morphospe,
+    family,
+    subplot,
+    dap,
+    height
+  )
+
+#----------------------------------------------------
+# ARBOLES
+#----------------------------------------------------
+
+trees <- read.csv(
+  "treealtu.csv",
+  header = TRUE,
+  sep = ";",
+  stringsAsFactors = FALSE
+)
+
+
+# trees <- read.csv(
+#   "./Doble_filtro/Data/treealtu.csv",
+#   header = TRUE,
+#   sep = ";",
+#   stringsAsFactors = FALSE
+# )
+
+tree <- trees %>%
+  dplyr::select(
+    plot,
+    elevation,
+    tagtree,
+    family,
+    subplot,
+    NC,
+    DBH,
+    H
+  )
+
+#----------------------------------------------------
+# RENOMBRAR VARIABLES DE ARBOLES
+#----------------------------------------------------
+
+tree2 <- tree %>%
+  rename(
+    forof = tagtree,
+    dap = DBH,
+    height = H
+  )
+
+#----------------------------------------------------
+# RESUMEN DE EPIFITAS POR FOROFITO
+#----------------------------------------------------
+
+epi_por_arbol <- hospepi %>%
+  group_by(forof) %>%
+  summarise(
+    presencia_epifitas = 1,
+    riqueza = n_distinct(morphospe),
+    abundancia_total = n(),
+    .groups = "drop"
+  )
+
+#----------------------------------------------------
+# UNIR TABLAS
+#----------------------------------------------------
+
+arboles <- tree2 %>%
+  left_join(
+    epi_por_arbol,
+    by = "forof"
+  ) %>%
+  mutate(
+    presencia_epifitas = ifelse(is.na(presencia_epifitas), 0, presencia_epifitas),
+    riqueza = ifelse(is.na(riqueza), 0, riqueza),
+    abundancia_total = ifelse(is.na(abundancia_total), 0, abundancia_total)
+  )
+
+#----------------------------------------------------
+# VERIFICAR
+#----------------------------------------------------
+
+str(arboles)
+
+table(arboles$presencia_epifitas)
+
+table(arboles$plot, arboles$presencia_epifitas)
+
+```
+
+```{r}
+# convertir a factores
+arboles$elev_f <- factor(arboles$elevation)
+arboles$subplot_f <- factor(arboles$subplot)
+
+
+#modelo
+m_rich <- glmer(riqueza ~ elev_f + (1|subplot_f),
+                family = poisson, data = arboles)
+
+# resultados
+summary(m_rich)
+Anova(m_rich)
+windows()
+check_model(m_rich)
+#revisar overdispersion
+check_overdispersion(m_rich)# overdispercion
+
+# Solucionando la sobre dispersión
+m_rich_nb <- glmmTMB(
+  riqueza ~ elev_f + (1 | subplot_f),
+  family = nbinom2,
+  data = arboles
+) # modelo final!
+
+# Diferencia entre modelos (poisson vs nv)
+AIC(m_rich, m_rich_nb)# si la diferencia entre valores de AIC es mayor a 10, es significativa 
+
+# Resultados:
+summary(m_rich_nb)
+Anova(m_rich_nb)
+
+# Revisando
+windows()
+check_overdispersion(m_rich_nb)# no sobredispersión
+check_model(m_rich_nb)
+
+#Extraer las comparaciones de emmeans como data frame
+emm <- emmeans(m_rich_nb, ~ elev_f)
+pairs_df <- pairs(emm, adjust = "tukey") %>%
+  as.data.frame()
+#data frame para ggplot
+pairs_df <- pairs_df %>%
+  separate(contrast, into = c("group1", "group2"), sep = " - ") %>%
+  mutate(
+    group1 = gsub("elev_f", "", group1),
+    group2 = gsub("elev_f", "", group2),
+    y.position = max(richness$richness) + 
+                 seq(0.2, by = 0.2, length.out = n())
+  )
+
+
+#GRAFICO con asteriscos
+colnames(pairs_df)
+pairs_df <- pairs_df %>%
+  mutate(
+    p.signif = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*",
+      TRUE            ~ "ns"
+    )
+  )
+#plot con correcciones visuales 
+pairs_sig <- pairs_df %>%
+  filter(p.value < 0.05)
+pairs_sig <- pairs_sig %>%
+  mutate(
+    y.position = max(richness$richness, na.rm = TRUE) +
+                 seq(2, by = 2, length.out = n())
+  )
+riq_el <- ggplot(richness, aes(elev_f, richness)) +
+  geom_boxplot(width = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.5, size = 1.8) +
+  stat_pvalue_manual(
+    pairs_sig,
+    label = "p.signif",
+    tip.length = 0.01
+  ) +
+  stat_summary(
+    fun = mean,
+    geom = "crossbar",
+    width = 0.6,
+    colour = "red",
+    linewidth = 0.4
+  ) +
+  theme_classic(base_size = 14) +
+  ylab("Epiphyte species richness per tree") +
+  xlab("Elevation (m)")
+
+# plot
+riq_el
+
+```
+
+Abundancia
+
+```{r}
+# Negative binomial type 2: variance increases quadratically with mean
+m_nb2 <- glmmTMB(
+  abundancia_total ~ elev_f + (1 | subplot_f),
+  family = nbinom2,
+  data = arboles
+)
+Anova(m_nb2)
+# Negative binomial type 2 with dispersion varying among elevations
+# This is useful when some elevations are much more variable than others
+m_nb2_disp <- glmmTMB(
+  abundancia_total ~ elev_f + (1 | subplot_f),
+  dispformula = ~ elev_f,
+  family = nbinom2,
+  data = arboles
+)
+Anova(m_nb2_disp)
+# Zero-inflated negative binomial type 2
+# Use only if DHARMa suggests excess zeros
+m_zinb2 <- glmmTMB(
+  abundancia_total ~ elev_f + (1 | subplot_f),
+  ziformula = ~ 1,
+  family = nbinom2,
+  data = arboles
+)
+Anova(m_zinb2)
+# Negative binomial without random effect
+# Useful because your subplot variance is basically zero
+m_nb2_noRE <- glmmTMB(
+  abundancia_total ~ elev_f,
+  family = nbinom2,
+  data = arboles
+)
+Anova(m_nb2_noRE)
+# ------------------------------------------------------------
+# 3. Compare candidate models
+# ------------------------------------------------------------
+
+AIC(
+  m_nb2,
+  m_nb2_disp,
+  m_zinb2,
+  m_nb2_noRE
+)
+
+
+# Replace this with the model with best AIC
+best_model <- m_nb2_disp
+
+sim_best <- simulateResiduals(best_model, n = 1000)
+
+plot(sim_best)
+testDispersion(sim_best)
+testZeroInflation(sim_best)
+testOutliers(sim_best)
+
+check_overdispersion(best_model)
+
+
+# Your DHARMa result is important:
+# 
+# testZeroInflation(sim_best)
+# ratioObsSim = 0, p-value = 0.002
+# 
+# This does not mean zero inflation. It means the opposite: your model simulates zeros, but your data have no zeros or fewer zeros than expected. So the problem is probably that your abundance data are zero-truncated.
+# 
+# In other words, if your dataset only includes trees with at least one individual/record, then a normal negative binomial is not ideal. Use a zero-truncated negative binomial.
+
+
+
+
+# ------------------------------------------------------------
+# 1. Check whether abundance has zeros
+# ------------------------------------------------------------
+
+table(abund$abundance == 0)
+min(abund$abundance)
+
+# If min(abundance) > 0, use a zero-truncated model.
+# This is likely your case.
+
+abund <- abund %>%
+  mutate(
+    elev_f = factor(elev_f),
+    subplot_f = factor(subplot_f)
+  )
+
+# ------------------------------------------------------------
+# 2. Final model candidate: zero-truncated NB2
+# with elevation-specific dispersion
+# ------------------------------------------------------------
+
+m_abund_final <- glmmTMB(
+  abundancia_total ~ elev_f + (1 | subplot_f),
+  dispformula = ~ elev_f,
+  family = nbinom2,
+  data = arboles
+)
+
+summary(m_abund_final)
+Anova(m_abund_final)
+
+# ------------------------------------------------------------
+# 3. Diagnostics
+# ------------------------------------------------------------
+
+sim_final <- DHARMa::simulateResiduals(m_abund_final, n = 1000)
+
+plot(sim_final)
+
+DHARMa::testDispersion(sim_final)
+DHARMa::testZeroInflation(sim_final)
+DHARMa::testOutliers(sim_final)
+
+check_overdispersion(m_abund_final)
+
+# --------------------------------------------------
+
+
+# Comparisons:
+AIC(m_nb2, m_abund_final)
+summary(m_nb2)
+summary(m_abund_final)
+
+res_nb <- simulateResiduals(m_nb2)
+res_final <- simulateResiduals(m_abund_final)
+
+testDispersion(res_nb)
+testDispersion(res_final)
+
+testZeroInflation(res_nb)
+testZeroInflation(res_final)
+
+testOutliers(res_nb)
+testOutliers(res_final)
+```
+
+ya no se pudo hacer el modelo de cero truncado con la base de datos completo y solo use el modelo binomial negativo

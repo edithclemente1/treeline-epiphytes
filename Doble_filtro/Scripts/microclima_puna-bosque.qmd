@@ -263,3 +263,112 @@ ggplot(daily_hr, aes(x = date, y = hr_mean, color = logger_id, fill = logger_id)
 ```
 
 la puna menor humedad relativa
+
+# calculos
+
+### medir la temperatura MEAN, mean annual minimum temp, mean anual maximum temp
+
+sensor grande
+
+```{r}
+daily_temp <- temp_long %>%
+  group_by(date, logger_id) %>%
+  summarise(
+    mean_temp = mean(temperature, na.rm = TRUE),
+    min_temp  = min(temperature, na.rm = TRUE),
+    max_temp  = max(temperature, na.rm = TRUE),
+    .groups = "drop"
+  )
+##RESUMEN ANUAL
+annual_temp <- daily_temp %>%
+  group_by(logger_id) %>%
+  summarise(
+    Mean_Annual_Temp = mean(mean_temp, na.rm = TRUE),
+    Mean_Min_Temp    = mean(min_temp, na.rm = TRUE),
+    Mean_Max_Temp    = mean(max_temp, na.rm = TRUE),
+    Absolute_Min     = min(min_temp, na.rm = TRUE),
+    Absolute_Max     = max(max_temp, na.rm = TRUE)
+  )
+
+annual_temp
+print(annual_temp, width = Inf)
+```
+
+sensor pequeño
+
+```{r}
+daily_temp1 <- temp_long %>%
+  group_by(date, logger_id) %>%
+  summarise(
+    n_obs     = sum(!is.na(temperature)),
+    mean_temp = mean(temperature, na.rm = TRUE),
+    min_temp  = min(temperature, na.rm = TRUE),
+    max_temp  = max(temperature, na.rm = TRUE),
+    sd_temp   = sd(temperature, na.rm = TRUE),
+    se_temp   = sd_temp / sqrt(pmax(n_obs, 1)),
+    tcrit     = qt(0.975, df = pmax(n_obs - 1, 1)),
+    ci        = tcrit * se_temp,
+    .groups = "drop"
+  )
+annual_temp1 <- daily_temp1 %>%
+  group_by(logger_id) %>%
+  summarise(
+    Mean_Annual_Temp = mean(mean_temp, na.rm = TRUE),
+    SD_Annual_Temp   = sd(mean_temp, na.rm = TRUE),
+
+    Mean_Min_Temp = mean(min_temp, na.rm = TRUE),
+    Mean_Max_Temp = mean(max_temp, na.rm = TRUE),
+
+    Absolute_Min = min(min_temp, na.rm = TRUE),
+    Absolute_Max = max(max_temp, na.rm = TRUE),
+
+    n_days = n(),
+    .groups = "drop"
+  )
+
+annual_temp1
+
+print(annual_temp1, width = Inf)
+```
+
+### medir RH mean, mean annual minimum, maximum
+
+```{r}
+daily_hr <- hr_long %>%
+  group_by(date, logger_id) %>%
+  summarise(
+    n_obs    = sum(!is.na(humidity)),
+    mean_hr  = mean(humidity, na.rm = TRUE),
+    min_hr   = min(humidity, na.rm = TRUE),
+    max_hr   = max(humidity, na.rm = TRUE),
+    sd_hr    = sd(humidity, na.rm = TRUE),
+    se_hr    = sd_hr / sqrt(pmax(n_obs, 1)),
+    tcrit    = qt(0.975, df = pmax(n_obs - 1, 1)),
+    ci       = tcrit * se_hr,
+    .groups = "drop"
+  )
+annual_hr <- daily_hr %>%
+  mutate(
+    logger_id = dplyr::recode(logger_id,
+      "hr_forest" = "Forest",
+      "hr_puna"   = "Puna"
+    )
+  ) %>%
+  group_by(logger_id) %>%
+  summarise(
+    Mean_Annual_HR = mean(mean_hr, na.rm = TRUE),
+    SD_Annual_HR   = sd(mean_hr, na.rm = TRUE),
+
+    Mean_Min_HR = mean(min_hr, na.rm = TRUE),
+    Mean_Max_HR = mean(max_hr, na.rm = TRUE),
+
+    Absolute_Min = min(min_hr, na.rm = TRUE),
+    Absolute_Max = max(max_hr, na.rm = TRUE),
+
+    n_days = n(),
+    .groups = "drop"
+  )
+
+annual_hr
+print(annual_hr, width = Inf)
+```
