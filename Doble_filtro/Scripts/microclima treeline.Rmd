@@ -8,6 +8,7 @@ data
 ```{r}
 setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/Data")
 climadata <- read.csv("dataclima.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+
 str(climadata)      # Estructura de la base de datos
 head(climadata)
 head(climadata$date_hour)
@@ -666,4 +667,393 @@ g_clima <- (g_light / g_temp / g_hr) +
 ggsave("Environmental_conditions_panel.png", g_clima,
        width = 12, height = 14, dpi = 300)
 ```
+
+
+
+
+Evaluating differences between treatments
+
+Chunk 1: Data Import & Preparation
+```{r}
+# ============================================================
+# CHUNK 1: DATA IMPORT & PREPARATION
+# ============================================================
+library(tidyverse)
+library(lubridate)
+library(mgcv)
+library(boot)
+library(ggplot2)
+library(gridExtra)
+
+# Read data
+climadata <- read.csv("./Doble_filtro/Data/dataclima.csv", 
+                      header = TRUE, sep = ";", stringsAsFactors = FALSE)
+
+# Convert date_hour to POSIXct
+climadata <- climadata %>%
+  mutate(date_hour = as.POSIXct(date_hour, format = "%d/%m/%Y %H:%M", tz = "America/Lima"))
+
+# ---- Prepare long data for temperature and humidity ----
+long_data <- climadata %>%
+  mutate(
+    date = as.Date(date_hour),
+    hour_of_day = as.numeric(format(date_hour, "%H")) + 
+                  as.numeric(format(date_hour, "%M"))/60,
+    date_numeric = as.numeric(date)
+  ) %>%
+  pivot_longer(
+    cols = c(temp_puna, temp_forest, hr_puna, hr_forest),
+    names_to = c("variable", "habitat"),
+    names_pattern = "(.*)_(.*)",
+    values_to = "value"
+  ) %>%
+  pivot_wider(
+    names_from = variable, 
+    values_from = value
+  )
+
+# ---- Prepare light data in long format ----
+# NOTE: Light sensor clock was offset by ~9 hours.
+# Subtracting 9 hours aligns light peak with solar noon (~12:00).
+light_data <- climadata %>%
+  mutate(
+    date_hour_light = date_hour - hours(9),  # correct sensor clock offset
+    date = as.Date(date_hour_light),
+    hour_of_day = hour(date_hour_light) + minute(date_hour_light)/60,
+    date_numeric = as.numeric(date)
+  ) %>%
+  pivot_longer(
+    cols = c(ilum_puna, ilum_forest),
+    names_to = "habitat",
+    values_to = "light_intensity",  # lum/ft²
+    names_prefix = "ilum_"
+  )
+
+# ---- GAMs for statistical inference ----
+# Temperature
+mod_temp <- gam(temp ~ habitat + 
+                s(hour_of_day, bs = "cc", k = 24) +  
+                s(date_numeric, bs = "tp", k = 20),
+              data = long_data)
+cat("\n=== TEMPERATURE GAM ===\n")
+summary(mod_temp)
+
+# Humidity
+mod_hr <- gam(hr ~ habitat + 
+              s(hour_of_day, bs = "cc", k = 24) +  
+              s(date_numeric, bs = "tp", k = 20),
+            data = long_data)
+cat("\n=== HUMIDITY GAM ===\n")
+summary(mod_hr)
+
+# Light intensity (log-transformed for zeros at night)
+light_data$light_log <- log(light_data$light_intensity + 1)
+mod_light <- gam(light_log ~ habitat + 
+                 s(hour_of_day, bs = "cc", k = 24),
+               data = light_data)
+cat("\n=== LIGHT INTENSITY GAM (log scale) ===\n")
+summary(mod_light)
+
+cat("\n✓ Data preparation and GAMs complete\n")
+```
+
+Chunk 2: Bootstrap Analysis & Results Table
+```{r}
+# ============================================================
+# CHUNK 2: BOOTSTRAP ANALYSIS & RESULTS
+# ============================================================
+
+# ---- Create daily summaries ----
+
+# Temperature and humidity
+daily_summary <- long_data %>%
+  group_by(date, habitat) %>%
+  summarise(
+    temp_mean = mean(temp, na.rm = TRUE),
+    temp_max = max(temp, na.rm = TRUE),
+    temp_min = min(temp, na.rm = TRUE),
+    temp_range = temp_max - temp_min,
+    hr_mean = mean(hr, na.rm = TRUE),
+    hr_min = min(hr, na.rm = TRUE),
+    .groups = 'drop'
+  )
+
+# Light intensity (from long-format light_data, with corrected timestamps)
+daily_light <- light_data %>%
+  group_by(date, habitat) %>%
+  summarise(
+    light_integral = sum(light_intensity, na.rm = TRUE) * 0.5,
+    light_max = max(light_intensity, na.rm = TRUE),
+    light_daytime = mean(light_intensity[hour_of_day >= 6 & hour_of_day <= 18], na.rm = TRUE),
+    light_hours = sum(light_intensity > 0, na.rm = TRUE) * 0.5,
+    .groups = 'drop'
+  ) %>%
+  pivot_wider(
+    id_cols = date,
+    names_from = habitat,
+    values_from = c(light_integral, light_max, light_daytime, light_hours)
+  ) %>%
+  mutate(
+    light_integral_diff = light_integral_puna - light_integral_forest,
+    light_max_diff = light_max_puna - light_max_forest,
+    light_daytime_diff = light_daytime_puna - light_daytime_forest,
+    light_hours_diff = light_hours_puna - light_hours_forest,
+    light_integral_ratio = light_integral_puna / light_integral_forest
+  )
+
+# ---- Paired differences ----
+daily_diff <- daily_summary %>%
+  pivot_wider(
+    id_cols = date,
+    names_from = habitat,
+    values_from = c(temp_mean, temp_max, temp_min, temp_range, hr_mean, hr_min)
+  ) %>%
+  mutate(
+    temp_diff = temp_mean_puna - temp_mean_forest,
+    temp_max_diff = temp_max_puna - temp_max_forest,
+    temp_min_diff = temp_min_puna - temp_min_forest,
+    range_diff = temp_range_puna - temp_range_forest,
+    hr_diff = hr_mean_puna - hr_mean_forest,
+    hr_min_diff = hr_min_puna - hr_min_forest
+  )
+
+# ---- Bootstrap ----
+set.seed(123)
+
+boot_temp <- boot(daily_diff, function(d, i) mean(d$temp_diff[i], na.rm = TRUE), R = 9999)
+boot_temp_max <- boot(daily_diff, function(d, i) mean(d$temp_max_diff[i], na.rm = TRUE), R = 9999)
+boot_temp_min <- boot(daily_diff, function(d, i) mean(d$temp_min_diff[i], na.rm = TRUE), R = 9999)
+boot_range <- boot(daily_diff, function(d, i) mean(d$range_diff[i], na.rm = TRUE), R = 9999)
+boot_hr <- boot(daily_diff, function(d, i) mean(d$hr_diff[i], na.rm = TRUE), R = 9999)
+boot_hr_min <- boot(daily_diff, function(d, i) mean(d$hr_min_diff[i], na.rm = TRUE), R = 9999)
+boot_light_integral <- boot(daily_light, function(d, i) mean(d$light_integral_diff[i], na.rm = TRUE), R = 9999)
+boot_light_max <- boot(daily_light, function(d, i) mean(d$light_max_diff[i], na.rm = TRUE), R = 9999)
+boot_light_daytime <- boot(daily_light, function(d, i) mean(d$light_daytime_diff[i], na.rm = TRUE), R = 9999)
+boot_light_hours <- boot(daily_light, function(d, i) mean(d$light_hours_diff[i], na.rm = TRUE), R = 9999)
+boot_light_ratio <- boot(daily_light, function(d, i) mean(d$light_integral_ratio[i], na.rm = TRUE), R = 9999)
+
+# ---- Compile results table ----
+results <- data.frame(
+  Variable = c(
+    "Mean temperature", "Daily temperature range", "Maximum temperature",
+    "Minimum temperature", "Mean relative humidity", "Minimum relative humidity",
+    "Daily light integral", "Maximum light intensity",
+    "Daytime mean light intensity", "Hours with light"
+  ),
+  Units = c("°C", "°C", "°C", "°C", "%", "%", 
+            "lum/ft²·hours", "lum/ft²", "lum/ft²", "hours"),
+  Puna = c(
+    mean(daily_diff$temp_mean_puna, na.rm = TRUE),
+    mean(daily_diff$temp_range_puna, na.rm = TRUE),
+    mean(daily_diff$temp_max_puna, na.rm = TRUE),
+    mean(daily_diff$temp_min_puna, na.rm = TRUE),
+    mean(daily_diff$hr_mean_puna, na.rm = TRUE),
+    mean(daily_diff$hr_min_puna, na.rm = TRUE),
+    mean(daily_light$light_integral_puna, na.rm = TRUE),
+    mean(daily_light$light_max_puna, na.rm = TRUE),
+    mean(daily_light$light_daytime_puna, na.rm = TRUE),
+    mean(daily_light$light_hours_puna, na.rm = TRUE)
+  ),
+  Forest = c(
+    mean(daily_diff$temp_mean_forest, na.rm = TRUE),
+    mean(daily_diff$temp_range_forest, na.rm = TRUE),
+    mean(daily_diff$temp_max_forest, na.rm = TRUE),
+    mean(daily_diff$temp_min_forest, na.rm = TRUE),
+    mean(daily_diff$hr_mean_forest, na.rm = TRUE),
+    mean(daily_diff$hr_min_forest, na.rm = TRUE),
+    mean(daily_light$light_integral_forest, na.rm = TRUE),
+    mean(daily_light$light_max_forest, na.rm = TRUE),
+    mean(daily_light$light_daytime_forest, na.rm = TRUE),
+    mean(daily_light$light_hours_forest, na.rm = TRUE)
+  ),
+  Difference = c(
+    boot_temp$t0, boot_range$t0, boot_temp_max$t0, boot_temp_min$t0,
+    boot_hr$t0, boot_hr_min$t0,
+    boot_light_integral$t0, boot_light_max$t0,
+    boot_light_daytime$t0, boot_light_hours$t0
+  ),
+  CI_lower = c(
+    boot.ci(boot_temp, type = "perc")$percent[4],
+    boot.ci(boot_range, type = "perc")$percent[4],
+    boot.ci(boot_temp_max, type = "perc")$percent[4],
+    boot.ci(boot_temp_min, type = "perc")$percent[4],
+    boot.ci(boot_hr, type = "perc")$percent[4],
+    boot.ci(boot_hr_min, type = "perc")$percent[4],
+    boot.ci(boot_light_integral, type = "perc")$percent[4],
+    boot.ci(boot_light_max, type = "perc")$percent[4],
+    boot.ci(boot_light_daytime, type = "perc")$percent[4],
+    boot.ci(boot_light_hours, type = "perc")$percent[4]
+  ),
+  CI_upper = c(
+    boot.ci(boot_temp, type = "perc")$percent[5],
+    boot.ci(boot_range, type = "perc")$percent[5],
+    boot.ci(boot_temp_max, type = "perc")$percent[5],
+    boot.ci(boot_temp_min, type = "perc")$percent[5],
+    boot.ci(boot_hr, type = "perc")$percent[5],
+    boot.ci(boot_hr_min, type = "perc")$percent[5],
+    boot.ci(boot_light_integral, type = "perc")$percent[5],
+    boot.ci(boot_light_max, type = "perc")$percent[5],
+    boot.ci(boot_light_daytime, type = "perc")$percent[5],
+    boot.ci(boot_light_hours, type = "perc")$percent[5]
+  )
+)
+
+# Round
+results[, 3:6] <- round(results[, 3:6], 2)
+
+# Print
+print(results, row.names = FALSE)
+
+# Save
+write.csv(results, "habitat_comparison_results.csv", row.names = FALSE)
+
+# ---- Summary for manuscript ----
+cat("\n========== KEY RESULTS FOR MANUSCRIPT ==========\n")
+cat(sprintf("\n--- TEMPERATURE ---\n"))
+cat(sprintf("Mean daily: Puna = %.1f°C, Forest = %.1f°C, Diff = %.1f°C [%.1f, %.1f]\n", 
+            results$Puna[1], results$Forest[1], results$Difference[1], results$CI_lower[1], results$CI_upper[1]))
+cat(sprintf("Daily range: Puna = %.1f°C, Forest = %.1f°C, Diff = %.1f°C [%.1f, %.1f]\n", 
+            results$Puna[2], results$Forest[2], results$Difference[2], results$CI_lower[2], results$CI_upper[2]))
+cat(sprintf("Maximum: Puna = %.1f°C, Forest = %.1f°C, Diff = %.1f°C [%.1f, %.1f]\n", 
+            results$Puna[3], results$Forest[3], results$Difference[3], results$CI_lower[3], results$CI_upper[3]))
+cat(sprintf("Minimum: Puna = %.1f°C, Forest = %.1f°C, Diff = %.1f°C [%.1f, %.1f]\n", 
+            results$Puna[4], results$Forest[4], results$Difference[4], results$CI_lower[4], results$CI_upper[4]))
+
+cat(sprintf("\n--- HUMIDITY ---\n"))
+cat(sprintf("Mean daily: Puna = %.1f%%, Forest = %.1f%%, Diff = %.1f%% [%.1f, %.1f]\n", 
+            results$Puna[5], results$Forest[5], results$Difference[5], results$CI_lower[5], results$CI_upper[5]))
+cat(sprintf("Minimum daily: Puna = %.1f%%, Forest = %.1f%%, Diff = %.1f%% [%.1f, %.1f]\n", 
+            results$Puna[6], results$Forest[6], results$Difference[6], results$CI_lower[6], results$CI_upper[6]))
+
+cat(sprintf("\n--- LIGHT INTENSITY ---\n"))
+cat(sprintf("Daily integral: Puna = %.0f, Forest = %.0f lum/ft²·hours, Diff = %.0f [%.0f, %.0f]\n", 
+            results$Puna[7], results$Forest[7], results$Difference[7], results$CI_lower[7], results$CI_upper[7]))
+cat(sprintf("Maximum: Puna = %.0f, Forest = %.0f lum/ft², Diff = %.0f [%.0f, %.0f]\n", 
+            results$Puna[8], results$Forest[8], results$Difference[8], results$CI_lower[8], results$CI_upper[8]))
+cat(sprintf("Daytime mean: Puna = %.0f, Forest = %.0f lum/ft², Diff = %.0f [%.0f, %.0f]\n", 
+            results$Puna[9], results$Forest[9], results$Difference[9], results$CI_lower[9], results$CI_upper[9]))
+cat(sprintf("Hours with light: Puna = %.1f, Forest = %.1f hours, Diff = %.1f [%.1f, %.1f]\n", 
+            results$Puna[10], results$Forest[10], results$Difference[10], results$CI_lower[10], results$CI_upper[10]))
+cat(sprintf("Light integral ratio (Puna:Forest): %.1f [%.1f, %.1f]\n", 
+            boot_light_ratio$t0,
+            boot.ci(boot_light_ratio, type = "perc")$percent[4],
+            boot.ci(boot_light_ratio, type = "perc")$percent[5]))
+
+cat("\n✓ Bootstrap analysis complete\n")
+```
+
+Chunk 3: Visualizations
+```{r}
+# ============================================================
+# CHUNK 3: VISUALIZATIONS
+# ============================================================
+
+# Color schemes
+habitat_colors <- c("puna" = "darkred", "forest" = "darkgreen")
+light_colors <- c("puna" = "orange", "forest" = "darkgreen")
+
+# ---- Hourly summaries for diurnal plots ----
+hourly_temp <- long_data %>%
+  group_by(hour_of_day, habitat) %>%
+  summarise(
+    n = n(),
+    mean_val = mean(temp, na.rm = TRUE),
+    se_val = sd(temp, na.rm = TRUE) / sqrt(n()),
+    .groups = 'drop'
+  ) %>%
+  mutate(se_val = ifelse(is.na(se_val) | is.nan(se_val), 0, se_val))
+
+hourly_hr <- long_data %>%
+  group_by(hour_of_day, habitat) %>%
+  summarise(
+    n = n(),
+    mean_val = mean(hr, na.rm = TRUE),
+    se_val = sd(hr, na.rm = TRUE) / sqrt(n()),
+    .groups = 'drop'
+  ) %>%
+  mutate(se_val = ifelse(is.na(se_val) | is.nan(se_val), 0, se_val))
+
+hourly_light <- light_data %>%
+  group_by(hour_of_day, habitat) %>%
+  summarise(
+    n = n(),
+    mean_val = mean(light_intensity, na.rm = TRUE),
+    se_val = sd(light_intensity, na.rm = TRUE) / sqrt(n()),
+    .groups = 'drop'
+  ) %>%
+  mutate(se_val = ifelse(is.na(se_val) | is.nan(se_val), 0, se_val))
+
+# ---- PLOT A: Diurnal temperature ----
+p_diurnal_temp <- ggplot(hourly_temp, 
+                         aes(x = hour_of_day, y = mean_val, color = habitat, fill = habitat)) +
+  geom_ribbon(aes(ymin = mean_val - 2*se_val, ymax = mean_val + 2*se_val), 
+              alpha = 0.2, color = NA) +
+  geom_line(linewidth = 1.2) +
+  scale_color_manual(values = habitat_colors, labels = c("puna" = "Puna", "forest" = "Forest")) +
+  scale_fill_manual(values = habitat_colors, labels = c("puna" = "Puna", "forest" = "Forest")) +
+  labs(x = "Hour of day", y = "Temperature (°C)", title = "Diurnal temperature pattern (± 2 SE)") +
+  theme_minimal() + theme(legend.position = "bottom", legend.title = element_blank())
+
+# ---- PLOT B: Diurnal humidity ----
+p_diurnal_hr <- ggplot(hourly_hr, 
+                       aes(x = hour_of_day, y = mean_val, color = habitat, fill = habitat)) +
+  geom_ribbon(aes(ymin = mean_val - 2*se_val, ymax = mean_val + 2*se_val), 
+              alpha = 0.2, color = NA) +
+  geom_line(linewidth = 1.2) +
+  scale_color_manual(values = habitat_colors, labels = c("puna" = "Puna", "forest" = "Forest")) +
+  scale_fill_manual(values = habitat_colors, labels = c("puna" = "Puna", "forest" = "Forest")) +
+  labs(x = "Hour of day", y = "Relative humidity (%)", title = "Diurnal humidity pattern (± 2 SE)") +
+  theme_minimal() + theme(legend.position = "bottom", legend.title = element_blank())
+
+# ---- PLOT C: Diurnal light intensity ----
+p_diurnal_light <- ggplot(hourly_light, 
+                          aes(x = hour_of_day, y = mean_val, color = habitat, fill = habitat)) +
+  geom_ribbon(aes(ymin = mean_val - 2*se_val, ymax = mean_val + 2*se_val), 
+              alpha = 0.2, color = NA) +
+  geom_line(linewidth = 1.2) +
+  scale_color_manual(values = light_colors, labels = c("puna" = "Puna", "forest" = "Forest")) +
+  scale_fill_manual(values = light_colors, labels = c("puna" = "Puna", "forest" = "Forest")) +
+  labs(x = "Hour of day", y = expression("Light intensity (lum/ft"^2*")"), 
+       title = "Diurnal light intensity pattern (± 2 SE)") +
+  theme_minimal() + theme(legend.position = "bottom", legend.title = element_blank())
+
+# ---- PLOT D: Temperature difference time series ----
+p_temp_diff <- ggplot(daily_diff, aes(x = date)) +
+  geom_line(aes(y = temp_diff), color = "darkred", linewidth = 1) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+  geom_hline(yintercept = results$Difference[1], color = "blue", linewidth = 0.8) +
+  geom_hline(yintercept = c(results$CI_lower[1], results$CI_upper[1]), color = "blue", linetype = "dotted") +
+  labs(y = "Δ Temperature (°C)", x = "Date", title = "Temperature difference (Puna − Forest)") +
+  theme_minimal()
+
+# ---- PLOT E: Humidity difference time series ----
+p_hr_diff <- ggplot(daily_diff, aes(x = date)) +
+  geom_line(aes(y = hr_diff), color = "darkblue", linewidth = 1) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+  geom_hline(yintercept = results$Difference[5], color = "blue", linewidth = 0.8) +
+  geom_hline(yintercept = c(results$CI_lower[5], results$CI_upper[5]), color = "blue", linetype = "dotted") +
+  labs(y = "Δ Humidity (%)", x = "Date", title = "Humidity difference (Puna − Forest)") +
+  theme_minimal()
+
+# ---- PLOT F: Light intensity integral difference time series ----
+p_light_diff <- ggplot(daily_light, aes(x = date)) +
+  geom_line(aes(y = light_integral_diff), color = "darkorange", linewidth = 1) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+  geom_hline(yintercept = results$Difference[7], color = "blue", linewidth = 0.8) +
+  geom_hline(yintercept = c(results$CI_lower[7], results$CI_upper[7]), color = "blue", linetype = "dotted") +
+  labs(y = expression("Δ Light integral (lum/ft"^2*"·hours)"), x = "Date", 
+       title = "Light intensity integral difference (Puna − Forest)") +
+  theme_minimal()
+
+# ---- Display plots ----
+cat("\n--- Diurnal patterns ---\n")
+grid.arrange(p_diurnal_temp, p_diurnal_hr, p_diurnal_light, ncol = 1)
+
+cat("\n--- Difference time series ---\n")
+grid.arrange(p_temp_diff, p_hr_diff, p_light_diff, ncol = 1)
+
+cat("\n✓ Visualizations complete\n")
+```
+
+
 

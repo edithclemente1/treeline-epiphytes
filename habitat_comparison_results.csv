@@ -1,0 +1,11 @@
+"Variable","Units","Puna","Forest","Difference","CI_lower","CI_upper"
+"Mean temperature","°C",7.21,6.86,0.34,0.19,0.508719040273629
+"Daily temperature range","°C",8.8,6.99,1.81,1.54,2.08968936170213
+"Maximum temperature","°C",12.84,11.17,1.67,1.36,1.9608
+"Minimum temperature","°C",4.04,4.18,-0.14,-0.26,-0.0200510638297872
+"Mean relative humidity","%",90.66,98.04,-7.38,-8.72,-6.16123515614922
+"Minimum relative humidity","%",76.87,91.5,-14.63,-16.15,-13.1124340425532
+"Daily light integral","lum/ft²·hours",20288.14,3123.78,17164.36,15704.02,18681.8559322034
+"Maximum light intensity","lum/ft²",5288.88,1300.03,3988.85,3569.59,4435.96610169491
+"Daytime mean light intensity","lum/ft²",1536.18,243.75,1292.43,1178.47,1415.12559322034
+"Hours with light","hours",12.25,11.91,0.34,0.3,0.38135593220339
