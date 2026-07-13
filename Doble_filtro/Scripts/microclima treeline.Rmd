@@ -562,7 +562,7 @@ g_light <- ggplot(daily_light,
     title = "A) Light Intensity"
   ) +
   scale_color_manual(
-    name = "Treatment",
+    name = "Habitat",
     values = c(
       "ilum_forest" = "#228B22",
       "ilum_puna"   = "#8B4513"
@@ -570,7 +570,7 @@ g_light <- ggplot(daily_light,
     labels = c("Forest", "Puna")
   ) +
   scale_fill_manual(
-    name = "Treatment",
+    name = "Habitat",
     values = c(
       "ilum_forest" = "#228B22",
       "ilum_puna"   = "#8B4513"
@@ -593,7 +593,7 @@ g_temp <- ggplot(daily_temp_clean,
     title = "B) Temperature"
   ) +
   scale_color_manual(
-    name = "Treatment",
+    name = "Habitat",
     values = c(
       "t_forest" = "#228B22",
       "t_puna"   = "#8B4513"
@@ -601,7 +601,7 @@ g_temp <- ggplot(daily_temp_clean,
     labels = c("Forest", "Puna")
   ) +
   scale_fill_manual(
-    name = "Treatment",
+    name = "Habitat",
     values = c(
       "t_forest" = "#228B22",
       "t_puna"   = "#8B4513"
@@ -623,7 +623,7 @@ g_hr <- ggplot(daily_hr_clean,
     title = "C) Relative Humidity"
   ) +
   scale_color_manual(
-    name = "Treatment",
+    name = "Habitat",
     values = c(
       "hr_forest" = "#228B22",
       "hr_puna"   = "#8B4513"
@@ -631,7 +631,7 @@ g_hr <- ggplot(daily_hr_clean,
     labels = c("Forest", "Puna")
   ) +
   scale_fill_manual(
-    name = "Treatment",
+    name = "Habitat",
     values = c(
       "hr_forest" = "#228B22",
       "hr_puna"   = "#8B4513"

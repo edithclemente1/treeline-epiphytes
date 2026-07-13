@@ -104,14 +104,14 @@ summary(km_fit)#comprobacion rapida
 Grafico en inglés
 
 ```{r}
-g <- ggsurvplot(
+graf <- ggsurvplot(
   km_fit,
   data = surv_data,
   risk.table = TRUE,
   pval = TRUE,
   conf.int = FALSE,
   legend.labs = c("Forest", "Puna"),
-  legend.title = "Treatment",
+  legend.title = "Habitat",
   palette = c("darkgreen", "brown"),
   linewidth = 1,
   xlab = "Time since the start (months)",
@@ -119,16 +119,23 @@ g <- ggsurvplot(
   break.time.by = 1,
   xlim = c(0, 11)   # 🔥 AQUÍ LA CLAVE
 )
-png("KaplanMeier.png", width = 2000, height = 1600, res = 300)
+png("KaplanMeier1.png", width = 2000, height = 1600, res = 300)
 print(g)
 dev.off()
 
 ggsave(
-  "KaplanMeier.png",
-  plot = print(g),
+  "KaplanMeier1.png",
+  plot = print(graf),
   width = 10,
   height = 8,
   units = "in",
+  dpi = 300
+)
+ggsave(
+  "KaplanMeier1.png",
+  plot = graf$plot,
+  width = 6,
+  height = 3,
   dpi = 300
 )
 ```

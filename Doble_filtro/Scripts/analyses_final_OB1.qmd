@@ -931,6 +931,15 @@ permutations = 999
 
 permanova_chao
 
+#solo localidad sin efecto del plot 
+permanova_chao1 <- adonis2(
+dist_chao ~ plot,
+data = metadata,
+permutations = 999
+)
+
+permanova_chao1
+
 # ================================================
 
 # PERMDISP
@@ -1053,12 +1062,20 @@ permutations = 999
 
 permanova_pa
 
+#solo efecto de la localidad
+permanova_pa1 <- adonis2(
+dist_jaccard_forof ~ plot,
+data = metadata_pa,
+permutations = 999
+)
+
+permanova_pa1
+
 # ================================================
 
 # PERMDISP
 
 # ================================================
-
 disp_pa <- betadisper(
 dist_jaccard_forof,
 metadata_pa$plot
@@ -1132,6 +1149,8 @@ pairwise_pa
 ```
 
 NMDS
+
+nmds_abu
 
 ```{r}
 # ================================================
@@ -1343,6 +1362,14 @@ height = 5,
 dpi = 300
 )
 
+#solo el grafico de abundancia
+ggsave(
+filename = "NMDS_abundance.png",
+plot = nmds_abu,
+width = 6,
+height = 5,
+dpi = 300
+)
 ```
 
 test de mantel

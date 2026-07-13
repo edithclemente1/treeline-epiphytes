@@ -183,13 +183,6 @@ arboles$height_z <- scale(arboles$height)
 arboles$elevation <- as.factor(arboles$elevation)
 arboles$subplot <- as.factor(arboles$subplot)
 
-#modelos sugeridos 
-
-#modelo2 <- dbh * height + (1|plot)
-#modelo3 <- dbh * height + (1|elevation)
-##modelo Binomial negativo sugerido 
-
-
 #MODELOS CON INTERACCION
 m_ric_nb1 <- glmmTMB(
   riqueza ~ dap_z * height_z +(1|subplot),
@@ -197,7 +190,10 @@ m_ric_nb1 <- glmmTMB(
   data = arboles
 )
 summary(m_ric_nb1)
-Anova(m_ric_nb1, type = "II")#importancia de cada variable 
+Anova(m_ric_nb1, type = "II")#importancia de cada variable #VIF
+library(performance)
+check_collinearity(m_ric_nb1)
+
 #evaluar residuos con DHARMa
 res_ric1 <- simulateResiduals(m_ric_nb1)
 plot(res_ric1)
@@ -211,7 +207,9 @@ m_ric_nb2 <- glmmTMB(
   data = arboles
 )
 summary(m_ric_nb2)
-Anova(m_ric_nb2, type = "II")#importancia de cada variable 
+Anova(m_ric_nb2, type = "II")#importancia de cada variable #VIF
+check_collinearity(m_ric_nb2)
+
 #evaluar residuos con DHARMa
 res_ric2 <- simulateResiduals(m_ric_nb2)
 plot(res_ric2)
@@ -219,14 +217,15 @@ testUniformity(res_ric2)#Residuales compatibles con la distribución esperada
 testDispersion(res_ric2)#No hay evidencia de sobre- o subdispersión
 testZeroInflation(res_ric2)#No hay evidencia significativa de exceso de ceros(cerca al limite)
 
-summary(arboles$subplot)
 m_ric_nb3 <- glmmTMB(
   riqueza ~ dap_z * height_z  + (1 | elevation/subplot),
   family = nbinom2,
   data = arboles
 )
 summary(m_ric_nb3)
-Anova(m_ric_nb3, type = "II")#importancia de cada variable 
+Anova(m_ric_nb3, type = "II")#importancia de cada variable #VIF
+check_collinearity(m_ric_nb3)
+
 #evaluar residuos con DHARMa
 res_ric3 <- simulateResiduals(m_ric_nb3)
 plot(res_ric3)
@@ -240,18 +239,24 @@ m_ric_nb4 <- glmmTMB(
   family = nbinom2,
   data = arboles
 )
+#VIF
+check_collinearity(m_ric_nb4)
 
 m_ric_nb5 <- glmmTMB(
   riqueza ~ dap_z + height_z +(1|elevation),
   family = nbinom2,
   data = arboles
 )
+#VIF
+check_collinearity(m_ric_nb5)
 
 m_ric_nb6 <- glmmTMB(
   riqueza ~ dap_z + height_z  + (1 | elevation/subplot),
   family = nbinom2,
   data = arboles
 )
+#VIF
+check_collinearity(m_ric_nb6)
 Anova(m_ric_nb4, type = "II")
 Anova(m_ric_nb5, type = "II")
 Anova(m_ric_nb6, type = "II")
@@ -297,12 +302,16 @@ m_ab_nb1 <- glmmTMB(
   family = nbinom2,
   data = arboles
 )
+#VIF
+check_collinearity(m_ab_nb1)
 
 m_ab_nb2 <- glmmTMB(
   abundancia_total ~ dap_z * height_z + (1|elevation),
   family = nbinom2,
   data = arboles
 )
+#VIF
+check_collinearity(m_ab_nb2)
 
 m_ab_nb3 <- glmmTMB(
   abundancia_total ~ dap_z * height_z +
@@ -310,7 +319,8 @@ m_ab_nb3 <- glmmTMB(
   family = nbinom2,
   data = arboles
 )
-
+#VIF
+check_collinearity(m_ab_nb3)
 #=========================================
 # DIAGNOSTICOS
 #=========================================
@@ -354,6 +364,8 @@ m_ab_nb4 <- glmmTMB(
   family = nbinom2,
   data = arboles
 )
+#VIF
+check_collinearity(m_ab_nb4)
 
 m_ab_nb5 <- glmmTMB(
   abundancia_total ~ dap_z + height_z +
@@ -361,6 +373,8 @@ m_ab_nb5 <- glmmTMB(
   family = nbinom2,
   data = arboles
 )
+#VIF
+check_collinearity(m_ab_nb5)
 
 m_ab_nb6 <- glmmTMB(
   abundancia_total ~ dap_z + height_z +
@@ -368,6 +382,8 @@ m_ab_nb6 <- glmmTMB(
   family = nbinom2,
   data = arboles
 )
+#VIF
+check_collinearity(m_ab_nb6)
 Anova(m_ab_nb4, type = "II")
 Anova(m_ab_nb5, type = "II")
 Anova(m_ab_nb6, type = "II")
