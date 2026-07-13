@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ---
 title: "microclima"
 author: "Edith"
@@ -667,3 +668,1064 @@ ggsave("Environmental_conditions_panel.png", g_clima,
        width = 12, height = 14, dpi = 300)
 ```
 
+=======
+---
+title: "microclima"
+author: "Edith"
+date: "2025-11-04"
+output: html_document
+---
+data
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/Data")
+climadata <- read.csv("dataclima.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE)
+
+str(climadata)      # Estructura de la base de datos
+head(climadata)
+head(climadata$date_hour)
+str(climadata$date_hour)
+```
+
+graphic of illumination
+```{r}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(patchwork)
+# 1️⃣ Convertir la fecha-hora al formato correcto
+climadata <- climadata %>%
+  mutate(date_hour = as.POSIXct(date_hour, format = "%d/%m/%Y %H:%M", tz = "America/Lima"))
+# 2️⃣ Reorganizar datos en formato largo (para ggplot)
+clima_long <- climadata %>%
+  dplyr::select(date_hour, ilum_puna, ilum_forest) %>%
+  pivot_longer(
+    cols = c(ilum_puna, ilum_forest),
+    names_to = "logger_id",
+    values_to = "light_lum_ft2"
+  ) %>%
+  mutate(date = as.Date(date_hour))  # extraer solo la fecha
+# 3️⃣ Calcular la media diaria ±95% CI por logger
+daily_light <- clima_long %>%
+  group_by(date, logger_id) %>%
+  summarise(
+    n_obs   = sum(!is.na(light_lum_ft2)),
+    light_mean = mean(light_lum_ft2, na.rm = TRUE),
+    light_sd   = sd(light_lum_ft2, na.rm = TRUE),
+    se_l       = light_sd / sqrt(pmax(n_obs, 1)),
+    tcrit      = qt(0.975, df = pmax(n_obs - 1, 1)),
+    ci         = tcrit * se_l,
+    .groups = "drop"
+  )
+# 4️⃣ Gráfico: Mean Daily Light Intensity (±95% CI)
+ggplot(daily_light, aes(x = date, y = light_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = light_mean - ci, ymax = light_mean + ci), alpha = 0.15, color = NA) +
+  geom_line(linewidth = 1) +
+  labs(
+    title = "Mean Daily Light Intensity (Peru Time, ±95% CI)",
+    x = "Date (UTC-5)",
+    y = "Light Intensity (lum/ft²)",
+    color = "Logger",
+    fill  = "Logger"
+  ) +
+  scale_color_manual(values = c(
+    "ilum_forest" = "#228B22",
+    "ilum_puna"   = "#8B4513"
+  ),
+  labels = c("Forest", "Puna")) +
+  scale_fill_manual(values = c(
+    "ilum_forest" = "#228B22",
+    "ilum_puna"   = "#8B4513"
+  ),
+  labels = c("Forest", "Puna")) +
+  scale_x_date(date_breaks = "7 days", date_labels = "%d.%m") +
+  coord_cartesian(ylim = c(0, 4500)) +                        # ajusta el rango según tus valores
+  scale_y_continuous(breaks = seq(0, 9000, by = 1000)) +
+  theme_light(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    panel.grid.major = element_line(color = "grey85", linewidth = 0.3),
+    panel.grid.minor = element_blank(),
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
+```
+graphics of temperature
+```{r}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+# 1️⃣ Convertir la fecha-hora al formato correcto
+climadata <- climadata %>%
+  mutate(date_hour = as.POSIXct(date_hour, format = "%d/%m/%Y %H:%M", tz = "America/Lima"))
+# 2️⃣ Reorganizar datos en formato largo
+temp_long <- climadata %>%
+  dplyr::select(date_hour, t_puna, t_forest) %>%
+  pivot_longer(
+    cols = c(t_puna, t_forest),
+    names_to = "logger_id",
+    values_to = "temperature"
+  ) %>%
+  mutate(date = as.Date(date_hour))
+# 3️⃣ Calcular la media diaria ±95% CI por logger
+daily_temp <- temp_long %>%
+  group_by(date, logger_id) %>%
+  summarise(
+    n_obs   = sum(!is.na(temperature)),
+    temp_mean = mean(temperature, na.rm = TRUE),
+    temp_sd   = sd(temperature, na.rm = TRUE),
+    se_t      = temp_sd / sqrt(pmax(n_obs, 1)),
+    tcrit     = qt(0.975, df = pmax(n_obs - 1, 1)),
+    ci        = tcrit * se_t,
+    .groups = "drop"
+  )
+# 4️⃣ Gráfico: Mean Daily Temperature (±95% CI)
+ggplot(daily_temp, aes(x = date, y = temp_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = temp_mean - ci, ymax = temp_mean + ci), alpha = 0.15, color = NA) +
+  geom_line(linewidth = 1) +
+  labs(
+    title = "Mean Daily Temperature (Peru Time, ±95% CI)",
+    x = "Date (UTC-5)",
+    y = "Temperature (°C)",
+    color = "Logger",
+    fill  = "Logger"
+  ) +
+  scale_color_manual(values = c(
+    "t_forest" = "#228B22",  # verde
+    "t_puna"   = "#8B4513"   # marrón
+  ),
+  labels = c("Forest", "Puna")) +
+  scale_fill_manual(values = c(
+    "t_forest" = "#228B22",
+    "t_puna"   = "#8B4513"
+  ),
+  labels = c("Forest", "Puna")) +
+  scale_x_date(date_breaks = "7 days", date_labels = "%d.%m") +
+  coord_cartesian(ylim = c(min(daily_temp$temp_mean - daily_temp$ci, na.rm = TRUE) - 1,
+                           max(daily_temp$temp_mean + daily_temp$ci, na.rm = TRUE) + 1)) +
+  theme_light(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    panel.grid.major = element_line(color = "grey85", linewidth = 0.3),
+    panel.grid.minor = element_blank(),
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
+```
+graphic of humidity HR
+```{r}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+# 1️⃣ Convertir fecha y hora
+climadata <- climadata %>%
+  mutate(date_hour = as.POSIXct(date_hour, format = "%d/%m/%Y %H:%M", tz = "America/Lima"))
+# 2️⃣ Reorganizar datos (formato largo)
+hr_long <- climadata %>%
+  dplyr::select(date_hour, hr_puna, hr_forest) %>%
+  pivot_longer(
+    cols = c(hr_puna, hr_forest),
+    names_to = "logger_id",
+    values_to = "humidity"
+  ) %>%
+  mutate(date = as.Date(date_hour))
+# 3️⃣ Calcular media diaria ±95% CI por logger
+daily_hr <- hr_long %>%
+  group_by(date, logger_id) %>%
+  summarise(
+    n_obs   = sum(!is.na(humidity)),
+    hr_mean = mean(humidity, na.rm = TRUE),
+    hr_sd   = sd(humidity, na.rm = TRUE),
+    se_h    = hr_sd / sqrt(pmax(n_obs, 1)),
+    tcrit   = qt(0.975, df = pmax(n_obs - 1, 1)),
+    ci      = tcrit * se_h,
+    .groups = "drop"
+  )
+# 4️⃣ Gráfico: Mean Daily Relative Humidity (±95% CI)
+ggplot(daily_hr, aes(x = date, y = hr_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = hr_mean - ci, ymax = hr_mean + ci), alpha = 0.15, color = NA) +
+  geom_line(linewidth = 1) +
+  labs(
+    title = "Mean Daily Relative Humidity (Peru Time, ±95% CI)",
+    x = "Date (UTC-5)",
+    y = "Relative Humidity (%)",
+    color = "Logger",
+    fill  = "Logger"
+  ) +
+  scale_color_manual(values = c(
+    "hr_forest" = "#228B22",  # verde bosque
+    "hr_puna"   = "#8B4513"   # marrón puna
+  ),
+  labels = c("Forest", "Puna")) +
+  scale_fill_manual(values = c(
+    "hr_forest" = "#228B22",
+    "hr_puna"   = "#8B4513"
+  ),
+  labels = c("Forest", "Puna")) +
+  scale_x_date(date_breaks = "7 days", date_labels = "%d.%m") +
+  coord_cartesian(ylim = c(0, 100)) +  # HR va de 0–100%
+  theme_light(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    panel.grid.major = element_line(color = "grey85", linewidth = 0.3),
+    panel.grid.minor = element_blank(),
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
+
+
+#CORREGIR
+
+ggplot(
+  daily_hr,
+  aes(
+    x = date,
+    y = hr_mean,
+    color = logger_id,
+    fill = logger_id
+  )
+) +
+
+  # IC95%
+  geom_ribbon(
+    aes(
+      ymin = hr_mean - ci,
+      ymax = hr_mean + ci
+    ),
+    alpha = 0.35,
+    color = NA
+  ) +
+
+  # Media diaria
+  geom_line(linewidth = 1) +
+
+  labs(
+    title = "Mean Daily Relative Humidity (Peru Time, ±95% CI)",
+    x = "Date (UTC-5)",
+    y = "Relative Humidity (%)",
+    color = "Logger",
+    fill  = "Logger"
+  ) +
+
+  scale_color_manual(
+    values = c(
+      "hr_forest" = "#228B22",
+      "hr_puna"   = "#8B4513"
+    ),
+    labels = c("Forest", "Puna")
+  ) +
+
+  scale_fill_manual(
+    values = c(
+      "hr_forest" = "#228B22",
+      "hr_puna"   = "#8B4513"
+    ),
+    labels = c("Forest", "Puna")
+  ) +
+
+  scale_x_date(
+    date_breaks = "7 days",
+    date_labels = "%d.%m"
+  ) +
+
+  coord_cartesian(
+    ylim = c(
+      min(daily_hr$hr_mean - daily_hr$ci, na.rm = TRUE) - 2,
+      max(daily_hr$hr_mean + daily_hr$ci, na.rm = TRUE) + 2
+    )
+  ) +
+
+  theme_light(base_size = 13) +
+
+  theme(
+    legend.position = "bottom",
+    panel.grid.major = element_line(
+      color = "grey85",
+      linewidth = 0.3
+    ),
+    panel.grid.minor = element_blank(),
+    plot.title = element_text(
+      face = "bold",
+      hjust = 0.5
+    ),
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1
+    )
+  )
+
+```
+graphic combined
+```{r}
+# Tema compacto
+tema_compacto <- theme_light(base_size = 8) +  # tamaño base más pequeño
+  theme(
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 7),
+    strip.text = element_text(size = 7),
+    legend.text = element_text(size = 6),
+    legend.title = element_text(size = 7),
+    plot.title = element_text(size = 8, face = "bold"),
+    legend.position = "none"
+  )
+# 1️ LUZ (ilum_puna / ilum_forest)
+g_light <- ggplot(daily_light, aes(x = date, y = light_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = light_mean - ci, ymax = light_mean + ci),
+              alpha = 0.15, color = NA) +
+  geom_line(linewidth = 0.7) +
+  labs(y = "Light (lum/ft²)", x = NULL, title = "A) Light Intensity") +
+  scale_color_manual(values = c("ilum_forest" = "#228B22", "ilum_puna" = "#8B4513"),
+                     labels = c("Forest", "Puna")) +
+  scale_fill_manual(values = c("ilum_forest" = "#228B22", "ilum_puna" = "#8B4513"),
+                    labels = c("Forest", "Puna")) +
+  tema_compacto
+g_light <- g_light +
+  theme(
+    axis.text = element_text(size = 13),
+    axis.title = element_text(size = 14)
+  )
+
+# 2️ TEMPERATURA
+g_temp <- ggplot(daily_temp, aes(x = date, y = temp_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = temp_mean - ci, ymax = temp_mean + ci),
+              alpha = 0.15, color = NA) +
+  geom_line(linewidth = 0.7) +
+  labs(y = "Temperature (°C)", x = NULL, title = "B) Temperature") +
+  scale_color_manual(values = c("t_forest" = "#228B22", "t_puna" = "#8B4513"),
+                     labels = c("Forest", "Puna")) +
+  scale_fill_manual(values = c("t_forest" = "#228B22", "t_puna" = "#8B4513"),
+                    labels = c("Forest", "Puna")) +
+  tema_compacto
+
+g_temp <- g_temp +
+  theme(
+    axis.text = element_text(size = 13),
+    axis.title = element_text(size = 14)
+  )
+
+g_temp
+
+# 3️ HUMEDAD RELATIVA
+g_hr <- ggplot(daily_hr, aes(x = date, y = hr_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = hr_mean - ci, ymax = hr_mean + ci),
+              alpha = 0.45, color = NA) +
+  geom_line(linewidth = 0.7) +
+  labs(y = "Relative Humidity (%)", x = "Date", title = "C) Relative Humidity") +
+  scale_color_manual(values = c("hr_forest" = "#228B22", "hr_puna" = "#8B4513"),
+                     labels = c("Forest", "Puna")) +
+  scale_fill_manual(values = c("hr_forest" = "#228B22", "hr_puna" = "#8B4513"),
+                    labels = c("Forest", "Puna")) +
+  tema_compacto +
+  theme(legend.position = "bottom")
+
+g_hr <- g_hr +
+  theme(
+    axis.text = element_text(size = 13),
+    axis.title = element_text(size = 14)
+  )
+g_hr
+#Tema profesional uniforme
+tema_publicacion <- theme_light(base_size = 14) +
+  theme(
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    strip.text = element_text(size = 14),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5)
+  )
+#aplicar el tema en los graficos
+g_light <- g_light + tema_publicacion +
+  scale_x_date(
+    date_breaks = "1 month",
+    date_labels = "%b"
+  )
+
+g_temp  <- g_temp  + tema_publicacion +
+  scale_x_date(
+    date_breaks = "1 month",
+    date_labels = "%b"
+  )
+
+g_hr    <- g_hr    + tema_publicacion +
+  scale_x_date(
+    date_breaks = "1 month",
+    date_labels = "%b"
+  )
+
+# 4️ COMBINAR LOS GRÁFICOS
+g_clima <- (g_light / g_temp / g_hr) +
+  plot_layout(
+    heights = c(1,1,1),
+    guides = "collect"   # <- recoge todas las leyendas en una sola
+  ) +
+  plot_annotation(
+    title = " ",
+    theme = theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
+  ) &
+  theme(legend.position = "bottom")   # <- mueve la leyenda abajo
+
+
+ggsave(
+  filename = "Environmental_conditions_patchwork.png",
+  plot = g_clima,
+  width = 12,       # ancho en pulgadas
+  height = 14,      # alto en pulgadas (3 paneles)
+  dpi = 300         # resolución alta
+)
+```
+NOTA: corregido el cambio de los sensores de temperatura y humedad
+
+
+```{r}
+# ==============================
+# LIBRERÍAS
+# ==============================
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+
+# ==============================
+# TEMA DE PUBLICACIÓN (uniforme)
+# ==============================
+tema_publicacion <- theme_light(base_size = 14) +
+  theme(
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    strip.text = element_text(size = 14),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    plot.title = element_text(size = 14, face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+
+# ==============================
+# ESCALA DE FECHAS CADA 1 MES
+# ==============================
+escala_fecha <- scale_x_date(
+  date_breaks = "1 month",
+  date_labels = "%b"
+)
+unique(daily_light$logger_id)
+unique(daily_temp_clean$logger_id)
+unique(daily_hr_clean$logger_id)
+# ==============================
+# 1) LUZ
+# ==============================
+g_light <- ggplot(daily_light, aes(date, light_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = light_mean - ci, ymax = light_mean + ci),
+              alpha = 0.15, color = NA) +
+  geom_line(linewidth = 0.7) +
+  labs(y = "Light Intensity (lum/ft²)", x = NULL, title = "A) Light Intensity") +
+  scale_color_manual(values = c("ilum_forest" = "#228B22", "ilum_puna" = "#8B4513"),
+                     labels = c("Forest", "Puna")) +
+  scale_fill_manual(values = c("ilum_forest" = "#228B22", "ilum_puna" = "#8B4513"),
+                    labels = c("Forest", "Puna")) +
+  escala_fecha +
+  tema_publicacion +
+  theme(legend.position = "none")   # quitar leyenda aquí
+
+
+# ==============================
+# 2) TEMPERATURA 
+# ==============================
+daily_temp_clean <- daily_temp %>% 
+  filter(!is.na(temp_mean), !is.na(ci), n_obs > 1)
+
+g_temp <- ggplot(daily_temp_clean, aes(date, temp_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = temp_mean - ci, ymax = temp_mean + ci),
+              alpha = 0.15, color = NA) +
+  geom_line(linewidth = 0.7) +
+  labs(y = "Temperature (°C)", x = NULL, title = "B) Temperature") +
+  scale_color_manual(values = c("t_forest" = "#228B22", "t_puna" = "#8B4513"),
+                     labels = c("Forest", "Puna")) +
+  scale_fill_manual(values = c("t_forest" = "#228B22", "t_puna" = "#8B4513"),
+                    labels = c("Forest", "Puna")) +
+  escala_fecha +
+  tema_publicacion +
+  theme(legend.position = "none")   # quitar leyenda aquí
+
+
+# ==============================
+# 3) HUMEDAD RELATIVA
+# ==============================
+daily_hr_clean <- daily_hr %>% 
+  filter(!is.na(hr_mean), !is.na(ci), n_obs > 1)
+
+g_hr <- ggplot(daily_hr_clean, aes(date, hr_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = hr_mean - ci, ymax = hr_mean + ci),
+              alpha = 0.4, color = NA) +
+  geom_line(linewidth = 0.7) +
+  labs(y = "Relative Humidity (%)", x = "Date", title = "C) Relative Humidity") +
+  scale_color_manual(values = c("hr_forest" = "#228B22", "hr_puna" = "#8B4513"),
+                     labels = c("Forest", "Puna")) +
+  scale_fill_manual(values = c("hr_forest" = "#228B22", "hr_puna" = "#8B4513"),
+                    labels = c("Forest", "Puna")) +
+  escala_fecha +
+  tema_publicacion +
+  theme(legend.position = "bottom")   # SOLO aquí dejamos leyenda
+
+
+# ==============================
+# COMBINAR LOS TRES GRÁFICOS
+# ==============================
+g_clima <- (g_light / g_temp / g_hr) +
+  plot_layout(heights = c(1,1,1), guides = "collect") +  # collect = una sola leyenda
+  plot_annotation(
+    title = "Daily Environmental Conditions (Puna vs Forest, ±95% CI)",
+    theme = theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5))+
+      theme(legend.position = "bottom")
+
+  )
+
+# ==============================
+# MOSTRAR
+# ==============================
+g_clima
+
+# ==============================
+# EXPORTAR PARA PAPER
+# ==============================
+ggsave("Environmental_conditions_panel.png", g_clima,
+       width = 12, height = 14, dpi = 300)
+
+# Versión journal (TIFF 600 dpi)
+ggsave("Environmental_conditions_panel.tiff", g_clima,
+       width = 12, height = 14, dpi = 600, compression = "lzw")
+
+#para el caption calcula media, min y max
+daily_light %>%
+  group_by(logger_id) %>%
+  summarise(
+    mean = mean(light_mean, na.rm = TRUE),
+    min = min(light_mean, na.rm = TRUE),
+    max = max(light_mean, na.rm = TRUE)
+  )
+
+daily_temp %>%
+  group_by(logger_id) %>%
+  summarise(
+    mean = mean(temp_mean, na.rm = TRUE),
+    min = min(temp_mean, na.rm = TRUE),
+    max = max(temp_mean, na.rm = TRUE)
+  )
+
+daily_hr %>%
+  group_by(logger_id) %>%
+  summarise(
+    mean = mean(hr_mean, na.rm = TRUE),
+    min = min(hr_mean, na.rm = TRUE),
+    max = max(hr_mean, na.rm = TRUE)
+  )
+```
+
+
+ultimo grafico corregido lo de tratamientos 
+```{r}
+g_light <- ggplot(daily_light,
+                  aes(date, light_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = light_mean - ci,
+                  ymax = light_mean + ci),
+              alpha = 0.15, color = NA) +
+  geom_line(linewidth = 0.7) +
+  labs(
+    y = "Light Intensity (lum/ft²)",
+    x = NULL,
+    title = "A) Light Intensity"
+  ) +
+  scale_color_manual(
+    name = "Treatment",
+    values = c(
+      "ilum_forest" = "#228B22",
+      "ilum_puna"   = "#8B4513"
+    ),
+    labels = c("Forest", "Puna")
+  ) +
+  scale_fill_manual(
+    name = "Treatment",
+    values = c(
+      "ilum_forest" = "#228B22",
+      "ilum_puna"   = "#8B4513"
+    ),
+    labels = c("Forest", "Puna")
+  ) +
+  escala_fecha +
+  tema_publicacion +
+  theme(legend.position = "none")
+
+g_temp <- ggplot(daily_temp_clean,
+                 aes(date, temp_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = temp_mean - ci,
+                  ymax = temp_mean + ci),
+              alpha = 0.15, color = NA) +
+  geom_line(linewidth = 0.7) +
+  labs(
+    y = "Temperature (°C)",
+    x = NULL,
+    title = "B) Temperature"
+  ) +
+  scale_color_manual(
+    name = "Treatment",
+    values = c(
+      "t_forest" = "#228B22",
+      "t_puna"   = "#8B4513"
+    ),
+    labels = c("Forest", "Puna")
+  ) +
+  scale_fill_manual(
+    name = "Treatment",
+    values = c(
+      "t_forest" = "#228B22",
+      "t_puna"   = "#8B4513"
+    ),
+    labels = c("Forest", "Puna")
+  ) +
+  escala_fecha +
+  tema_publicacion +
+  theme(legend.position = "none")
+g_hr <- ggplot(daily_hr_clean,
+               aes(date, hr_mean, color = logger_id, fill = logger_id)) +
+  geom_ribbon(aes(ymin = hr_mean - ci,
+                  ymax = hr_mean + ci),
+              alpha = 0.15, color = NA) +
+  geom_line(linewidth = 0.7) +
+  labs(
+    y = "Relative Humidity (%)",
+    x = "Date",
+    title = "C) Relative Humidity"
+  ) +
+  scale_color_manual(
+    name = "Treatment",
+    values = c(
+      "hr_forest" = "#228B22",
+      "hr_puna"   = "#8B4513"
+    ),
+    labels = c("Forest", "Puna")
+  ) +
+  scale_fill_manual(
+    name = "Treatment",
+    values = c(
+      "hr_forest" = "#228B22",
+      "hr_puna"   = "#8B4513"
+    ),
+    labels = c("Forest", "Puna")
+  ) +
+  escala_fecha +
+  tema_publicacion +
+  theme(legend.position = "bottom")
+
+g_clima <- (g_light / g_temp / g_hr) +
+  plot_layout(
+    heights = c(1, 1, 1),
+    guides = "collect"
+  ) +
+  plot_annotation(
+    title = "Daily Environmental Conditions (Puna vs Forest, ±95% CI)",
+    theme = theme(
+      plot.title = element_text(
+        size = 16,
+        face = "bold",
+        hjust = 0.5
+      )
+    )
+  ) &
+  theme(
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold"),
+    legend.text = element_text(size = 11)
+  )
+
+ggsave("Environmental_conditions_panel.png", g_clima,
+       width = 12, height = 14, dpi = 300)
+```
+
+
+
+
+Evaluating differences between treatments
+
+Chunk 1: Data Import & Preparation
+```{r}
+# ============================================================
+# CHUNK 1: DATA IMPORT & PREPARATION
+# ============================================================
+library(tidyverse)
+library(lubridate)
+library(mgcv)
+library(boot)
+library(ggplot2)
+library(gridExtra)
+
+# Read data
+climadata <- read.csv("./Doble_filtro/Data/dataclima.csv", 
+                      header = TRUE, sep = ";", stringsAsFactors = FALSE)
+
+# Convert date_hour to POSIXct
+climadata <- climadata %>%
+  mutate(date_hour = as.POSIXct(date_hour, format = "%d/%m/%Y %H:%M", tz = "America/Lima"))
+
+# ---- Prepare long data for temperature and humidity ----
+long_data <- climadata %>%
+  mutate(
+    date = as.Date(date_hour),
+    hour_of_day = as.numeric(format(date_hour, "%H")) + 
+                  as.numeric(format(date_hour, "%M"))/60,
+    date_numeric = as.numeric(date)
+  ) %>%
+  pivot_longer(
+    cols = c(temp_puna, temp_forest, hr_puna, hr_forest),
+    names_to = c("variable", "habitat"),
+    names_pattern = "(.*)_(.*)",
+    values_to = "value"
+  ) %>%
+  pivot_wider(
+    names_from = variable, 
+    values_from = value
+  )
+
+# ---- Prepare light data in long format ----
+# NOTE: Light sensor clock was offset by ~9 hours.
+# Subtracting 9 hours aligns light peak with solar noon (~12:00).
+light_data <- climadata %>%
+  mutate(
+    date_hour_light = date_hour - hours(9),  # correct sensor clock offset
+    date = as.Date(date_hour_light),
+    hour_of_day = hour(date_hour_light) + minute(date_hour_light)/60,
+    date_numeric = as.numeric(date)
+  ) %>%
+  pivot_longer(
+    cols = c(ilum_puna, ilum_forest),
+    names_to = "habitat",
+    values_to = "light_intensity",  # lum/ft²
+    names_prefix = "ilum_"
+  )
+
+# ---- GAMs for statistical inference ----
+# Temperature
+mod_temp <- gam(temp ~ habitat + 
+                s(hour_of_day, bs = "cc", k = 24) +  
+                s(date_numeric, bs = "tp", k = 20),
+              data = long_data)
+cat("\n=== TEMPERATURE GAM ===\n")
+summary(mod_temp)
+
+# Humidity
+mod_hr <- gam(hr ~ habitat + 
+              s(hour_of_day, bs = "cc", k = 24) +  
+              s(date_numeric, bs = "tp", k = 20),
+            data = long_data)
+cat("\n=== HUMIDITY GAM ===\n")
+summary(mod_hr)
+
+# Light intensity (log-transformed for zeros at night)
+light_data$light_log <- log(light_data$light_intensity + 1)
+mod_light <- gam(light_log ~ habitat + 
+                 s(hour_of_day, bs = "cc", k = 24),
+               data = light_data)
+cat("\n=== LIGHT INTENSITY GAM (log scale) ===\n")
+summary(mod_light)
+
+cat("\n✓ Data preparation and GAMs complete\n")
+```
+
+Chunk 2: Bootstrap Analysis & Results Table
+```{r}
+# ============================================================
+# CHUNK 2: BOOTSTRAP ANALYSIS & RESULTS
+# ============================================================
+
+# ---- Create daily summaries ----
+
+# Temperature and humidity
+daily_summary <- long_data %>%
+  group_by(date, habitat) %>%
+  summarise(
+    temp_mean = mean(temp, na.rm = TRUE),
+    temp_max = max(temp, na.rm = TRUE),
+    temp_min = min(temp, na.rm = TRUE),
+    temp_range = temp_max - temp_min,
+    hr_mean = mean(hr, na.rm = TRUE),
+    hr_min = min(hr, na.rm = TRUE),
+    .groups = 'drop'
+  )
+
+# Light intensity (from long-format light_data, with corrected timestamps)
+daily_light <- light_data %>%
+  group_by(date, habitat) %>%
+  summarise(
+    light_integral = sum(light_intensity, na.rm = TRUE) * 0.5,
+    light_max = max(light_intensity, na.rm = TRUE),
+    light_daytime = mean(light_intensity[hour_of_day >= 6 & hour_of_day <= 18], na.rm = TRUE),
+    light_hours = sum(light_intensity > 0, na.rm = TRUE) * 0.5,
+    .groups = 'drop'
+  ) %>%
+  pivot_wider(
+    id_cols = date,
+    names_from = habitat,
+    values_from = c(light_integral, light_max, light_daytime, light_hours)
+  ) %>%
+  mutate(
+    light_integral_diff = light_integral_puna - light_integral_forest,
+    light_max_diff = light_max_puna - light_max_forest,
+    light_daytime_diff = light_daytime_puna - light_daytime_forest,
+    light_hours_diff = light_hours_puna - light_hours_forest,
+    light_integral_ratio = light_integral_puna / light_integral_forest
+  )
+
+# ---- Paired differences ----
+daily_diff <- daily_summary %>%
+  pivot_wider(
+    id_cols = date,
+    names_from = habitat,
+    values_from = c(temp_mean, temp_max, temp_min, temp_range, hr_mean, hr_min)
+  ) %>%
+  mutate(
+    temp_diff = temp_mean_puna - temp_mean_forest,
+    temp_max_diff = temp_max_puna - temp_max_forest,
+    temp_min_diff = temp_min_puna - temp_min_forest,
+    range_diff = temp_range_puna - temp_range_forest,
+    hr_diff = hr_mean_puna - hr_mean_forest,
+    hr_min_diff = hr_min_puna - hr_min_forest
+  )
+
+# ---- Bootstrap ----
+set.seed(123)
+
+boot_temp <- boot(daily_diff, function(d, i) mean(d$temp_diff[i], na.rm = TRUE), R = 9999)
+boot_temp_max <- boot(daily_diff, function(d, i) mean(d$temp_max_diff[i], na.rm = TRUE), R = 9999)
+boot_temp_min <- boot(daily_diff, function(d, i) mean(d$temp_min_diff[i], na.rm = TRUE), R = 9999)
+boot_range <- boot(daily_diff, function(d, i) mean(d$range_diff[i], na.rm = TRUE), R = 9999)
+boot_hr <- boot(daily_diff, function(d, i) mean(d$hr_diff[i], na.rm = TRUE), R = 9999)
+boot_hr_min <- boot(daily_diff, function(d, i) mean(d$hr_min_diff[i], na.rm = TRUE), R = 9999)
+boot_light_integral <- boot(daily_light, function(d, i) mean(d$light_integral_diff[i], na.rm = TRUE), R = 9999)
+boot_light_max <- boot(daily_light, function(d, i) mean(d$light_max_diff[i], na.rm = TRUE), R = 9999)
+boot_light_daytime <- boot(daily_light, function(d, i) mean(d$light_daytime_diff[i], na.rm = TRUE), R = 9999)
+boot_light_hours <- boot(daily_light, function(d, i) mean(d$light_hours_diff[i], na.rm = TRUE), R = 9999)
+boot_light_ratio <- boot(daily_light, function(d, i) mean(d$light_integral_ratio[i], na.rm = TRUE), R = 9999)
+
+# ---- Compile results table ----
+results <- data.frame(
+  Variable = c(
+    "Mean temperature", "Daily temperature range", "Maximum temperature",
+    "Minimum temperature", "Mean relative humidity", "Minimum relative humidity",
+    "Daily light integral", "Maximum light intensity",
+    "Daytime mean light intensity", "Hours with light"
+  ),
+  Units = c("°C", "°C", "°C", "°C", "%", "%", 
+            "lum/ft²·hours", "lum/ft²", "lum/ft²", "hours"),
+  Puna = c(
+    mean(daily_diff$temp_mean_puna, na.rm = TRUE),
+    mean(daily_diff$temp_range_puna, na.rm = TRUE),
+    mean(daily_diff$temp_max_puna, na.rm = TRUE),
+    mean(daily_diff$temp_min_puna, na.rm = TRUE),
+    mean(daily_diff$hr_mean_puna, na.rm = TRUE),
+    mean(daily_diff$hr_min_puna, na.rm = TRUE),
+    mean(daily_light$light_integral_puna, na.rm = TRUE),
+    mean(daily_light$light_max_puna, na.rm = TRUE),
+    mean(daily_light$light_daytime_puna, na.rm = TRUE),
+    mean(daily_light$light_hours_puna, na.rm = TRUE)
+  ),
+  Forest = c(
+    mean(daily_diff$temp_mean_forest, na.rm = TRUE),
+    mean(daily_diff$temp_range_forest, na.rm = TRUE),
+    mean(daily_diff$temp_max_forest, na.rm = TRUE),
+    mean(daily_diff$temp_min_forest, na.rm = TRUE),
+    mean(daily_diff$hr_mean_forest, na.rm = TRUE),
+    mean(daily_diff$hr_min_forest, na.rm = TRUE),
+    mean(daily_light$light_integral_forest, na.rm = TRUE),
+    mean(daily_light$light_max_forest, na.rm = TRUE),
+    mean(daily_light$light_daytime_forest, na.rm = TRUE),
+    mean(daily_light$light_hours_forest, na.rm = TRUE)
+  ),
+  Difference = c(
+    boot_temp$t0, boot_range$t0, boot_temp_max$t0, boot_temp_min$t0,
+    boot_hr$t0, boot_hr_min$t0,
+    boot_light_integral$t0, boot_light_max$t0,
+    boot_light_daytime$t0, boot_light_hours$t0
+  ),
+  CI_lower = c(
+    boot.ci(boot_temp, type = "perc")$percent[4],
+    boot.ci(boot_range, type = "perc")$percent[4],
+    boot.ci(boot_temp_max, type = "perc")$percent[4],
+    boot.ci(boot_temp_min, type = "perc")$percent[4],
+    boot.ci(boot_hr, type = "perc")$percent[4],
+    boot.ci(boot_hr_min, type = "perc")$percent[4],
+    boot.ci(boot_light_integral, type = "perc")$percent[4],
+    boot.ci(boot_light_max, type = "perc")$percent[4],
+    boot.ci(boot_light_daytime, type = "perc")$percent[4],
+    boot.ci(boot_light_hours, type = "perc")$percent[4]
+  ),
+  CI_upper = c(
+    boot.ci(boot_temp, type = "perc")$percent[5],
+    boot.ci(boot_range, type = "perc")$percent[5],
+    boot.ci(boot_temp_max, type = "perc")$percent[5],
+    boot.ci(boot_temp_min, type = "perc")$percent[5],
+    boot.ci(boot_hr, type = "perc")$percent[5],
+    boot.ci(boot_hr_min, type = "perc")$percent[5],
+    boot.ci(boot_light_integral, type = "perc")$percent[5],
+    boot.ci(boot_light_max, type = "perc")$percent[5],
+    boot.ci(boot_light_daytime, type = "perc")$percent[5],
+    boot.ci(boot_light_hours, type = "perc")$percent[5]
+  )
+)
+
+# Round
+results[, 3:6] <- round(results[, 3:6], 2)
+
+# Print
+print(results, row.names = FALSE)
+
+# Save
+write.csv(results, "habitat_comparison_results.csv", row.names = FALSE)
+
+# ---- Summary for manuscript ----
+cat("\n========== KEY RESULTS FOR MANUSCRIPT ==========\n")
+cat(sprintf("\n--- TEMPERATURE ---\n"))
+cat(sprintf("Mean daily: Puna = %.1f°C, Forest = %.1f°C, Diff = %.1f°C [%.1f, %.1f]\n", 
+            results$Puna[1], results$Forest[1], results$Difference[1], results$CI_lower[1], results$CI_upper[1]))
+cat(sprintf("Daily range: Puna = %.1f°C, Forest = %.1f°C, Diff = %.1f°C [%.1f, %.1f]\n", 
+            results$Puna[2], results$Forest[2], results$Difference[2], results$CI_lower[2], results$CI_upper[2]))
+cat(sprintf("Maximum: Puna = %.1f°C, Forest = %.1f°C, Diff = %.1f°C [%.1f, %.1f]\n", 
+            results$Puna[3], results$Forest[3], results$Difference[3], results$CI_lower[3], results$CI_upper[3]))
+cat(sprintf("Minimum: Puna = %.1f°C, Forest = %.1f°C, Diff = %.1f°C [%.1f, %.1f]\n", 
+            results$Puna[4], results$Forest[4], results$Difference[4], results$CI_lower[4], results$CI_upper[4]))
+
+cat(sprintf("\n--- HUMIDITY ---\n"))
+cat(sprintf("Mean daily: Puna = %.1f%%, Forest = %.1f%%, Diff = %.1f%% [%.1f, %.1f]\n", 
+            results$Puna[5], results$Forest[5], results$Difference[5], results$CI_lower[5], results$CI_upper[5]))
+cat(sprintf("Minimum daily: Puna = %.1f%%, Forest = %.1f%%, Diff = %.1f%% [%.1f, %.1f]\n", 
+            results$Puna[6], results$Forest[6], results$Difference[6], results$CI_lower[6], results$CI_upper[6]))
+
+cat(sprintf("\n--- LIGHT INTENSITY ---\n"))
+cat(sprintf("Daily integral: Puna = %.0f, Forest = %.0f lum/ft²·hours, Diff = %.0f [%.0f, %.0f]\n", 
+            results$Puna[7], results$Forest[7], results$Difference[7], results$CI_lower[7], results$CI_upper[7]))
+cat(sprintf("Maximum: Puna = %.0f, Forest = %.0f lum/ft², Diff = %.0f [%.0f, %.0f]\n", 
+            results$Puna[8], results$Forest[8], results$Difference[8], results$CI_lower[8], results$CI_upper[8]))
+cat(sprintf("Daytime mean: Puna = %.0f, Forest = %.0f lum/ft², Diff = %.0f [%.0f, %.0f]\n", 
+            results$Puna[9], results$Forest[9], results$Difference[9], results$CI_lower[9], results$CI_upper[9]))
+cat(sprintf("Hours with light: Puna = %.1f, Forest = %.1f hours, Diff = %.1f [%.1f, %.1f]\n", 
+            results$Puna[10], results$Forest[10], results$Difference[10], results$CI_lower[10], results$CI_upper[10]))
+cat(sprintf("Light integral ratio (Puna:Forest): %.1f [%.1f, %.1f]\n", 
+            boot_light_ratio$t0,
+            boot.ci(boot_light_ratio, type = "perc")$percent[4],
+            boot.ci(boot_light_ratio, type = "perc")$percent[5]))
+
+cat("\n✓ Bootstrap analysis complete\n")
+```
+
+Chunk 3: Visualizations
+```{r}
+# ============================================================
+# CHUNK 3: VISUALIZATIONS
+# ============================================================
+
+# Color schemes
+habitat_colors <- c("puna" = "darkred", "forest" = "darkgreen")
+light_colors <- c("puna" = "orange", "forest" = "darkgreen")
+
+# ---- Hourly summaries for diurnal plots ----
+hourly_temp <- long_data %>%
+  group_by(hour_of_day, habitat) %>%
+  summarise(
+    n = n(),
+    mean_val = mean(temp, na.rm = TRUE),
+    se_val = sd(temp, na.rm = TRUE) / sqrt(n()),
+    .groups = 'drop'
+  ) %>%
+  mutate(se_val = ifelse(is.na(se_val) | is.nan(se_val), 0, se_val))
+
+hourly_hr <- long_data %>%
+  group_by(hour_of_day, habitat) %>%
+  summarise(
+    n = n(),
+    mean_val = mean(hr, na.rm = TRUE),
+    se_val = sd(hr, na.rm = TRUE) / sqrt(n()),
+    .groups = 'drop'
+  ) %>%
+  mutate(se_val = ifelse(is.na(se_val) | is.nan(se_val), 0, se_val))
+
+hourly_light <- light_data %>%
+  group_by(hour_of_day, habitat) %>%
+  summarise(
+    n = n(),
+    mean_val = mean(light_intensity, na.rm = TRUE),
+    se_val = sd(light_intensity, na.rm = TRUE) / sqrt(n()),
+    .groups = 'drop'
+  ) %>%
+  mutate(se_val = ifelse(is.na(se_val) | is.nan(se_val), 0, se_val))
+
+# ---- PLOT A: Diurnal temperature ----
+p_diurnal_temp <- ggplot(hourly_temp, 
+                         aes(x = hour_of_day, y = mean_val, color = habitat, fill = habitat)) +
+  geom_ribbon(aes(ymin = mean_val - 2*se_val, ymax = mean_val + 2*se_val), 
+              alpha = 0.2, color = NA) +
+  geom_line(linewidth = 1.2) +
+  scale_color_manual(values = habitat_colors, labels = c("puna" = "Puna", "forest" = "Forest")) +
+  scale_fill_manual(values = habitat_colors, labels = c("puna" = "Puna", "forest" = "Forest")) +
+  labs(x = "Hour of day", y = "Temperature (°C)", title = "Diurnal temperature pattern (± 2 SE)") +
+  theme_minimal() + theme(legend.position = "bottom", legend.title = element_blank())
+
+# ---- PLOT B: Diurnal humidity ----
+p_diurnal_hr <- ggplot(hourly_hr, 
+                       aes(x = hour_of_day, y = mean_val, color = habitat, fill = habitat)) +
+  geom_ribbon(aes(ymin = mean_val - 2*se_val, ymax = mean_val + 2*se_val), 
+              alpha = 0.2, color = NA) +
+  geom_line(linewidth = 1.2) +
+  scale_color_manual(values = habitat_colors, labels = c("puna" = "Puna", "forest" = "Forest")) +
+  scale_fill_manual(values = habitat_colors, labels = c("puna" = "Puna", "forest" = "Forest")) +
+  labs(x = "Hour of day", y = "Relative humidity (%)", title = "Diurnal humidity pattern (± 2 SE)") +
+  theme_minimal() + theme(legend.position = "bottom", legend.title = element_blank())
+
+# ---- PLOT C: Diurnal light intensity ----
+p_diurnal_light <- ggplot(hourly_light, 
+                          aes(x = hour_of_day, y = mean_val, color = habitat, fill = habitat)) +
+  geom_ribbon(aes(ymin = mean_val - 2*se_val, ymax = mean_val + 2*se_val), 
+              alpha = 0.2, color = NA) +
+  geom_line(linewidth = 1.2) +
+  scale_color_manual(values = light_colors, labels = c("puna" = "Puna", "forest" = "Forest")) +
+  scale_fill_manual(values = light_colors, labels = c("puna" = "Puna", "forest" = "Forest")) +
+  labs(x = "Hour of day", y = expression("Light intensity (lum/ft"^2*")"), 
+       title = "Diurnal light intensity pattern (± 2 SE)") +
+  theme_minimal() + theme(legend.position = "bottom", legend.title = element_blank())
+
+# ---- PLOT D: Temperature difference time series ----
+p_temp_diff <- ggplot(daily_diff, aes(x = date)) +
+  geom_line(aes(y = temp_diff), color = "darkred", linewidth = 1) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+  geom_hline(yintercept = results$Difference[1], color = "blue", linewidth = 0.8) +
+  geom_hline(yintercept = c(results$CI_lower[1], results$CI_upper[1]), color = "blue", linetype = "dotted") +
+  labs(y = "Δ Temperature (°C)", x = "Date", title = "Temperature difference (Puna − Forest)") +
+  theme_minimal()
+
+# ---- PLOT E: Humidity difference time series ----
+p_hr_diff <- ggplot(daily_diff, aes(x = date)) +
+  geom_line(aes(y = hr_diff), color = "darkblue", linewidth = 1) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+  geom_hline(yintercept = results$Difference[5], color = "blue", linewidth = 0.8) +
+  geom_hline(yintercept = c(results$CI_lower[5], results$CI_upper[5]), color = "blue", linetype = "dotted") +
+  labs(y = "Δ Humidity (%)", x = "Date", title = "Humidity difference (Puna − Forest)") +
+  theme_minimal()
+
+# ---- PLOT F: Light intensity integral difference time series ----
+p_light_diff <- ggplot(daily_light, aes(x = date)) +
+  geom_line(aes(y = light_integral_diff), color = "darkorange", linewidth = 1) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+  geom_hline(yintercept = results$Difference[7], color = "blue", linewidth = 0.8) +
+  geom_hline(yintercept = c(results$CI_lower[7], results$CI_upper[7]), color = "blue", linetype = "dotted") +
+  labs(y = expression("Δ Light integral (lum/ft"^2*"·hours)"), x = "Date", 
+       title = "Light intensity integral difference (Puna − Forest)") +
+  theme_minimal()
+
+# ---- Display plots ----
+cat("\n--- Diurnal patterns ---\n")
+grid.arrange(p_diurnal_temp, p_diurnal_hr, p_diurnal_light, ncol = 1)
+
+cat("\n--- Difference time series ---\n")
+grid.arrange(p_temp_diff, p_hr_diff, p_light_diff, ncol = 1)
+
+cat("\n✓ Visualizations complete\n")
+```
+
+
+
+>>>>>>> 2e0ed7e7ff50ecc9ca623be735ef5fb1ce137cc7
