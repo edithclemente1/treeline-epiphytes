@@ -924,9 +924,10 @@ dist_chao <- vegdist(matriz_num, method = "chao")
 # ================================================
 
 permanova_chao <- adonis2(
-dist_chao ~ subplot + plot,
+dist_chao ~ plot + subplot,
 data = metadata,
-permutations = 999
+permutations = 999,
+by = "margin"
 )
 
 permanova_chao
@@ -935,7 +936,8 @@ permanova_chao
 permanova_chao1 <- adonis2(
 dist_chao ~ plot,
 data = metadata,
-permutations = 999
+permutations = 999,
+by = "margin"
 )
 
 permanova_chao1
@@ -1057,7 +1059,8 @@ binary = TRUE
 permanova_pa <- adonis2(
 dist_jaccard_forof ~ plot + subplot,
 data = metadata_pa,
-permutations = 999
+permutations = 999,
+by="margin"
 )
 
 permanova_pa
@@ -1252,8 +1255,7 @@ plot.title = element_text(
 size = 14,
 face = "bold",
 hjust = 0.5
-),
-legend.position = "none"
+)
 )
 
 # ================================================
@@ -1366,6 +1368,14 @@ dpi = 300
 ggsave(
 filename = "NMDS_abundance.png",
 plot = nmds_abu,
+width = 6,
+height = 5,
+dpi = 300
+)
+#solo el grafico de presencia ausencia
+ggsave(
+filename = "NMDS_PA.png",
+plot = nmds_pause,
 width = 6,
 height = 5,
 dpi = 300
