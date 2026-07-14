@@ -1,0 +1,2015 @@
+---
+title: "edad genero"
+format: html
+editor: visual
+---
+
+paquetes
+
+```{r}
+library(tidyverse) 
+library(readxl) 
+library(lubridate)
+library(ggplot2)
+library(minpack.lm)
+library(mgcv)
+library(patchwork)
+
+```
+
+# Incremento anual - censos ABERG
+
+# Weinmannia
+
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE")
+datos <- read_excel("weimmania.xlsx")
+
+```
+
+Base de datos con todos los censos de todos los arboles del genero
+
+```{r}
+datos_largos <- datos %>%
+  
+  pivot_longer(
+    cols = matches("^(DBH|date)\\."),
+    names_to = c(".value", "censo"),
+    names_pattern = "(DBH|date)\\.(\\d+)"
+  ) %>%
+  
+  rename(
+    DAP = DBH,
+    fecha = date
+  ) %>%
+  
+  mutate(
+    
+    year = year(fecha),
+    
+    cod_tree = paste(plot, new.tag, sep = "_")
+    
+  ) %>%
+  
+   dplyr::select(
+    cod_tree,
+    plot,
+    new.tag,
+    elev.cen,
+    genus,
+    specie,
+    censo,
+    year,
+    DAP
+  ) %>%
+  
+  filter(!is.na(DAP))
+
+head(datos_largos)
+str(datos_largos)
+
+```
+
+calcular el incremento anual
+
+```{r}
+growth_data <- datos_largos %>%
+  
+  arrange(cod_tree, year) %>%
+  
+  group_by(cod_tree) %>%
+  
+  mutate(
+    
+    DAP_prev = lag(DAP),
+    
+    year_prev = lag(year),
+    
+    delta_DAP = DAP - DAP_prev,
+    
+    delta_t = year - year_prev,
+    
+    incremento_anual = delta_DAP / delta_t
+    
+  ) %>%
+  
+  filter(!is.na(incremento_anual)) %>%
+  
+  filter(delta_t > 0) %>%
+  
+  filter(is.finite(incremento_anual))
+
+summary(growth_data$incremento_anual)
+str(growth_data)
+```
+
+revisar los outliers
+
+```{r}
+outliers <- growth_data %>%
+  
+  filter(
+    incremento_anual < 0 |
+    incremento_anual > 3
+  ) %>%
+  
+  distinct(cod_tree)
+
+outliers
+nrow(outliers)
+
+```
+
+limpiar los datos
+
+```{r}
+growth_clean <- growth_data %>%
+  
+  filter(
+    !cod_tree %in% outliers$cod_tree
+  )
+summary(growth_clean$incremento_anual)#revisar
+hist(
+  growth_clean$incremento_anual,
+  breaks = 50
+)#histograma
+```
+
+visualizar los datos
+
+```{r}
+ggplot(growth_clean,
+       aes(x = DAP_prev,
+           y = incremento_anual)) +
+  
+  geom_point(alpha = 0.2) +
+  
+  geom_smooth() +
+  
+  theme_bw()
+```
+
+Ajustar el modelo tipo Wagner & Zotz Incremento=a(e−bDAP−e−cDAP)
+
+```{r}
+modelo_growth <- nlsLM(
+  
+  incremento_anual ~
+    a * (exp(-b * DAP_prev) -
+           exp(-c * DAP_prev)),
+  
+  data = growth_clean,
+  
+  start = list(
+    a = 1,
+    b = 0.01,
+    c = 0.001
+  )
+)
+summary(modelo_growth)
+coef(modelo_growth)
+```
+
+curva teorica de Wagner & Zotz ajustad a mis datos
+
+```{r}
+growth_clean$pred <- predict(modelo_growth)
+grap_Weinmannia<- ggplot(growth_clean,
+        aes(x = DAP_prev,
+            y = incremento_anual)) +
+      geom_point(alpha = 0.2) +
+      geom_smooth() +
+   labs(
+     title = "Weinmannia") +
+      theme_bw()
+grap_Weinmannia
+```
+
+Comparar con modelos mas simples
+
+```{r}
+#modelo lineal
+lm1 <- lm(
+  incremento_anual ~ DAP_prev,
+  data = growth_clean
+)
+
+summary(lm1)
+
+#modelo cuadratico
+lm2 <- lm(
+  incremento_anual ~ DAP_prev + I(DAP_prev^2),
+  data = growth_clean
+)
+
+summary(lm2)
+
+#comparar
+AIC(lm1, lm2)
+```
+
+comparar los modelos usando dos el lineal y GAM
+
+```{r}
+gam1 <- gam(
+  incremento_anual ~ s(DAP_prev),
+  data = growth_clean
+)
+summary(gam1)
+AIC(lm1, gam1)
+#VISUALMENTE
+ggplot(growth_clean,
+       aes(x = DAP_prev,
+           y = incremento_anual)) +
+  
+  geom_point(alpha = 0.2) +
+  
+  geom_smooth(method = "lm",
+              color = "red") +
+  
+  geom_smooth(method = "gam",
+              color = "blue") +
+  
+  theme_bw()
+```
+
+MEJOR SE AJUSTA EL GAM, SEGUN AIC y visualmente.
+
+propone usar crecimiento anual medio, incremento acumulado, como proxies estructurales en vez de la edad
+
+ajuste el modelo GAM
+
+```{r}
+modelo_gam <- gam(
+  incremento_anual ~ s(DAP_prev, k = 5),
+  data = growth_clean
+)
+summary(modelo_gam)
+plot(modelo_gam)
+growth_clean$pred_gam <- predict(modelo_gam)
+
+gm_Weinmannia <- ggplot(growth_clean,
+       aes(x = DAP_prev,
+           y = incremento_anual)) +
+  
+  geom_point(alpha = 0.2) +
+  
+ geom_smooth(
+     method = "gam",
+     formula = y ~ s(x),
+     color = "blue",
+     linewidth = 1.5
+   ) +
+   labs(
+     title = "Weinmannia - Modelo GAM",
+     x = "DAP previo",
+     y = "Incremento anual"
+   ) +
+   theme_bw()
+gm_Weinmannia
+```
+
+# Alzatea
+
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE")
+Alz <- read_excel("Alzatea.xlsx")
+```
+
+Base de datos con todos los censos de todos los arboles del genero
+
+```{r}
+dl_Alzatea <- Alz %>%
+  pivot_longer(     cols = matches("^(DBH|date)\\."),
+                    names_to = c(".value", "censo"),
+                    names_pattern = "(DBH|date)\\.(\\d+)"   ) %>%
+  rename(     DAP = DBH,     fecha = date   ) %>%
+  mutate(          year = year(fecha),
+                   cod_tree = paste(
+                     plot, new.tag, sep = "_")) %>%
+  select(     cod_tree,     plot,     new.tag,     elev.cen,     genus,     specie,     censo,     year,     DAP   ) %>%      filter(!is.na(DAP)) 
+
+head(dl_Alzatea) 
+str(dl_Alzatea) 
+```
+
+calcular el incremento anual
+
+```{r}
+growth_dataA <- dl_Alzatea %>%      
+  arrange(cod_tree, year) %>%
+  group_by(cod_tree) %>%
+  mutate(          DAP_prev = lag(DAP),
+                   year_prev = lag(year),
+                   delta_DAP = DAP - DAP_prev,
+                   delta_t = year - year_prev,
+                   incremento_anual = delta_DAP / delta_t        ) %>%
+  filter(!is.na(incremento_anual)) %>%
+  filter(delta_t > 0) %>%      
+  filter(is.finite(incremento_anual))  
+summary(growth_dataA$incremento_anual) 
+str(growth_dataA)
+```
+
+revisar outlines
+
+```{r}
+outliersA <- growth_dataA %>%
+  
+  filter(
+    incremento_anual < 0 |
+    incremento_anual > 2
+  ) %>%
+   distinct(cod_tree)
+
+outliersA
+nrow(outliersA)
+
+```
+
+QUITAR OUTLIERS
+
+```{r}
+growth_cleanA <- growth_dataA %>%
+  
+  filter(
+    incremento_anual >= 0,
+    incremento_anual <= 2,
+    cod_tree != "SPD-01_2"
+  )
+```
+
+Visualizar
+
+```{r}
+grap_Alzatea<- ggplot(growth_cleanA,
+       aes(x = DAP_prev,
+           y = incremento_anual)) +
+  
+  geom_point(alpha = 0.2) +
+  
+  geom_smooth() +
+  labs(
+    title = "Alzatea") +
+  
+  theme_bw()
+grap_Alzatea
+```
+
+ajustar modelo Wagner
+
+```{r}
+library(minpack.lm)
+modelo_Alzatea <- nlsLM(
+
+  incremento_anual ~ 
+    a * (
+      exp(-b * DAP_prev) -
+      exp(-c * DAP_prev)
+    ),
+
+  data = growth_cleanA,
+
+  start = list(
+    a = 1,
+    b = 0.05,
+    c = 0.005
+  )
+
+)
+summary(modelo_Alzatea)
+coef(modelo_Alzatea)
+#visualizar
+gm_Alzatea <- ggplot(growth_cleanA,
+       aes(x = DAP_prev,
+           y = incremento_anual)) +
+
+  geom_point(alpha = 0.2) +
+
+  stat_function(
+
+    fun = function(x){
+
+      coef(modelo_Alzatea)["a"] *
+
+      (
+        exp(-coef(modelo_Alzatea)["b"] * x) -
+
+        exp(-coef(modelo_Alzatea)["c"] * x)
+      )
+
+    },
+
+    color = "blue",
+    linewidth = 1.5
+
+  ) +
+
+  labs(title = "Alzatea - Modelo Wagner") +
+
+  theme_bw()
+gm_Alzatea
+```
+
+La relación incremento-DAP fue débilmente unimodal en Alzatea”.
+
+comparar con modelo mas simple
+
+```{r}
+modelo_lin <- lm(
+  incremento_anual ~ DAP_prev,
+  data = growth_cleanA
+)
+
+summary(modelo_lin)
+AIC(modelo_lin)
+
+AIC(modelo_Alzatea)
+#la diferencia es minima y se considera que la relación incremento-DAP probablemente es casi lineal.
+```
+
+# Clethra
+
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE") 
+Clet <- read_excel("Clethra.xlsx")
+```
+
+Base de datos con todos los censos de todos los arboles del genero
+
+```{r}
+dl_Clethra <- Clet %>%
+  pivot_longer(     cols = matches("^(DBH|date)\\."),
+                    names_to = c(".value", "censo"),
+                    names_pattern = "(DBH|date)\\.(\\d+)"   ) %>%
+  rename(     DAP = DBH,     fecha = date   ) %>%
+  mutate(          year = year(fecha),
+                   cod_tree = paste(plot, new.tag, sep = "_")        ) %>%
+  select(     cod_tree,     plot,     new.tag,     elev.cen,     genus,     specie,     censo,     year,     DAP   ) %>%      
+  filter(!is.na(DAP))   
+head(dl_Clethra)  
+str(dl_Clethra) 
+```
+
+calcular el incremento anual
+
+```{r}
+growth_dataC <- dl_Clethra %>%
+  arrange(cod_tree, year) %>%
+  group_by(cod_tree) %>%
+  mutate(          DAP_prev = lag(DAP),                    year_prev = lag(year),                    delta_DAP = DAP - DAP_prev,                    delta_t = year - year_prev,                    incremento_anual = delta_DAP / delta_t        ) %>%
+  filter(!is.na(incremento_anual)) %>%
+  filter(delta_t > 0) %>%
+  filter(is.finite(incremento_anual))   
+summary(growth_dataC$incremento_anual)  
+str(growth_dataC)
+```
+
+revisar outlines
+
+```{r}
+outliersC <- growth_dataC %>%
+  filter(     incremento_anual < 0 |     incremento_anual > 2   ) %>%
+  distinct(cod_tree)  
+outliersC
+nrow(outliersC) 
+```
+
+QUITAR OUTLIERS
+
+```{r}
+growth_cleanC <- growth_dataC %>% 
+  filter(     incremento_anual >= 0,
+              incremento_anual <= 3
+              )
+```
+
+Visualizar
+
+```{r}
+grap_Clethra<- ggplot(growth_cleanC,
+       aes(x = DAP_prev,
+           y = incremento_anual)) +
+  geom_point(alpha = 0.2) +      
+  geom_smooth() + 
+  labs(
+    title = "Clethra") +
+  theme_bw()
+grap_Clethra
+```
+
+ajustar modelo Wagner
+
+```{r}
+library(minpack.lm) 
+modelo_Clethra <- nlsLM(
+  incremento_anual ~
+    a * (
+      exp(-b * DAP_prev) -
+      exp(-c * DAP_prev)
+    ),
+
+  data = growth_cleanC,
+
+  start = list(
+    a = 1,
+    b = 0.05,
+    c = 0.005
+  ),
+
+  control = nls.lm.control(
+    maxiter = 500
+  )
+)
+summary(modelo_Clethra) 
+coef(modelo_Clethra)
+## Clethra NO está siendo bien descrita por el modelo Wagner.
+
+#probar  modelo lineal 
+modelo_lin_C <- lm(
+  incremento_anual ~ DAP_prev,
+  data = growth_cleanC
+)
+summary(modelo_lin_C)
+AIC(modelo_lin_C)
+#probar modelo GAM
+modelo_gam_C <- gam(
+  incremento_anual ~ s(DAP_prev),
+  data = growth_cleanC
+)
+summary(modelo_gam_C)
+AIC(modelo_gam_C)
+##la diferencia seria en R2=0.019 lineal y R2= 0.034 GAM
+
+#visualizar 
+gm_Clethra <- ggplot(growth_cleanC,
+       aes(x = DAP_prev,
+           y = incremento_anual)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ s(x),
+    color = "blue",
+    linewidth = 1.5
+  ) +
+  labs(
+    title = "Clethra - Modelo GAM",
+    x = "DAP previo",
+    y = "Incremento anual"
+  ) +
+  theme_bw()
+gm_Clethra
+```
+
+# Ocotea
+
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE")  
+Ocot <- read_excel("Ocotea.xlsx")
+```
+
+Base de datos con todos los censos de todos los arboles del genero
+
+```{r}
+dl_Ocotea <- Ocot %>%
+  pivot_longer(     cols = matches("^(DBH|date)\\."), 
+                    names_to = c(".value",
+                                 "censo"),
+                    names_pattern = "(DBH|date)\\.(\\d+)"   ) %>%
+  rename(     DAP = DBH,
+              fecha = date   ) %>%
+  mutate(          year = year(fecha),
+                   cod_tree = paste(plot, new.tag, sep = "_")        ) %>%
+  select(     cod_tree,     plot,     new.tag,     elev.cen,     genus,     specie,     censo,     year,     DAP   ) %>%
+  filter(!is.na(DAP))    
+head(dl_Ocotea)   
+str(dl_Ocotea) 
+```
+
+calcular el incremento anual
+
+```{r}
+growth_dataO <- dl_Ocotea %>%
+  arrange(cod_tree, year) %>%
+  group_by(cod_tree) %>%
+  mutate(          DAP_prev = lag(DAP),
+                   year_prev = lag(year),
+                   delta_DAP = DAP - DAP_prev,
+                   delta_t = year - year_prev,
+                   incremento_anual = delta_DAP / delta_t        ) %>%
+  filter(!is.na(incremento_anual)) %>%
+  filter(delta_t > 0) %>%
+  filter(is.finite(incremento_anual))    
+summary(growth_dataC$incremento_anual)  
+str(growth_dataO)
+```
+
+revisar outlines
+
+```{r}
+outliersO <- growth_dataO %>%
+  filter(     incremento_anual < 0 |     incremento_anual > 3   ) %>%
+  distinct(cod_tree)   
+outliersO
+nrow(outliersO) 
+```
+
+QUITAR OUTLIERS
+
+```{r}
+growth_cleanO <- growth_dataO %>%
+  filter(     incremento_anual >= 0,               incremento_anual <= 3,
+              )
+```
+
+Visualizar
+
+```{r}
+grap_Ocotea<- ggplot(growth_cleanO,
+       aes(x = DAP_prev,
+           y = incremento_anual)) +
+  geom_point(alpha = 0.2) +         
+  geom_smooth() +
+   labs(
+    title = "Ocotea") +
+  theme_bw()
+grap_Ocotea
+```
+
+ajustar modelo Wagner
+
+```{r}
+modelo_Ocotea <- nlsLM(
+  incremento_anual ~
+    a * (
+      exp(-b * DAP_prev) -
+      exp(-c * DAP_prev)
+    ),
+
+  data = growth_cleanO,
+
+  start = list(
+    a = 1,
+    b = 0.05,
+    c = 0.005
+  ),
+
+  control = nls.lm.control(
+    maxiter = 500
+  )
+)
+summary(modelo_Ocotea) 
+coef(modelo_Ocotea)
+## Ocotea probablemente NO sigue una curva Wagner clásica.
+
+#probar  modelo lineal 
+modelo_lin_O <- lm(
+  incremento_anual ~ DAP_prev,
+  data = growth_cleanO
+)
+summary(modelo_lin_O)
+AIC(modelo_lin_O)
+#probar modelo GAM
+modelo_gam_O <- gam(
+  incremento_anual ~ s(DAP_prev),
+  data = growth_cleanO
+)
+summary(modelo_gam_O)
+AIC(modelo_gam_O)
+##En Ocotea el GAM es claramente mejor que el modelo lineal.
+
+#visualizar 
+gm_Ocotea <- ggplot(growth_cleanO,
+       aes(x = DAP_prev,
+           y = incremento_anual)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ s(x),
+    color = "blue",
+    linewidth = 1.5
+  ) +
+  labs(
+    title = "Ocotea - Modelo GAM",
+    x = "DAP previo",
+    y = "Incremento anual"
+  ) +
+  theme_bw()
+gm_Ocotea
+```
+
+# Pouteria
+
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE")   
+Pout <- read_excel("Pouteria.xlsx")
+```
+
+Base de datos con todos los censos de todos los arboles del genero
+
+```{r}
+dl_Pouteria <- Pout %>%
+  pivot_longer(     
+    cols = matches("^(DBH|date)\\."),
+    names_to = c(".value",
+                 "censo"),
+    names_pattern = "(DBH|date)\\.(\\d+)"   ) %>%
+  rename(     DAP = DBH,
+              fecha = date   ) %>%
+  mutate(          year = year(fecha),                    cod_tree = paste(plot, new.tag, sep = "_")        ) %>%
+  select(     
+    cod_tree,     plot,     new.tag,     elev.cen,     genus,     specie,     censo,     year,     DAP   ) %>%
+  filter(!is.na(DAP))     
+head(dl_Pouteria)    
+str(dl_Pouteria) 
+```
+
+calcular el incremento anual
+
+```{r}
+growth_dataP <- dl_Pouteria %>%
+  arrange(cod_tree, year) %>%
+  group_by(cod_tree) %>%
+  mutate(DAP_prev = lag(DAP),
+         year_prev = lag(year),
+         delta_DAP = DAP - DAP_prev,
+         delta_t = year - year_prev,
+         incremento_anual = delta_DAP / delta_t        ) %>%
+  filter(!is.na(incremento_anual)) %>%
+  filter(delta_t > 0) %>%
+  filter(is.finite(incremento_anual))
+summary(growth_dataP$incremento_anual)
+str(growth_dataP)
+```
+
+revisar outlines
+
+```{r}
+outliersP <- growth_dataP %>%
+  filter(     incremento_anual < 0 |
+                incremento_anual > 3   ) %>%
+  distinct(cod_tree)
+outliersP 
+nrow(outliersP) 
+#buscar el arbol que tiene mas de 100 DAP
+growth_dataP %>%
+  
+  filter(DAP_prev > 100) %>%
+  
+  select(
+    cod_tree,
+    DAP_prev,
+    incremento_anual
+  ) %>%
+  
+  distinct()
+```
+
+QUITAR OUTLIERS
+
+```{r}
+growth_cleanP <- growth_dataP %>%
+  filter(     incremento_anual >= 0,
+              incremento_anual <= 3,
+                cod_tree != "PAN-03_127"
+              )
+```
+
+Visualizar
+
+```{r}
+grap_Pouteria<-ggplot(growth_cleanP,
+       aes(x = DAP_prev,
+           y = incremento_anual)) + 
+  geom_point(alpha = 0.2) +
+  geom_smooth() +
+  labs(
+    title = "Pouteria") +
+  theme_bw()
+grap_Pouteria
+```
+
+ajustar modelo Wagner
+
+```{r}
+modelo_Pouteria <- nlsLM(
+  incremento_anual ~
+    a * (
+      exp(-b * DAP_prev) -
+      exp(-c * DAP_prev)
+    ),
+
+  data = growth_cleanP,
+
+  start = list(
+    a = 1,
+    b = 0.05,
+    c = 0.005
+  ),
+
+  control = nls.lm.control(
+    maxiter = 500
+  )
+)
+summary(modelo_Pouteria) 
+coef(modelo_Pouteria)
+## El modelo Wagner NO está ajustando bien.
+
+#probar  modelo lineal 
+modelo_lin_P <- lm(
+  incremento_anual ~ DAP_prev,
+  data = growth_cleanP
+)
+summary(modelo_lin_P)
+AIC(modelo_lin_P)
+#probar modelo GAM
+modelo_gam_P <- gam(
+  incremento_anual ~ s(DAP_prev),
+  data = growth_cleanP
+)
+summary(modelo_gam_P)
+AIC(modelo_gam_P)
+##En Pouteria el GAM es claramente mejor que el modelo lineal.
+
+#visualizar 
+gm_Pouteria <- ggplot(growth_cleanP,
+       aes(x = DAP_prev,
+           y = incremento_anual)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(
+    method = "gam",
+    formula = y ~ s(x),
+    color = "blue",
+    linewidth = 1.5
+  ) +
+  labs(
+    title = "Pouteria - Modelo GAM",
+    x = "DAP previo",
+    y = "Incremento anual"
+  ) +
+  theme_bw()
+gm_Pouteria
+```
+
+# Helicostylis
+
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE")    
+Heli <- read_excel("Helicostylis.xlsx")
+```
+
+Base de datos con todos los censos de todos los arboles del genero
+
+```{r}
+dl_Helicostylis <- Heli %>%
+  pivot_longer(
+    cols = matches("^(DBH|date)\\."),
+    names_to = c(".value", "censo"),
+    names_pattern = "(DBH|date)\\.(\\d+)"   ) %>%
+  rename(     DAP = DBH, fecha = date   ) %>%
+  mutate(          year = year(fecha),                    cod_tree = paste(plot, new.tag, sep = "_")        ) %>%
+  select(          cod_tree,     plot,     new.tag,     elev.cen,     genus,     specie,     censo,     year,     DAP   ) %>%   filter(!is.na(DAP))      
+head(dl_Helicostylis)     
+str(dl_Helicostylis) 
+```
+
+calcular el incremento anual
+
+```{r}
+growth_dataH <- dl_Helicostylis %>%
+  arrange(cod_tree, year) %>%
+  group_by(cod_tree) %>%
+  mutate(DAP_prev = lag(DAP),
+         year_prev = lag(year),
+         delta_DAP = DAP - DAP_prev,
+         delta_t = year - year_prev,
+         incremento_anual = delta_DAP / delta_t        ) %>%
+  filter(!is.na(incremento_anual)) %>%   filter(delta_t > 0) %>%
+  filter(is.finite(incremento_anual)) 
+summary(growth_dataH$incremento_anual) 
+str(growth_dataH)
+```
+
+revisar outlines
+
+```{r}
+outliersH <- growth_dataP %>%
+  filter(     incremento_anual < 0 |
+                incremento_anual > 2   ) %>%
+  distinct(cod_tree) 
+outliersH
+nrow(outliersH) 
+```
+
+QUITAR OUTLIERS
+
+```{r}
+growth_cleanH <- growth_dataH %>%
+  filter(     
+    incremento_anual >= 0,
+    incremento_anual <= 2
+    )
+```
+
+Visualizar
+
+```{r}
+grap_Helicostylis<-ggplot(growth_cleanH,
+       aes(x = DAP_prev,
+           y = incremento_anual)) +
+  
+  geom_point(alpha = 0.2) +
+  
+  geom_smooth() +
+  
+  labs(
+    title = "Helicostylis"
+  ) +
+  
+  theme_bw()
+grap_Helicostylis
+```
+
+Ajustar modelo Wagner
+
+```{r}
+modelo_Helicostylis <- nlsLM(
+  incremento_anual ~
+    a * (
+      exp(-b * DAP_prev) -
+      exp(-c * DAP_prev)
+    ),
+
+  data = growth_cleanH,
+
+  start = list(
+    a = 1,
+    b = 0.05,
+    c = 0.005
+  ),
+
+  control = nls.lm.control(
+    maxiter = 500
+  )
+)
+summary(modelo_Helicostylis) 
+coef(modelo_Helicostylis)
+## El modelo Wagner NO está ajustando bien.
+
+#probar  modelo lineal 
+modelo_lin_H <- lm(
+  incremento_anual ~ DAP_prev,
+  data = growth_cleanH
+)
+summary(modelo_lin_H)
+AIC(modelo_lin_H)
+#probar modelo GAM
+modelo_gam_H <- gam(
+  incremento_anual ~ s(DAP_prev),
+  data = growth_cleanH
+)
+summary(modelo_gam_H)
+AIC(modelo_gam_H)
+##probablemente ninguno explica bien el crecimiento. y usar el lineal 
+
+#visualizar 
+gm_Helicostylis <- ggplot(growth_cleanH,
+       aes(x = DAP_prev,
+           y = incremento_anual)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(
+    method = "lm",
+    color = "blue",
+    linewidth = 1.5,
+    se = TRUE
+  ) +
+
+  labs(
+    title = "Helicostylis - Modelo lineal",
+    x = "DAP previo",
+    y = "Incremento anual"
+  ) +
+
+  theme_bw()
+gm_Helicostylis
+```
+
+##### VER LA TENDENCIA DE LAS 6 ESPECIES EN GRAFICO JUNTO
+
+```{r}
+wrap_plots(
+  grap_Weinmannia, grap_Clethra,
+  grap_Alzatea, grap_Ocotea,
+  grap_Helicostylis, grap_Pouteria,
+  
+  ncol = 2,
+  nrow = 3
+)
+```
+
+##### VER LOS MODELOS DE LAS 6 ESPECIES EN GRAFICO JUNTOS
+
+```{r}
+generos_incremento_anual <-wrap_plots(
+  gm_Weinmannia, gm_Clethra,
+  gm_Alzatea, gm_Ocotea,
+  gm_Helicostylis, gm_Pouteria,
+  
+  ncol = 2,
+  nrow = 3
+)
+
+ggsave(
+  "C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/EPIFITAS_BANDAS_ELEV/generos_incremento_anual.png",
+  generos_incremento_anual,
+  width = 8,
+  height = 9,
+  units = "in",
+  dpi = 300
+)
+
+
+
+getwd()
+```
+
+# Edad del hospedero
+
+### Crear función para estimar edad
+
+```{r}
+estimar_edad <- function(DAP_objetivo,
+                         modelo,
+                         dap_inicial = 1){
+
+  dap <- dap_inicial
+  edad <- 0
+
+  while(dap < DAP_objetivo){
+
+    incremento <- predict(
+      modelo,
+      newdata = data.frame(
+        DAP_prev = dap
+      )
+    )
+
+    # evitar incrementos negativos o cero
+    incremento <- max(incremento, 0.01)
+
+    dap <- dap + incremento
+
+    edad <- edad + 1
+
+    # seguridad
+    if(edad > 2000) break
+  }
+
+  return(edad)
+}
+
+##probar con un arbol
+estimar_edad(
+  DAP_objetivo = 40,
+  modelo = modelo_gam
+)
+```
+
+```{r}
+
+#=========================================
+# WEINMANNIA - MODELO DE CRECIMIENTO
+#=========================================
+
+modelo_gam <- gam(
+  incremento_anual ~ s(DAP_prev, k = 5),
+  data = growth_clean
+)
+
+summary(modelo_gam)
+
+#=========================================
+# FUNCION PARA ESTIMAR EDAD
+#=========================================
+
+estimar_edad <- function(
+    DAP_objetivo,
+    modelo,
+    dap_inicial = 1){
+
+  dap <- dap_inicial
+  edad <- 0
+
+  while(dap < DAP_objetivo){
+
+    incremento <- predict(
+      modelo,
+      newdata = data.frame(
+        DAP_prev = dap
+      )
+    )
+
+    incremento <- max(incremento, 0.01)
+
+    dap <- dap + incremento
+
+    edad <- edad + 1
+
+    if(edad > 2000) break
+  }
+
+  return(edad)
+}
+
+#=========================================
+# FUNCION PARA ESTIMAR EDAD pero colocando como inicial 20 años para dap min de 9 o 10 cm
+#=========================================
+estimar_edad <- function(
+    DAP_objetivo,
+    modelo,
+    dap_inicial,
+    edad_inicial = 20){
+
+  dap <- dap_inicial
+  edad <- edad_inicial
+
+  while(dap < DAP_objetivo){
+
+    incremento <- predict(
+      modelo,
+      newdata = data.frame(
+        DAP_prev = dap
+      )
+    )
+
+    incremento <- max(incremento, 0.01)
+
+    dap <- dap + incremento
+
+    edad <- edad + 1
+  }
+
+  return(edad)
+}
+#=========================================
+# WEINMANNIA - EDAD ESTIMADA
+#=========================================
+arboles_unicos$edad_estimada <- sapply(
+
+  arboles_unicos$DAP,
+
+  estimar_edad,
+
+  modelo = modelo_gam,
+
+  dap_inicial = 10
+
+)
+#=========================================
+# GUARDAR OBJETOS DE WEINMANNIA
+#=========================================
+
+datos_largos_W <- datos_largos
+
+growth_clean_W <- growth_clean
+
+modelo_gam_W <- modelo_gam
+
+arboles_unicos_W <- arboles_unicos
+
+#========================================
+#=========================================
+# CLETHRA - ARBOLES UNICOS
+#=========================================
+
+arboles_unicos_C <- dl_Clethra %>%
+
+  filter(
+    cod_tree %in%
+      unique(growth_cleanC$cod_tree)
+  ) %>%
+
+  group_by(cod_tree) %>%
+
+  slice_max(
+    year,
+    n = 1
+  ) %>%
+
+  ungroup()
+
+#=========================================
+# CLETHRA - EDAD ESTIMADA
+#=========================================
+arboles_unicos_C$edad_estimada <- sapply(
+
+  arboles_unicos_C$DAP,
+
+  estimar_edad,
+
+  modelo = modelo_gam_C,
+
+  dap_inicial = 9.6
+
+)
+#=========================================
+# REVISION DE RESULTADOS
+#=========================================
+
+summary(arboles_unicos_C$edad_estimada)
+
+head(arboles_unicos_C)
+
+#=========================================
+# ALZATEA - ARBOLES UNICOS
+#=========================================
+arboles_unicos_A <- dl_Alzatea %>%
+
+  filter(
+    cod_tree %in%
+      unique(growth_cleanA$cod_tree)
+  ) %>%
+
+  group_by(cod_tree) %>%
+
+  slice_max(
+    year,
+    n = 1
+  ) %>%
+
+  ungroup()
+#=========================================
+# ALZATEA - EDAD ESTIMADA
+#=========================================
+arboles_unicos_A$edad_estimada <- sapply(
+
+  arboles_unicos_A$DAP,
+
+  estimar_edad,
+
+  modelo = modelo_Alzatea,
+
+  dap_inicial = 9
+
+)
+#=========================================
+# REVISION DE RESULTADOS
+#=========================================
+
+summary(arboles_unicos_A$edad_estimada)
+
+head(arboles_unicos_A)
+
+#=========================================
+# OCOTEA - ARBOLES UNICOS
+#=========================================
+arboles_unicos_O <- dl_Ocotea %>%
+
+  filter(
+    cod_tree %in%
+      unique(growth_cleanO$cod_tree)
+  ) %>%
+
+  group_by(cod_tree) %>%
+
+  slice_max(
+    year,
+    n = 1
+  ) %>%
+
+  ungroup()
+#=========================================
+# OCOTEA - EDAD ESTIMADA
+#=========================================
+arboles_unicos_O$edad_estimada <- sapply(
+
+  arboles_unicos_O$DAP,
+
+  estimar_edad,
+
+  modelo = modelo_gam_O,
+
+  dap_inicial = 9.2
+
+)
+#=========================================
+# REVISION DE RESULTADOS
+#=========================================
+
+summary(arboles_unicos_O$edad_estimada)
+
+head(arboles_unicos_O)
+
+#=========================================
+# POUTERIA - ARBOLES UNICOS
+#=========================================
+arboles_unicos_P <- dl_Pouteria %>%
+
+  filter(
+    cod_tree %in%
+      unique(growth_cleanP$cod_tree)
+  ) %>%
+
+  group_by(cod_tree) %>%
+
+  slice_max(
+    year,
+    n = 1
+  ) %>%
+
+  ungroup()
+#=========================================
+# POUTERIA - EDAD ESTIMADA
+#=========================================
+arboles_unicos_P$edad_estimada <- sapply(
+
+  arboles_unicos_P$DAP,
+
+  estimar_edad,
+
+  modelo = modelo_gam_P,
+
+  dap_inicial = 10
+
+)
+#=========================================
+# REVISION DE RESULTADOS
+#=========================================
+
+summary(arboles_unicos_P$edad_estimada)
+
+head(arboles_unicos_P)
+
+#=========================================
+# HELICOSTYLIS - ARBOLES UNICOS
+#=========================================
+arboles_unicos_H <- dl_Helicostylis %>%
+
+  filter(
+    cod_tree %in%
+      unique(growth_cleanH$cod_tree)
+  ) %>%
+
+  group_by(cod_tree) %>%
+
+  slice_max(
+    year,
+    n = 1
+  ) %>%
+
+  ungroup()
+#=========================================
+# HELICOSTYLIS - EDAD ESTIMADA
+#=========================================
+arboles_unicos_H$edad_estimada <- sapply(
+
+  arboles_unicos_H$DAP,
+
+  estimar_edad,
+
+  modelo = modelo_lin_H,
+
+  dap_inicial = 10
+
+)
+#=========================================
+# REVISION DE RESULTADOS
+#=========================================
+
+summary(arboles_unicos_H$edad_estimada)
+
+head(arboles_unicos_H)
+
+#=========================================
+# UNIR TODOS LOS GENEROS
+#=========================================
+
+arboles_unicos_all <- bind_rows(
+
+  arboles_unicos_W,
+  arboles_unicos_C,
+  arboles_unicos_A,
+  arboles_unicos_O,
+  arboles_unicos_P,
+  arboles_unicos_H
+
+)
+nrow(arboles_unicos_all)
+head(arboles_unicos_all)
+str(arboles_unicos_all)
+
+# conservar solo edad del hospedero
+#=========================================
+arboles_unicos_all <- arboles_unicos_all %>%
+
+  select(
+    cod_tree,
+    edad_estimada
+  )
+
+```
+
+datos hospederos
+
+```{r}
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/EPIFITAS_BANDAS_ELEV")
+epi_data_grad <- read.csv("EPgFORsact.csv", header = TRUE, sep = ";", stringsAsFactors = FALSE) # Limpiar nombres de especies epi_data_grad$MORFOESPECIE <- epi_data_grad$MORFOESPECIE %>%   str_replace_all("\u00A0", " ") %>%   # reemplaza espacios raros   str_trim()   str(epi_data_grad)
+str(epi_data_grad)
+```
+
+TABLA COMPLETA PARA LA RIQUEZA Y ABUNDANCIA
+
+```{r}
+##primero borrar la columna edad estimada para volverla a crear
+epi_data_grad <- epi_data_grad %>%
+
+  select(
+    -starts_with("edad_estimada")
+  )
+
+# unir con la base
+#=========================================
+epi_data_grad <- epi_data_grad %>%
+
+  left_join(
+    arboles_unicos_all,
+    by = c(
+      "FOROCOD" = "cod_tree"
+    )
+  )
+
+# ver cuantos forofitos encontramos
+#=========================================
+epi_data_grad %>%
+
+  distinct(FOROCOD) %>%
+
+  nrow()##correcto 58 foros
+str(epi_data_grad)
+View(epi_data_grad)
+
+# Calcular riqueza y abundancia por forofito
+#=========================================
+epi_resumen <- epi_data_grad %>%
+
+  group_by(FOROCOD) %>%
+
+  summarise(
+
+    GENUSFORO = first(GENERUSFORO),
+
+    DAP = first(DAP),
+
+    edad_estimada = first(edad_estimada),
+
+    riqueza = n_distinct(MORFOESPECIE),
+
+    abundancia = n()
+
+  )
+
+View(epi_resumen)
+```
+
+graficos RIQUEZA
+
+```{r}
+#riqueza ~ DAP
+#================================================
+g_riqDAP_a <- ggplot(
+  epi_resumen,
+  aes(
+    x = DAP,
+    y = riqueza,
+    color = GENUSFORO,
+    fill = GENUSFORO
+  )
+) +
+
+  geom_point(
+    size = 3,
+    alpha = 0.8
+  ) +
+
+  geom_smooth(
+  method = "gam",
+  formula = y ~ s(x, k = 4)
+) +
+
+  theme_bw() +
+
+  labs(
+    x = "DAP (cm)",
+    y = "Riqueza de epífitas",
+    color = "Género del forófito",
+    fill = "Género del forófito"
+  )
+g_riqDAP_a
+
+g_riqDAP_b <- ggplot(
+  epi_resumen,
+  aes(
+    x = DAP,
+    y = riqueza
+  )
+) +
+
+  geom_point(size = 3) +
+
+ geom_smooth(
+  method = "gam",
+  formula = y ~ s(x, k = 4)
+) +
+
+  facet_wrap(
+    ~ GENUSFORO,
+    ncol = 3
+  ) +
+
+  theme_bw()
+g_riqDAP_b
+
+#riqueza ~ edad estimada
+#================================================
+g_riqEdad_a <- ggplot(
+  epi_resumen,
+  aes(
+    x = edad_estimada,
+    y = riqueza,
+    color = GENUSFORO,
+    fill = GENUSFORO
+  )
+) +
+
+  geom_point(
+    size = 3,
+    alpha = 0.8
+  ) +
+
+  geom_smooth(
+    method = "gam",
+    formula = y ~ s(x, k = 4)
+  ) +
+
+  theme_bw() +
+
+  labs(
+    x = "Edad estimada (años)",
+    y = "Riqueza de epífitas",
+    color = "Género del forófito",
+    fill = "Género del forófito"
+  )
+
+g_riqEdad_a
+
+g_riqEdad_b <- ggplot(
+  epi_resumen,
+  aes(
+    x = edad_estimada,
+    y = riqueza
+  )
+) +
+
+  geom_point(
+    size = 3
+  ) +
+
+  geom_smooth(
+    method = "gam",
+    formula = y ~ s(x, k = 4)
+  ) +
+
+  facet_wrap(
+    ~ GENUSFORO,
+    ncol = 3
+  ) +
+
+  theme_bw() +
+
+  labs(
+    x = "Edad estimada (años)",
+    y = "Riqueza de epífitas"
+  )
+
+g_riqEdad_b
+
+g_riqDAP_b /
+g_riqEdad_b
+
+
+```
+
+Graficos ABUNDANCIA
+
+```{r}
+#================================================
+# abundancia ~ DAP
+#================================================
+
+g_abDAP_a <- ggplot(
+  epi_resumen,
+  aes(
+    x = DAP,
+    y = abundancia,
+    color = GENUSFORO,
+    fill = GENUSFORO
+  )
+) +
+
+  geom_point(
+    size = 3,
+    alpha = 0.8
+  ) +
+
+  geom_smooth(
+    method = "gam",
+    formula = y ~ s(x, k = 4)
+  ) +
+
+  theme_bw() +
+
+  labs(
+    x = "DAP (cm)",
+    y = "Abundancia de epífitas",
+    color = "Género del forófito",
+    fill = "Género del forófito"
+  )
+
+g_abDAP_a
+
+g_abDAP_b <- ggplot(
+  epi_resumen,
+  aes(
+    x = DAP,
+    y = abundancia
+  )
+) +
+
+  geom_point(
+    size = 3
+  ) +
+
+  geom_smooth(
+    method = "gam",
+    formula = y ~ s(x, k = 4)
+  ) +
+
+  facet_wrap(
+    ~ GENUSFORO,
+    ncol = 3
+  ) +
+
+  theme_bw() +
+
+  labs(
+    x = "DAP (cm)",
+    y = "Abundancia de epífitas"
+  )
+
+g_abDAP_b
+
+#================================================
+# abundancia ~ edad estimada
+#================================================
+
+g_abEdad_a <- ggplot(
+  epi_resumen,
+  aes(
+    x = edad_estimada,
+    y = abundancia,
+    color = GENUSFORO,
+    fill = GENUSFORO
+  )
+) +
+
+  geom_point(
+    size = 3,
+    alpha = 0.8
+  ) +
+
+  geom_smooth(
+    method = "gam",
+    formula = y ~ s(x, k = 4)
+  ) +
+
+  theme_bw() +
+
+  labs(
+    x = "Edad estimada (años)",
+    y = "Abundancia de epífitas",
+    color = "Género del forófito",
+    fill = "Género del forófito"
+  )
+
+g_abEdad_a
+
+g_abEdad_b <- ggplot(
+  epi_resumen,
+  aes(
+    x = edad_estimada,
+    y = abundancia
+  )
+) +
+
+  geom_point(
+    size = 3
+  ) +
+
+  geom_smooth(
+    method = "gam",
+    formula = y ~ s(x, k = 4)
+  ) +
+
+  facet_wrap(
+    ~ GENUSFORO,
+    ncol = 3
+  ) +
+
+  theme_bw() +
+
+  labs(
+    x = "Edad estimada (años)",
+    y = "Abundancia de epífitas"
+  )
+
+g_abEdad_b
+
+
+g_abDAP_a /
+g_abEdad_a
+g_abDAP_b /
+g_abEdad_b
+
+```
+
+por Cinturon elevacional
+
+```{r}
+unique(epi_resumen$GENUSFORO)
+#limpia los espacios 
+epi_resumen <- epi_resumen %>%
+
+  mutate(
+    GENUSFORO = trimws(GENUSFORO)
+  )
+#verifica
+unique(epi_resumen$GENUSFORO)
+
+##crea los cinturones
+epi_resumen <- epi_resumen %>%
+
+  mutate(
+    cinturon = case_when(
+      GENUSFORO %in% c("Weinmannia", "Clethra")
+      ~ "Alto",
+
+      GENUSFORO %in% c("Ocotea", "Alzatea")
+      ~ "Medio",
+
+      GENUSFORO %in% c("Pouteria", "Helicostylis")
+      ~ "Bajo"
+    )
+  )
+
+#orden del grafico
+epi_resumen <- epi_resumen %>%
+
+  mutate(
+    cinturon = factor(
+      cinturon,
+      levels = c(
+        "Alto",
+        "Medio",
+        "Bajo"
+      )
+    )
+  )
+
+##grafico abundancia - edad 
+g_abEdad_cinturon <- ggplot(
+  epi_resumen,
+  aes(
+    x = edad_estimada,
+    y = abundancia,
+    color = GENUSFORO
+  )
+) +
+
+  geom_point(
+    size = 3,
+    alpha = 0.8
+  ) +
+
+  geom_smooth(
+    method = "gam",
+    formula = y ~ s(x, k = 4),
+    se = TRUE
+  ) +
+
+  facet_wrap(
+    ~ cinturon,
+    ncol = 1,
+    scales = "free_x"
+  ) +
+
+  theme_bw() +
+
+  labs(
+    x = "Edad estimada (años)",
+    y = "Abundancia de epífitas",
+    color = "Hospedero"
+  )
+
+g_abEdad_cinturon
+
+##grafico abundancia - edad 
+g_abDAP_cinturon <- ggplot(
+  epi_resumen,
+  aes(
+    x = DAP,
+    y = abundancia,
+    color = GENUSFORO
+  )
+) +
+
+  geom_point(
+    size = 3,
+    alpha = 0.8
+  ) +
+
+  geom_smooth(
+    method = "gam",
+    formula = y ~ s(x, k = 4),
+    se = TRUE
+  ) +
+
+  facet_wrap(
+    ~ cinturon,
+    ncol = 1,
+    scales = "free_x"
+  ) +
+
+  theme_bw() +
+
+  labs(
+    x = "DAP (cm)",
+    y = "Abundancia de epífitas",
+    color = "Hospedero"
+  )
+
+g_abDAP_cinturon
+
+library(patchwork)
+
+g_abEdad_cinturon <- g_abEdad_cinturon +
+
+  labs(
+    y = NULL
+  ) +
+
+  theme(
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+graf_DAPyEdad <- (g_abDAP_cinturon |
+ g_abEdad_cinturon) +
+
+  plot_layout(
+    guides = "collect"
+  ) &
+
+  theme(
+    legend.position = "right"
+  )
+graf_DAPyEdad
+
+ggsave(
+  filename = "graf_DAPyEdad.png",
+  plot = graf_DAPyEdad,
+  width = 8,
+  height = 10,
+  units = "in",
+  dpi = 300
+)
+
+
+```
+
+```{r}
+m1 <- lm(abundancia ~ DAP, data = epi_resumen)
+m2 <- lm(abundancia ~ edad_estimada, data = epi_resumen)
+m3 <- lm(abundancia ~ DAP + GENUSFORO, data = epi_resumen)
+m4 <- lm(abundancia ~ edad_estimada + GENUSFORO, data = epi_resumen)
+AIC(m1, m2, m3, m4)
+summary(m1)
+
+summary(m2)
+
+summary(m3)
+
+summary(m4)
+```
+
+```{r}
+
+arboles_unicos$edad_estimada <- sapply(
+  
+  arboles_unicos$DAP,
+  
+  estimar_edad,
+  
+  modelo = modelo_gam
+)
+head(arboles_unicos$edad_estimada)
+
+summary(arboles_unicos$edad_estimada)
+
+
+#aplicar a todos los arboles
+arboles_unicos <- datos_largos %>%
+  
+  arrange(cod_tree, desc(year)) %>%
+  
+  group_by(cod_tree) %>%
+  
+  slice(1) %>%
+  
+  ungroup()
+head(arboles_unicos)
+summary(arboles_unicos$edad_estimada)
+
+arboles_unicos %>%
+  
+  filter(edad_estimada >= 2000)
+arboles_unicos %>%
+  
+  filter(cod_tree == "TRU-02_725") %>%
+  
+  select(
+    cod_tree,
+    DAP,
+    edad_estimada,
+    elev.cen,
+    specie
+  )
+#eliminar el arbol que mida 100 DAP
+arboles_unicos <- arboles_unicos %>%
+  
+  filter(
+    edad_estimada < 2000
+  )
+#grafico DAP vs edad
+ggplot(arboles_unicos,
+       aes(x = DAP,
+           y = edad_estimada)) +
+  
+  geom_point(alpha = 0.5) +
+  
+  theme_bw()
+
+#histograma de distribucion de edades
+ggplot(arboles_unicos,
+       aes(x = edad_estimada)) +
+  
+  geom_histogram(bins = 40) +
+  
+  theme_bw()
+
+#grafico de tasa de crecimiento con edad estimada
+growth_mean <- growth_clean %>%
+  
+  group_by(cod_tree) %>%
+  
+  summarise(
+    
+    crecimiento_medio = mean(
+      incremento_anual,
+      na.rm = TRUE
+    )
+    
+  )
+
+
+
+
+<- arboles_unicos %>%
+  
+  left_join(
+    growth_mean,
+    by = "cod_tree"
+  )
+
+edad_growth$genus
+
+ggplot(edad_growth,
+       aes(x = edad_estimada,
+           y = crecimiento_medio)) +
+  
+  geom_point(alpha = 0.5) +
+  
+  geom_smooth() +
+  
+  theme_bw()
+
+```
