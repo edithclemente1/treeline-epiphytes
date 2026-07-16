@@ -25,6 +25,15 @@ library(patchwork)
 setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE")
 datos <- read_excel("weimmania.xlsx")
 
+# Desde tu directorio actual, la carpeta "edad de hospedero" está dentro
+#datos <- read_excel("edad de hospedero/weimmania.xlsx")
+#datos <- read_excel("edad de hospedero/Pouteria.xlsx")
+
+
+# una especie
+str(datos)
+datos <- datos[datos$specie == "microphylla",]
+
 ```
 
 Base de datos con todos los censos de todos los arboles del genero
@@ -103,20 +112,55 @@ summary(growth_data$incremento_anual)
 str(growth_data)
 ```
 
+Corregido_GML:
+
+```{r}
+
+growth_data <- datos_largos %>%
+  
+  arrange(cod_tree, year) %>%
+  
+  group_by(cod_tree) %>%
+  
+  mutate(
+    
+    DAP_prev = lag(DAP),# does not change the data, removes an NA
+    
+    year_prev = lag(year),# does not change the data, removes an NA
+    
+    delta_DAP = DAP - DAP_prev,# cm
+    
+    delta_t = year - year_prev,# years
+    
+    incremento_anual = (DAP - DAP_prev) / delta_t,
+    
+  ) %>%
+  
+  filter(!is.na(incremento_anual)) %>%
+  
+  #filter(delta_t > 0) %>%# this is not necessarily correct
+  
+  filter(is.finite(incremento_anual))
+
+summary(growth_data$incremento_anual)#cm year−1
+str(growth_data)
+
+```
+
 revisar los outliers
 
 ```{r}
 outliers <- growth_data %>%
   
   filter(
-    incremento_anual < 0 |
-    incremento_anual > 3
+    incremento_anual < 0 | # changed from 25% quantile
+    incremento_anual > 15 # maximo
   ) %>%
   
   distinct(cod_tree)
 
 outliers
-nrow(outliers)
+nrow(outliers)# before 360
 
 ```
 
@@ -147,16 +191,624 @@ ggplot(growth_clean,
   geom_smooth() +
   
   theme_bw()
+
+
+
+# Check the range of your data
+range(growth_clean$DAP)  # What's the DBH range?
+range(growth_clean$incremento_anual, na.rm = TRUE)  # Increment range
+
+# Remove any negative increments (measurement errors) if present
+growth_clean <- growth_clean[growth_clean$incremento_anual > 0, ]
+
+# Plot to see the relationship
+plot(growth_clean$DAP, growth_clean$incremento_anual,
+     xlab = "DBH (cm)", ylab = "Annual increment (cm/year)",
+     pch = 16, col = rgb(0,0,0,0.3))
+
+# Add a smooth trend line to visualize the peak
+lines(lowess(growth_clean$DAP, growth_clean$incremento_anual, f = 0.3), 
+      col = "red", lwd = 2)
 ```
+
+
+
+
+```{r}
+
+
+# ====================================================
+# TREE GROWTH MODEL FITTING - REPRODUCIBLE PIPELINE
+# ====================================================
+# This script fits growth models to tree increment data
+# Can be easily adapted for different species by changing the species filter
+# ====================================================
+
+# Load required libraries
+library(minpack.lm)
+library(dplyr)
+library(ggplot2)
+
+# =====================================================
+# 1. DATA PREPARATION FUNCTION
+# =====================================================
+
+prepare_growth_data <- function(data, species_filter = NULL, min_dbh = 0, max_dbh = 120) {
+  #' Prepare growth data for model fitting
+  #' 
+  #' Parameters:
+  #'   data: data frame with columns (DAP, incremento_anual, specie, cod_tree)
+  #'   species_filter: character string of species to filter (NULL = all species)
+  #'   min_dbh: minimum DBH to include
+  #'   max_dbh: maximum DBH to include
+  
+  # Filter by species if specified
+  if (!is.null(species_filter)) {
+    data <- data[data$specie == species_filter, ]
+  }
+  
+  # Remove negative increments (measurement errors)
+  data_clean <- data[data$incremento_anual > 0, ]
+  
+  # Filter by DBH range
+  data_clean <- data_clean[data_clean$DAP >= min_dbh & data_clean$DAP <= max_dbh, ]
+  
+  # Remove NA values
+  data_clean <- data_clean[!is.na(data_clean$incremento_anual) & !is.na(data_clean$DAP), ]
+  
+  return(data_clean)
+}
+
+# ====================================================
+# 2. MODEL DEFINITIONS
+# ====================================================
+
+# Define all models to test
+models_to_test <- list(
+  
+  # Model 1: Wagner & Zotz (Double Exponential)
+  # y = a * (exp(-b*x) - exp(-c*x))
+  wagner_zotz = list(
+    formula = incremento_anual ~ a * (exp(-b * DAP) - exp(-c * DAP)),
+    param_names = c("a", "b", "c"),
+    get_start = function(data) {
+      # Estimate starting values from data
+      x_peak <- data$DAP[which.max(data$incremento_anual)]
+      y_peak <- max(data$incremento_anual)
+      
+      b_start <- 0.15
+      c_start <- 0.002
+      a_start <- y_peak / (exp(-b_start * x_peak) - exp(-c_start * x_peak))
+      
+      return(list(a = a_start, b = b_start, c = c_start))
+    },
+    lower = c(a = 0.1, b = 0.001, c = 0.0001),
+    upper = c(a = 10, b = 1, c = 0.1),
+    get_peak = function(params) {
+      log(params[3] / params[2]) / (params[2] - params[3])
+    }
+  ),
+  
+  # Model 2: Wagner & Zotz (Re-parameterized for b > c)
+  # y = a * (exp(-(c+d)*x) - exp(-c*x))
+  wagner_zotz_fixed = list(
+    formula = incremento_anual ~ a * (exp(-(c + d) * DAP) - exp(-c * DAP)),
+    param_names = c("a", "c", "d"),
+    get_start = function(data) {
+      x_peak <- data$DAP[which.max(data$incremento_anual)]
+      y_peak <- max(data$incremento_anual)
+      
+      c_start <- 0.002
+      d_start <- 0.15  # b - c
+      a_start <- y_peak / (exp(-(c_start + d_start) * x_peak) - exp(-c_start * x_peak))
+      
+      return(list(a = a_start, c = c_start, d = d_start))
+    },
+    lower = c(a = 0.1, c = 0.0001, d = 0.001),
+    upper = c(a = 10, c = 0.1, d = 1),
+    get_peak = function(params) {
+      b <- params[2] + params[3]  # b = c + d
+      c <- params[2]
+      log(c / b) / (b - c)
+    }
+  ),
+  
+  # Model 3: Quadratic (unconstrained)
+  # y = a + b*x + c*x^2
+  quadratic = list(
+    formula = incremento_anual ~ a + b * DAP + c * I(DAP^2),
+    param_names = c("a", "b", "c"),
+    get_start = function(data) {
+      return(list(a = 0.2, b = 0.01, c = -0.0001))
+    },
+    lower = c(a = 0, b = -0.1, c = -0.01),
+    upper = c(a = 5, b = 0.1, c = 0.01),
+    get_peak = function(params) {
+      -params[2] / (2 * params[3])
+    }
+  ),
+  
+  # Model 4: Constrained Quadratic (proper hump)
+  # y = a + b*x - d*x^2
+  quadratic_constrained = list(
+    formula = incremento_anual ~ a + b * DAP - d * I(DAP^2),
+    param_names = c("a", "b", "d"),
+    get_start = function(data) {
+      return(list(a = 0.2, b = 0.02, d = 0.0001))
+    },
+    lower = c(a = 0, b = 0.001, d = 0.00001),
+    upper = c(a = 5, b = 0.1, d = 0.01),
+    get_peak = function(params) {
+      params[2] / (2 * params[3])
+    }
+  ),
+  
+  # Model 5: Chapman-Richards (growth curve)
+  # y = a * (1 - exp(-b*x))^c
+  chapman_richards = list(
+    formula = incremento_anual ~ a * (1 - exp(-b * DAP))^c,
+    param_names = c("a", "b", "c"),
+    get_start = function(data) {
+      max_y <- max(data$incremento_anual)
+      return(list(a = max_y * 1.2, b = 0.02, c = 2))
+    },
+    lower = c(a = 0.1, b = 0.001, c = 0.5),
+    upper = c(a = 10, b = 0.5, c = 5),
+    get_peak = function(params) {
+      # Peak for Chapman-Richards: when c > 1
+      if (params[3] > 1) {
+        -log(1/params[3]) / params[2]  # Approximate
+      } else {
+        NA  # No peak if c <= 1
+      }
+    }
+  )
+)
+
+# ==================================================
+# 3. MODEL FITTING FUNCTION
+# ==================================================
+
+fit_growth_model <- function(data, model_name, model_def, max_iter = 500) {
+  #' Fit a growth model to data
+  #' 
+  #' Parameters:
+  #'   data: prepared data frame
+  #'   model_name: name of model to fit
+  #'   model_def: model definition list
+  #'   max_iter: maximum iterations for nlsLM
+  
+  # Get starting values
+  start_vals <- model_def$get_start(data)
+  
+  # Fit the model
+  fit <- tryCatch({
+    nlsLM(
+      formula = model_def$formula,
+      data = data,
+      start = start_vals,
+      lower = model_def$lower,
+      upper = model_def$upper,
+      control = nls.lm.control(maxiter = max_iter)
+    )
+  }, error = function(e) {
+    message(paste("Error fitting", model_name, ":", e$message))
+    return(NULL)
+  })
+  
+  if (is.null(fit)) return(NULL)
+  
+  # Extract parameters
+  params <- coef(fit)
+  names(params) <- model_def$param_names
+  
+  # Calculate peak if possible
+  peak_dbh <- tryCatch({
+    model_def$get_peak(params)
+  }, error = function(e) {
+    NA
+  })
+  
+  # Calculate fitted values and residuals
+  fitted_values <- fitted(fit)
+  residuals <- residuals(fit)
+  
+  # Calculate R-squared
+  ss_res <- sum(residuals^2)
+  ss_tot <- sum((data$incremento_anual - mean(data$incremento_anual))^2)
+  r_squared <- 1 - (ss_res / ss_tot)
+  
+  # Calculate AIC
+  n <- length(residuals)
+  k <- length(params)
+  aic <- n * log(ss_res/n) + 2 * k + (2 * k * (k + 1))/(n - k - 1)
+  
+  # Return results
+  return(list(
+    model_name = model_name,
+    fit = fit,
+    params = params,
+    r_squared = r_squared,
+    aic = aic,
+    peak_dbh = peak_dbh,
+    fitted_values = fitted_values,
+    residuals = residuals,
+    data = data
+  ))
+}
+
+# ==================================================
+# 4. SPECIES-SPECIFIC MODEL FITTING
+# ==================================================
+
+fit_species_models <- function(data, species_list = NULL, models_to_fit = names(models_to_test)) {
+  #' Fit multiple models to one or more species
+  #' 
+  #' Parameters:
+  #'   data: raw data frame
+  #'   species_list: character vector of species names (NULL = fit all species with n >= 30)
+  #'   models_to_fit: character vector of model names to fit
+  
+  # If no species list provided, use species with sufficient data
+  if (is.null(species_list)) {
+    species_counts <- table(data$specie)
+    species_list <- names(species_counts[species_counts >= 30])
+    message(paste("Fitting models for", length(species_list), "species with >= 30 observations"))
+  }
+  
+  results <- list()
+  
+  for (species in species_list) {
+    message(paste("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "="))
+    message(paste("Processing species:", species))
+    message("=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+    
+    # Prepare data for this species
+    species_data <- prepare_growth_data(data, species_filter = species)
+    
+    if (nrow(species_data) < 20) {
+      message(paste("Skipping", species, "- insufficient data (n =", nrow(species_data), ")"))
+      next
+    }
+    
+    message(paste("Sample size:", nrow(species_data)))
+    message(paste("DBH range:", round(range(species_data$DAP)[1], 1), "-", 
+                  round(range(species_data$DAP)[2], 1), "cm"))
+    message(paste("Growth range:", round(range(species_data$incremento_anual)[1], 2), "-",
+                  round(range(species_data$incremento_anual)[2], 2), "cm/year"))
+    
+    species_results <- list()
+    
+    for (model_name in models_to_fit) {
+      if (!model_name %in% names(models_to_test)) {
+        message(paste("Model", model_name, "not found. Skipping."))
+        next
+      }
+      
+      message(paste("\nFitting", model_name, "..."))
+      
+      model_def <- models_to_test[[model_name]]
+      result <- fit_growth_model(species_data, model_name, model_def)
+      
+      if (!is.null(result)) {
+        species_results[[model_name]] <- result
+        message(paste("  R² =", round(result$r_squared, 3)))
+        message(paste("  AIC =", round(result$aic, 1)))
+        if (!is.na(result$peak_dbh)) {
+          message(paste("  Peak DBH =", round(result$peak_dbh, 1), "cm"))
+        }
+      }
+    }
+    
+    results[[species]] <- species_results
+  }
+  
+  return(results)
+}
+
+# ===========================================
+# 5. VISUALIZATION FUNCTIONS
+# ===========================================
+
+plot_model_fits <- function(results, species = NULL, model_names = NULL) {
+  #' Plot model fits for a species
+  #' 
+  #' Parameters:
+  #'   results: output from fit_species_models()
+  #'   species: species name to plot (NULL = plot all species)
+  #'   model_names: which models to plot (NULL = plot all)
+  
+  if (is.null(species)) {
+    species <- names(results)
+  }
+  
+  for (sp in species) {
+    if (!sp %in% names(results)) {
+      message(paste("Species", sp, "not found in results"))
+      next
+    }
+    
+    species_results <- results[[sp]]
+    
+    if (is.null(model_names)) {
+      model_names <- names(species_results)
+    }
+    
+    # Get the data from the first model
+    first_model <- species_results[[model_names[1]]]
+    if (is.null(first_model)) next
+    
+    data <- first_model$data
+    
+    # Create base plot
+    p <- ggplot(data, aes(x = DAP, y = incremento_anual)) +
+      geom_point(alpha = 0.3, size = 1, color = "gray50") +
+      labs(
+        title = paste("Growth Model Fits -", sp),
+        x = "DBH (cm)",
+        y = "Annual increment (cm/year)"
+      ) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+        legend.position = "bottom"
+      )
+    
+    # Add fitted curves for each model
+    colors <- c("red", "blue", "darkgreen", "purple", "orange")
+    names(colors) <- model_names
+    
+    dbh_seq <- seq(min(data$DAP), max(data$DAP), length.out = 200)
+    
+    for (i in seq_along(model_names)) {
+      model_name <- model_names[i]
+      if (!model_name %in% names(species_results)) next
+      
+      result <- species_results[[model_name]]
+      if (is.null(result)) next
+      
+      # Predict for the sequence
+      pred_data <- data.frame(DAP = dbh_seq)
+      pred <- predict(result$fit, newdata = pred_data)
+      
+      # Add to plot
+      df_pred <- data.frame(DAP = dbh_seq, pred = pred, model = model_name)
+      p <- p + geom_line(data = df_pred, aes(x = DAP, y = pred, color = model_name), 
+                        size = 1.2)
+    }
+    
+    p <- p + scale_color_manual(values = colors[model_names])
+    
+    print(p)
+  }
+}
+
+# ===========================================
+# 6. COMPARE AND SELECT BEST MODELS
+# ===========================================
+
+select_best_models <- function(results) {
+  #' Select the best model for each species based on AIC
+  #' 
+  #' Parameters:
+  #'   results: output from fit_species_models()
+  
+  best_models <- data.frame(
+    species = character(),
+    model = character(),
+    r_squared = numeric(),
+    aic = numeric(),
+    peak_dbh = numeric(),
+    stringsAsFactors = FALSE
+  )
+  
+  for (species in names(results)) {
+    species_results <- results[[species]]
+    
+    if (length(species_results) == 0) next
+    
+    # Find model with lowest AIC
+    best_model <- NULL
+    best_aic <- Inf
+    
+    for (model_name in names(species_results)) {
+      result <- species_results[[model_name]]
+      if (!is.null(result) && result$aic < best_aic) {
+        best_aic <- result$aic
+        best_model <- model_name
+      }
+    }
+    
+    if (!is.null(best_model)) {
+      result <- species_results[[best_model]]
+      best_models <- rbind(best_models, data.frame(
+        species = species,
+        model = best_model,
+        r_squared = result$r_squared,
+        aic = result$aic,
+        peak_dbh = result$peak_dbh
+      ))
+    }
+  }
+  
+  return(best_models)
+}
+
+# ==========================================
+# 7. MAIN EXECUTION FUNCTION
+# ==========================================
+
+run_growth_analysis <- function(data, species_list = NULL, models_to_fit = NULL) {
+  #' Run complete growth analysis
+  #' 
+  #' Parameters:
+  #'   data: raw data frame
+  #'   species_list: character vector of species names
+  #'   models_to_fit: which models to fit
+  #' 
+  #' Returns:
+  #'   List with results and best models
+  
+  # If no models specified, use all
+  if (is.null(models_to_fit)) {
+    models_to_fit <- names(models_to_test)
+  }
+  
+  # Fit models
+  results <- fit_species_models(data, species_list, models_to_fit)
+  
+  # Select best models
+  best_models <- select_best_models(results)
+  
+  # Create summary
+  summary <- list(
+    results = results,
+    best_models = best_models,
+    models_tested = models_to_fit,
+    species_analyzed = names(results)
+  )
+  
+  return(summary)
+}
+
+# ==========================================
+# 8. EXAMPLE USAGE
+# =========================================
+
+# Example: Run analysis for all species
+ results <- run_growth_analysis(growth_clean)
+
+# Example: Run analysis for specific species
+results <- run_growth_analysis(
+  data = growth_clean,
+  species_list = c("microphylla", "Other_species"),
+  models_to_fit = c("wagner_zotz", "quadratic_constrained")
+)
+
+# Example: Plot results
+ plot_model_fits(results$results, species = "microphylla")
+
+# Example: View best models
+ print(results$best_models)
+
+# ===========================================
+# 9. MODEL PREDICTION FUNCTION
+# ===========================================
+
+predict_growth <- function(results, species, model_name = NULL, dbh_values) {
+  #' Predict growth using fitted model
+  #' 
+  #' Parameters:
+  #'   results: output from run_growth_analysis()
+  #'   species: species name
+  #'   model_name: which model to use (NULL = use best model)
+  #'   dbh_values: vector of DBH values to predict for
+  
+  if (!species %in% names(results$results)) {
+    stop(paste("Species", species, "not found in results"))
+  }
+  
+  species_results <- results$results[[species]]
+  
+  # If no model specified, use best model
+  if (is.null(model_name)) {
+    best <- results$best_models[results$best_models$species == species, ]
+    if (nrow(best) == 0) {
+      stop(paste("No best model found for species", species))
+    }
+    model_name <- best$model[1]
+  }
+  
+  if (!model_name %in% names(species_results)) {
+    stop(paste("Model", model_name, "not found for species", species))
+  }
+  
+  result <- species_results[[model_name]]
+  pred_data <- data.frame(DAP = dbh_values)
+  predictions <- predict(result$fit, newdata = pred_data)
+  
+  return(predictions)
+}
+
+# ======================================
+# 10. EXPORT RESULTS
+# ======================================
+
+export_results <- function(results, output_dir = "growth_model_results") {
+  #' Export results to CSV files
+  #' 
+  #' Parameters:
+  #'   results: output from run_growth_analysis()
+  #'   output_dir: directory to save results
+  
+  # Create output directory
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  # Export best models summary
+  write.csv(results$best_models, 
+            file.path(output_dir, "best_models_summary.csv"), 
+            row.names = FALSE)
+  
+  # Export parameters for each model
+  params_list <- data.frame()
+  
+  for (species in names(results$results)) {
+    for (model_name in names(results$results[[species]])) {
+      result <- results$results[[species]][[model_name]]
+      if (!is.null(result)) {
+        params_df <- data.frame(
+          species = species,
+          model = model_name,
+          r_squared = result$r_squared,
+          aic = result$aic,
+          peak_dbh = result$peak_dbh,
+          t(as.data.frame(result$params))
+        )
+        params_list <- rbind(params_list, params_df)
+      }
+    }
+  }
+  
+  write.csv(params_list, 
+            file.path(output_dir, "model_parameters.csv"), 
+            row.names = FALSE)
+  
+  message(paste("Results exported to", output_dir))
+}
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Ajustar el modelo tipo Wagner & Zotz Incremento=a(e−bDAP−e−cDAP)
 
 ```{r}
 modelo_growth <- nlsLM(
   
-  incremento_anual ~
+  # incremento_anual ~
+  #   a * (exp(-b * DAP_prev) -
+  #          exp(-c * DAP_prev)),
+  
+  
+    incremento_anual ~
     a * (exp(-b * DAP_prev) -
            exp(-c * DAP_prev)),
+  
   
   data = growth_clean,
   
