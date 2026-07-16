@@ -30,10 +30,6 @@ datos <- read_excel("weimmania.xlsx")
 #datos <- read_excel("edad de hospedero/Pouteria.xlsx")
 
 
-# una especie
-str(datos)
-datos <- datos[datos$specie == "microphylla",]
-
 ```
 
 Base de datos con todos los censos de todos los arboles del genero
