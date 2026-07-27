@@ -1,0 +1,4 @@
+"Cinturon","R2","p-valor","Significancia","n"
+"Alto",0.657,0,"***",18
+"Bajo",0.506,4e-04,"***",20
+"Medio",0.402,0.0027,"**",20

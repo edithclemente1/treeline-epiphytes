@@ -1,0 +1,2930 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+## ANÁLISIS DE CRECIMIENTO DE ÁRBOLES -CON MÉTODO HÍBRIDO DE OUTLIERS
+
+```{r}
+# ======================================================
+# 0. CONFIGURACIÓN INICIAL
+# ======================================================
+
+# Limpiar ambiente
+rm(list = ls())
+
+# Cargar librerías necesarias
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(ggplot2)
+library(minpack.lm)
+
+# Establecer directorio de trabajo
+setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/edad de hospedero")
+
+# ======================================================
+# 1. DEFINICIÓN DE MODELOS DE CRECIMIENTO
+# ======================================================
+
+models_to_test <- list(
+  
+  wagner_zotz = list(
+    formula = incremento_anual ~ a * (exp(-b * DAP) - exp(-c * DAP)),
+    param_names = c("a", "b", "c"),
+    get_start = function(data) {
+      x_peak <- data$DAP[which.max(data$incremento_anual)]
+      y_peak <- max(data$incremento_anual)
+      b_start <- 0.15
+      c_start <- 0.002
+      a_start <- y_peak / (exp(-b_start * x_peak) - exp(-c_start * x_peak))
+      return(list(a = a_start, b = b_start, c = c_start))
+    },
+    lower = c(a = 0.1, b = 0.001, c = 0.0001),
+    upper = c(a = 10, b = 1, c = 0.1),
+    get_peak = function(params) {
+      log(params[3] / params[2]) / (params[2] - params[3])
+    }
+  ),
+  
+  wagner_zotz_fixed = list(
+    formula = incremento_anual ~ a * (exp(-(c + d) * DAP) - exp(-c * DAP)),
+    param_names = c("a", "c", "d"),
+    get_start = function(data) {
+      x_peak <- data$DAP[which.max(data$incremento_anual)]
+      y_peak <- max(data$incremento_anual)
+      c_start <- 0.002
+      d_start <- 0.15
+      a_start <- y_peak / (exp(-(c_start + d_start) * x_peak) - exp(-c_start * x_peak))
+      return(list(a = a_start, c = c_start, d = d_start))
+    },
+    lower = c(a = 0.1, c = 0.0001, d = 0.001),
+    upper = c(a = 10, c = 0.1, d = 1),
+    get_peak = function(params) {
+      b <- params[2] + params[3]
+      c <- params[2]
+      log(c / b) / (b - c)
+    }
+  ),
+  
+  quadratic = list(
+    formula = incremento_anual ~ a + b * DAP + c * I(DAP^2),
+    param_names = c("a", "b", "c"),
+    get_start = function(data) {
+      return(list(a = 0.2, b = 0.01, c = -0.0001))
+    },
+    lower = c(a = 0, b = -0.1, c = -0.01),
+    upper = c(a = 5, b = 0.1, c = 0.01),
+    get_peak = function(params) {
+      -params[2] / (2 * params[3])
+    }
+  ),
+  
+  quadratic_constrained = list(
+    formula = incremento_anual ~ a + b * DAP - d * I(DAP^2),
+    param_names = c("a", "b", "d"),
+    get_start = function(data) {
+      return(list(a = 0.2, b = 0.02, d = 0.0001))
+    },
+    lower = c(a = 0, b = 0.001, d = 0.00001),
+    upper = c(a = 5, b = 0.1, d = 0.01),
+    get_peak = function(params) {
+      params[2] / (2 * params[3])
+    }
+  ),
+  
+  chapman_richards = list(
+    formula = incremento_anual ~ a * (1 - exp(-b * DAP))^c,
+    param_names = c("a", "b", "c"),
+    get_start = function(data) {
+      max_y <- max(data$incremento_anual)
+      return(list(a = max_y * 1.2, b = 0.02, c = 2))
+    },
+    lower = c(a = 0.1, b = 0.001, c = 0.5),
+    upper = c(a = 10, b = 0.5, c = 5),
+    get_peak = function(params) {
+      if (params[3] > 1) {
+        -log(1/params[3]) / params[2]
+      } else {
+        NA
+      }
+    }
+  )
+)
+
+# ======================================================
+# 2. FUNCIÓN PARA DETECTAR OUTLIERS (TU MÉTODO)
+# ======================================================
+
+detect_outliers_hybrid <- function(data, iqr_multiplier = 1.5) {
+  
+  # 1. Calcular estadísticos
+  stats <- data %>%
+    summarise(
+      min_val = min(incremento_anual, na.rm = TRUE),
+      max_val = max(incremento_anual, na.rm = TRUE),
+      q1 = quantile(incremento_anual, 0.25, na.rm = TRUE),
+      q3 = quantile(incremento_anual, 0.75, na.rm = TRUE),
+      iqr = IQR(incremento_anual, na.rm = TRUE),
+      mean_val = mean(incremento_anual, na.rm = TRUE),
+      sd_val = sd(incremento_anual, na.rm = TRUE)
+    )
+  
+  # 2. Calcular umbrales
+  lower_limit <- 0  # Límite inferior fijo en 0
+  
+  # Límite superior: Q3 + 1.5 * IQR
+  upper_limit_iqr <- stats$q3 + iqr_multiplier * stats$iqr
+  
+  # El límite superior usado es el mínimo entre el máximo observado y Q3+1.5*IQR
+  upper_limit <- min(stats$max_val, upper_limit_iqr)
+  
+  # 3. Identificar outliers
+  outliers <- data %>%
+    filter(
+      incremento_anual < lower_limit |
+        incremento_anual > upper_limit
+    ) %>%
+    distinct(cod_tree)
+  
+  # 4. Identificar outliers específicos por exceder el límite IQR
+  outliers_iqr <- data %>%
+    filter(incremento_anual > upper_limit_iqr) %>%
+    distinct(cod_tree)
+  
+  # 5. Limpiar datos
+  data_clean <- data %>%
+    filter(!cod_tree %in% outliers$cod_tree)
+  
+  # 6. Reportar
+  message("\n📊 MÉTODO HÍBRIDO DE OUTLIERS")
+  message("========================================")
+  message(paste("Límite inferior (fijo):", round(lower_limit, 2)))
+  message(paste("Límite superior IQR (Q3 +", iqr_multiplier, "× IQR):", round(upper_limit_iqr, 2)))
+  message(paste("Máximo observado:", round(stats$max_val, 2)))
+  message(paste("Límite superior usado:", round(upper_limit, 2)))
+  message("========================================")
+  message(paste("Outliers totales:", nrow(outliers), "árboles"))
+  message(paste("  - Por valor negativo (< 0):", 
+                nrow(data %>% filter(incremento_anual < 0) %>% distinct(cod_tree))))
+  message(paste("  - Por exceder límite IQR:", nrow(outliers_iqr), "árboles"))
+  message(paste("Datos finales:", nrow(data_clean), "observaciones"))
+  
+  # 7. Mostrar outliers si los hay
+  if (nrow(outliers) > 0) {
+    outliers_detail <- data %>%
+      filter(cod_tree %in% outliers$cod_tree) %>%
+      group_by(cod_tree) %>%
+      summarise(
+        n_obs = n(),
+        min_growth = min(incremento_anual, na.rm = TRUE),
+        max_growth = max(incremento_anual, na.rm = TRUE),
+        mean_growth = mean(incremento_anual, na.rm = TRUE),
+        specie = first(specie)
+      ) %>%
+      arrange(desc(max_growth))
+    
+    message("\n📋 Detalle de outliers:")
+    print(outliers_detail)
+  }
+  
+  return(list(
+    clean_data = data_clean,
+    outliers = outliers,
+    outliers_detail = outliers_detail,
+    stats = stats,
+    limits = list(
+      lower = lower_limit,
+      upper = upper_limit,
+      upper_iqr = upper_limit_iqr,
+      max_observed = stats$max_val
+    ),
+    n_outliers = nrow(outliers)
+  ))
+}
+
+# ======================================================
+# 3. FUNCIÓN PARA AJUSTAR MODELOS
+# ======================================================
+
+fit_growth_model <- function(data, model_name, model_def, max_iter = 500) {
+  start_vals <- model_def$get_start(data)
+  
+  fit <- tryCatch({
+    nlsLM(
+      formula = model_def$formula,
+      data = data,
+      start = start_vals,
+      lower = model_def$lower,
+      upper = model_def$upper,
+      control = nls.lm.control(maxiter = max_iter)
+    )
+  }, error = function(e) {
+    message(paste("Error fitting", model_name, ":", e$message))
+    return(NULL)
+  })
+  
+  if (is.null(fit)) return(NULL)
+  
+  params <- coef(fit)
+  names(params) <- model_def$param_names
+  
+  peak_dbh <- tryCatch({
+    model_def$get_peak(params)
+  }, error = function(e) {
+    NA
+  })
+  
+  fitted_values <- fitted(fit)
+  residuals <- residuals(fit)
+  
+  ss_res <- sum(residuals^2)
+  ss_tot <- sum((data$incremento_anual - mean(data$incremento_anual))^2)
+  r_squared <- 1 - (ss_res / ss_tot)
+  
+  n <- length(residuals)
+  k <- length(params)
+  aic <- n * log(ss_res/n) + 2 * k + (2 * k * (k + 1))/(n - k - 1)
+  
+  return(list(
+    model_name = model_name,
+    fit = fit,
+    params = params,
+    r_squared = r_squared,
+    aic = aic,
+    peak_dbh = peak_dbh,
+    fitted_values = fitted_values,
+    residuals = residuals,
+    data = data
+  ))
+}
+
+# ======================================================
+# ======================================================
+# 4. FUNCIÓN PRINCIPAL PARA PROCESAR GÉNEROS (MODIFICADA)
+# ======================================================
+
+process_genus <- function(
+    file_path, 
+    genus_name,
+    iqr_multiplier = 1.5,
+    min_observations = 10,
+    species_filter = NULL,  # ← NUEVO: lista de especies a incluir
+    models_to_fit = c("wagner_zotz", "quadratic_constrained", 
+                      "chapman_richards", "wagner_zotz_fixed")
+) {
+  
+  message(paste("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "="))
+  message(paste("PROCESANDO GÉNERO:", genus_name))
+  message("=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+  
+  # 1. Leer datos
+  datos <- read_excel(file_path)
+  message(paste("✓ Archivo leído:", file_path))
+  message(paste("  - Filas:", nrow(datos)))
+  message(paste("  - Columnas:", ncol(datos)))
+  
+  # 2. Convertir a formato largo
+  datos_largos <- datos %>%
+    pivot_longer(
+      cols = matches("^(DBH|date)\\."),
+      names_to = c(".value", "censo"),
+      names_pattern = "(DBH|date)\\.(\\d+)"
+    ) %>%
+    rename(DAP = DBH, fecha = date) %>%
+    mutate(
+      year = year(fecha),
+      cod_tree = paste(plot, new.tag, sep = "_")
+    ) %>%
+    dplyr::select(cod_tree, plot, new.tag, elev.cen, genus, specie, 
+                  censo, year, DAP) %>%
+    filter(!is.na(DAP))
+  
+  # 3. FILTRAR POR ESPECIES SELECCIONADAS (NUEVO)
+  if (!is.null(species_filter)) {
+    datos_largos <- datos_largos %>%
+      filter(specie %in% species_filter)
+    message(paste("✓ Filtrado a", length(species_filter), "especies seleccionadas"))
+    message(paste("  - Especies:", paste(species_filter, collapse = ", ")))
+  }
+  
+  message(paste("✓ Datos en formato largo:", nrow(datos_largos), "observaciones"))
+  
+  # 4. Calcular incrementos
+  growth_data <- datos_largos %>%
+    arrange(cod_tree, year) %>%
+    group_by(cod_tree) %>%
+    mutate(
+      DAP_prev = lag(DAP),
+      year_prev = lag(year),
+      delta_DAP = DAP - DAP_prev,
+      delta_t = year - year_prev,
+      incremento_anual = delta_DAP / delta_t
+    ) %>%
+    filter(!is.na(incremento_anual),
+           is.finite(incremento_anual),
+           delta_t > 0) %>%
+    ungroup()
+  
+  message(paste("✓ Incrementos calculados:", nrow(growth_data), "observaciones"))
+  
+  # 5. Detectar y eliminar outliers con método híbrido
+  clean_result <- detect_outliers_hybrid(growth_data, iqr_multiplier)
+  growth_clean <- clean_result$clean_data
+  
+  message(paste("\n✓ Outliers eliminados:", clean_result$n_outliers, "árboles"))
+  message(paste("✓ Datos limpios:", nrow(growth_clean), "observaciones"))
+  message(paste("  - Árboles:", n_distinct(growth_clean$cod_tree)))
+  message(paste("  - Especies:", n_distinct(growth_clean$specie)))
+  
+  # 6. Identificar especies con datos suficientes
+  species_counts <- growth_clean %>%
+    group_by(specie) %>%
+    summarise(
+      n_obs = n(),
+      n_trees = n_distinct(cod_tree)
+    ) %>%
+    filter(n_obs >= min_observations)
+  
+  if (nrow(species_counts) > 0) {
+    message(paste("\n📋 Especies con ≥", min_observations, "observaciones:"))
+    print(species_counts)
+  } else {
+    message(paste("\n⚠️ No hay especies con ≥", min_observations, "observaciones"))
+  }
+  
+  # 7. Ajustar modelos para cada especie
+  results <- list()
+  best_models <- data.frame()
+  
+  if (nrow(species_counts) > 0) {
+    for (sp in species_counts$specie) {
+      message(paste("\n🔬 Ajustando modelos para:", sp))
+      
+      sp_data <- growth_clean %>% filter(specie == sp)
+      sp_results <- list()
+      
+      for (model_name in models_to_fit) {
+        if (!model_name %in% names(models_to_test)) {
+          next
+        }
+        
+        message(paste("  - Probando:", model_name))
+        
+        model_def <- models_to_test[[model_name]]
+        result <- fit_growth_model(sp_data, model_name, model_def)
+        
+        if (!is.null(result)) {
+          sp_results[[model_name]] <- result
+          message(paste("    ✓ R² =", round(result$r_squared, 3), 
+                        "| AIC =", round(result$aic, 1)))
+        }
+      }
+      
+      if (length(sp_results) > 0) {
+        best <- NULL
+        best_aic <- Inf
+        
+        for (model_name in names(sp_results)) {
+          if (sp_results[[model_name]]$aic < best_aic) {
+            best_aic <- sp_results[[model_name]]$aic
+            best <- model_name
+          }
+        }
+        
+        if (!is.null(best)) {
+          best_models <- rbind(best_models, data.frame(
+            genus = genus_name,
+            species = sp,
+            n_obs = nrow(sp_data),
+            n_trees = n_distinct(sp_data$cod_tree),
+            best_model = best,
+            r_squared = sp_results[[best]]$r_squared,
+            aic = sp_results[[best]]$aic,
+            peak_dbh = sp_results[[best]]$peak_dbh,
+            growth_rate_mean = mean(sp_data$incremento_anual, na.rm = TRUE),
+            growth_rate_sd = sd(sp_data$incremento_anual, na.rm = TRUE),
+            stringsAsFactors = FALSE
+          ))
+        }
+      }
+      
+      results[[sp]] <- sp_results
+    }
+  }
+  
+  return(list(
+    genus = genus_name,
+    raw_data = datos_largos,
+    growth_data = growth_data,
+    growth_clean = growth_clean,
+    outliers_info = clean_result,
+    model_results = results,
+    best_models = best_models,
+    species_summary = species_counts,
+    species_filter = species_filter  # Guardar qué especies se usaron
+  ))
+}
+# ======================================================
+# 5. FUNCIONES DE ANÁLISIS Y REPORTES
+# ======================================================
+
+generate_summary_table <- function(results_list) {
+  summary_all <- data.frame()
+  
+  for (genus in names(results_list)) {
+    if (!is.null(results_list[[genus]])) {
+      best <- results_list[[genus]]$best_models
+      if (nrow(best) > 0) {
+        summary_all <- rbind(summary_all, best)
+      }
+    }
+  }
+  
+  if (nrow(summary_all) > 0) {
+    summary_all <- summary_all %>%
+      arrange(desc(r_squared), growth_rate_sd) %>%
+      mutate(
+        cv = (growth_rate_sd / growth_rate_mean) * 100
+      )
+  }
+  
+  return(summary_all)
+}
+
+generate_stability_report <- function(results_list) {
+  
+  all_stats <- data.frame()
+  
+  for (genus in names(results_list)) {
+    if (is.null(results_list[[genus]])) next
+    
+    data <- results_list[[genus]]$growth_clean
+    
+    if (is.null(data) || nrow(data) == 0) next
+    
+    stats <- data %>%
+      group_by(specie) %>%
+      summarise(
+        genus = first(genus),
+        n_observaciones = n(),
+        n_arboles = n_distinct(cod_tree),
+        crecimiento_promedio = mean(incremento_anual, na.rm = TRUE),
+        crecimiento_sd = sd(incremento_anual, na.rm = TRUE),
+        cv = (crecimiento_sd / crecimiento_promedio) * 100,
+        min = min(incremento_anual, na.rm = TRUE),
+        max = max(incremento_anual, na.rm = TRUE),
+        rango = max - min,
+        q25 = quantile(incremento_anual, 0.25, na.rm = TRUE),
+        q75 = quantile(incremento_anual, 0.75, na.rm = TRUE),
+        iqr = q75 - q25
+      ) %>%
+      arrange(cv)
+    
+    all_stats <- rbind(all_stats, stats)
+  }
+  
+  if (nrow(all_stats) > 0) {
+    all_stats <- all_stats %>%
+      mutate(
+        nivel_estabilidad = case_when(
+          cv < 30 ~ "🌟 Muy estable",
+          cv < 50 ~ "✅ Estable",
+          cv < 70 ~ "⚠️ Moderadamente variable",
+          TRUE ~ "❌ Muy variable"
+        )
+      )
+    
+    top_stable <- all_stats %>%
+      arrange(cv) %>%
+      head(10) %>%
+      dplyr::select(genus, specie, n_arboles, crecimiento_promedio, cv, nivel_estabilidad)
+    
+    top_per_genus <- all_stats %>%
+      group_by(genus) %>%
+      arrange(cv) %>%
+      slice_head(n = 3) %>%
+      ungroup() %>%
+      dplyr::select(genus, specie, crecimiento_promedio, cv, nivel_estabilidad)
+    
+    write.csv(all_stats, "reporte_completo_estabilidad.csv", row.names = FALSE)
+    write.csv(top_stable, "top_10_especies_estables.csv", row.names = FALSE)
+    write.csv(top_per_genus, "top_3_estables_por_genero.csv", row.names = FALSE)
+  }
+  
+  return(list(
+    all_stats = all_stats,
+    top_stable = top_stable,
+    top_per_genus = top_per_genus
+  ))
+}
+
+plot_variability <- function(results_list, output_dir = "graficos_variabilidad") {
+  
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  all_species <- data.frame()
+  
+  for (genus in names(results_list)) {
+    if (is.null(results_list[[genus]])) next
+    
+    data <- results_list[[genus]]$growth_clean
+    
+    if (is.null(data) || nrow(data) == 0) next
+    
+    species_stats <- data %>%
+      group_by(specie) %>%
+      summarise(
+        n_obs = n(),
+        mean_growth = mean(incremento_anual, na.rm = TRUE),
+        sd_growth = sd(incremento_anual, na.rm = TRUE),
+        cv = (sd_growth / mean_growth) * 100
+      ) %>%
+      mutate(genus = genus)
+    
+    all_species <- rbind(all_species, species_stats)
+  }
+  
+  if (nrow(all_species) > 0) {
+    all_species <- all_species %>%
+      arrange(cv) %>%
+      mutate(
+        species_label = paste0(specie, " (", genus, ")"),
+        species_label = factor(species_label, levels = species_label)
+      )
+    
+    p1 <- ggplot(all_species, aes(x = species_label, y = cv, fill = genus)) +
+      geom_bar(stat = "identity", alpha = 0.7) +
+      geom_hline(yintercept = 30, color = "green", linetype = "dashed", size = 1) +
+      geom_hline(yintercept = 60, color = "orange", linetype = "dashed", size = 1) +
+      geom_hline(yintercept = 100, color = "red", linetype = "dashed", size = 1) +
+      coord_flip() +
+      labs(
+        title = "Variabilidad en crecimiento por especie (CV%)",
+        subtitle = "CV < 30%: Baja | 30-60%: Media | > 60%: Alta",
+        x = "Especie (Género)",
+        y = "Coeficiente de Variación (%)",
+        fill = "Género"
+      ) +
+      theme_minimal() +
+      theme(
+        axis.text.y = element_text(size = 8),
+        legend.position = "bottom"
+      )
+    
+    ggsave(file.path(output_dir, "variabilidad_todas_especies.png"), 
+           p1, width = 14, height = 10)
+    
+    for (genus in names(results_list)) {
+      if (is.null(results_list[[genus]])) next
+      
+      data <- results_list[[genus]]$growth_clean
+      
+      if (is.null(data) || nrow(data) == 0) next
+      
+      species_stats <- data %>%
+        group_by(specie) %>%
+        summarise(
+          n_obs = n(),
+          mean_growth = mean(incremento_anual, na.rm = TRUE),
+          sd_growth = sd(incremento_anual, na.rm = TRUE),
+          cv = (sd_growth / mean_growth) * 100
+        ) %>%
+        arrange(cv) %>%
+        mutate(specie = factor(specie, levels = specie))
+      
+      if (nrow(species_stats) < 2) {
+        next
+      }
+      
+      p2 <- ggplot(species_stats, aes(x = specie, y = cv, fill = cv)) +
+        geom_bar(stat = "identity") +
+        scale_fill_gradient2(
+          low = "green", 
+          mid = "yellow", 
+          high = "red",
+          midpoint = 50
+        ) +
+        geom_text(aes(label = paste0(round(cv, 1), "%")), 
+                  vjust = -0.5, size = 3) +
+        labs(
+          title = paste("Variabilidad en", genus),
+          x = "Especie",
+          y = "Coeficiente de Variación (%)"
+        ) +
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+      
+      ggsave(file.path(output_dir, paste0(genus, "_variabilidad.png")), 
+             p2, width = 10, height = 6)
+      
+      p3 <- ggplot(data, aes(x = specie, y = incremento_anual, fill = specie)) +
+        geom_boxplot(alpha = 0.7) +
+        geom_jitter(alpha = 0.2, size = 0.5) +
+        labs(
+          title = paste("Distribución de crecimiento -", genus),
+          x = "Especie",
+          y = "Incremento anual (cm/año)"
+        ) +
+        theme_minimal() +
+        theme(
+          legend.position = "none",
+          axis.text.x = element_text(angle = 45, hjust = 1)
+        )
+      
+      ggsave(file.path(output_dir, paste0(genus, "_boxplot_crecimiento.png")), 
+             p3, width = 10, height = 6)
+    }
+  }
+  
+  return(all_species)
+}
+
+# ======================================================
+# ======================================================
+# 6. EJECUCIÓN PRINCIPAL - SOLO ESPECIES SELECCIONADAS
+# ======================================================
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "🚀 INICIANDO ANÁLISIS - ESPECIES SELECCIONADAS")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+# Definir géneros (solo los que tienen especies seleccionadas)
+generos <- list(
+  list(file = "weimmania.xlsx", name = "Weinmannia"),
+  list(file = "Alzatea.xlsx", name = "Alzatea"),
+  list(file = "Clethra.xlsx", name = "Clethra"),
+  list(file = "Ocotea.xlsx", name = "Ocotea"),
+  list(file = "Pouteria.xlsx", name = "Pouteria"),
+  list(file = "Helicostylis.xlsx", name = "Helicostylis")
+)
+# Definir las especies que quieres analizar por género
+especies_seleccionadas <- list(
+  Weinmannia = c("bangii", "fagaroides", "microphylla"),
+  Alzatea = c("verticillata"),
+  Clethra = c("cuneata", "WFR584"),
+  Ocotea = c("KGC1079", "longifolia", "sp10(1193KGC)", "WFR1174", "WFR1045"),
+  Pouteria = c("sp9", "torta", "cuspidata", "reticulata", "bilocularis", "procera", "caimito"),
+  Helicostylis = c("tomentosa", "elegans")
+)
+# Mostrar resumen de especies a analizar
+cat("\n📋 RESUMEN DE ESPECIES SELECCIONADAS:")
+for (genus in names(especies_seleccionadas)) {
+  cat(sprintf("\n  %s: %d especies", genus, length(especies_seleccionadas[[genus]])))
+  cat(sprintf("\n    - %s", paste(especies_seleccionadas[[genus]], collapse = ", ")))
+}
+cat("\n")
+# Procesar solo los géneros y especies seleccionados
+resultados_todos <- list()
+
+for (g in generos) {
+  tryCatch({
+    # Verificar si este género tiene especies seleccionadas
+    if (!is.null(especies_seleccionadas[[g$name]])) {
+      
+      resultados_todos[[g$name]] <- process_genus(
+        file_path = g$file,
+        genus_name = g$name,
+        iqr_multiplier = 1.5,
+        min_observations = 5,  # Reducido para especies con pocos datos
+        species_filter = especies_seleccionadas[[g$name]]
+      )
+    } else {
+      message(paste("\n⚠️ No hay especies seleccionadas para", g$name, "- omitiendo"))
+    }
+  }, error = function(e) {
+    message(paste("❌ Error procesando", g$name, ":", e$message))
+  })
+}
+
+# ======================================================
+# 7. ANÁLISIS Y REPORTES
+# ======================================================
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 GENERANDO REPORTES")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+# Tabla resumen
+summary_table <- generate_summary_table(resultados_todos)
+
+if (nrow(summary_table) > 0) {
+  write.csv(summary_table, "resumen_todos_generos.csv", row.names = FALSE)
+  cat("\n✓ Tabla resumen guardada: resumen_todos_generos.csv")
+}
+
+# Reporte de estabilidad
+stability_report <- generate_stability_report(resultados_todos)
+
+if (nrow(stability_report$all_stats) > 0) {
+  cat("\n✓ Reporte de estabilidad guardado")
+  cat("\n\n🏆 TOP 10 ESPECIES MÁS ESTABLES:")
+  print(stability_report$top_stable)
+}
+
+# Gráficos
+all_species_stats <- plot_variability(resultados_todos)
+cat("\n✓ Gráficos guardados en carpeta: graficos_variabilidad/")
+
+# ======================================================
+# 8. RESUMEN DE OUTLIERS POR GÉNERO
+# ======================================================
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 RESUMEN DE OUTLIERS POR GÉNERO")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+for (genus in names(resultados_todos)) {
+  if (!is.null(resultados_todos[[genus]])) {
+    info <- resultados_todos[[genus]]$outliers_info
+    
+    if (!is.null(info) && !is.null(info$n_outliers)) {
+      cat(sprintf("\n%s:", genus))
+      cat(sprintf("\n  - Outliers eliminados: %d árboles", info$n_outliers))
+      cat(sprintf("\n  - Límite superior usado: %.2f", info$limits$upper))
+      cat(sprintf("\n  - Límite IQR (Q3+1.5×IQR): %.2f", info$limits$upper_iqr))
+      cat(sprintf("\n  - Máximo observado: %.2f", info$limits$max_observed))
+      cat(sprintf("\n  - Datos finales: %d observaciones", nrow(resultados_todos[[genus]]$growth_clean)))
+    }
+  }
+}
+
+# ======================================================
+# 9. RESUMEN FINAL
+# ======================================================
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "✅ ANÁLISIS COMPLETADO")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+cat("\n📁 Archivos generados:")
+cat("\n  - resumen_todos_generos.csv")
+cat("\n  - reporte_completo_estabilidad.csv")
+cat("\n  - top_10_especies_estables.csv")
+cat("\n  - top_3_estables_por_genero.csv")
+cat("\n  - graficos_variabilidad/ (carpeta con gráficos)\n")
+
+cat("\n📊 Resumen de géneros procesados:")
+for (genus in names(resultados_todos)) {
+  if (!is.null(resultados_todos[[genus]])) {
+    n_sp <- nrow(resultados_todos[[genus]]$best_models)
+    n_outliers <- resultados_todos[[genus]]$outliers_info$n_outliers
+    cat(sprintf("\n  - %s: %d especies modeladas, %d outliers eliminados", 
+                genus, n_sp, n_outliers))
+  }
+}
+cat("\n")
+```
+
+## GRÁFICOS DE CRECIMIENTO POR GÉNERO \# CON ESPECIES Y MODELOS SELECCIONADOS
+
+```{r}
+# Cargar librerías necesarias
+library(ggplot2)
+library(dplyr)
+library(minpack.lm)
+
+# ======================================================
+# 1. DEFINIR ESPECIES Y MODELOS POR GÉNERO
+# ======================================================
+
+config_generos <- list(
+  Weinmannia = list(
+    especies = c("microphylla", "fagaroides", "bangii"),
+    modelo = "quadratic_constrained"
+  ),
+  Alzatea = list(
+    especies = c("verticillata"),
+    modelo = "wagner_zotz"
+  ),
+  Clethra = list(
+    especies = c("cuneata", "WFR584"),
+    modelo = "quadratic_constrained"
+  ),
+  Ocotea = list(
+    especies = c("WFR1174", "longifolia", "sp10(1193KGC)"),
+    modelo = "quadratic_constrained"
+  ),
+  Pouteria = list(
+    especies = c("bilocularis", "cuspidata", "sp9"),
+    modelo = "wagner_zotz"
+  ),
+  Helicostylis = list(
+    especies = c("tomentosa"),
+    modelo = "wagner_zotz"
+  )
+)
+
+# ======================================================
+# 2. FUNCIÓN PARA EXTRAER DATOS DE ESPECIES SELECCIONADAS
+# ======================================================
+
+extraer_datos_genero <- function(resultados_todos, genus_name, especies_seleccionadas) {
+  
+  # Verificar que el género existe
+  if (!genus_name %in% names(resultados_todos)) {
+    cat("❌ Género no encontrado:", genus_name, "\n")
+    return(NULL)
+  }
+  
+  # Extraer datos limpios del género
+  datos <- resultados_todos[[genus_name]]$growth_clean
+  
+  # Filtrar solo las especies seleccionadas
+  datos_filtrados <- datos %>%
+    filter(specie %in% especies_seleccionadas)
+  
+  if (nrow(datos_filtrados) == 0) {
+    cat("❌ No hay datos para las especies seleccionadas en", genus_name, "\n")
+    return(NULL)
+  }
+  
+  cat(sprintf("\n✓ %s: %d observaciones, %d árboles, %d especies",
+              genus_name,
+              nrow(datos_filtrados),
+              n_distinct(datos_filtrados$cod_tree),
+              n_distinct(datos_filtrados$specie)))
+  
+  return(datos_filtrados)
+}
+
+# ======================================================
+# 3. FUNCIÓN PARA AJUSTAR MODELO ESPECÍFICO
+# ======================================================
+
+ajustar_modelo_especifico <- function(datos, genus_name, modelo_name) {
+  
+  # Verificar que el modelo existe
+  if (!modelo_name %in% names(models_to_test)) {
+    cat("❌ Modelo no encontrado:", modelo_name, "\n")
+    return(NULL)
+  }
+  
+  # Obtener definición del modelo
+  model_def <- models_to_test[[modelo_name]]
+  
+  # Ajustar modelo
+  cat(sprintf("\n  Ajustando modelo %s para %s...", modelo_name, genus_name))
+  
+  resultado <- fit_growth_model(datos, modelo_name, model_def)
+  
+  if (is.null(resultado)) {
+    cat(" ❌ Falló\n")
+    return(NULL)
+  }
+  
+  cat(sprintf(" ✓ R² = %.3f | AIC = %.1f", resultado$r_squared, resultado$aic))
+  
+  if (!is.na(resultado$peak_dbh) && resultado$peak_dbh > 0) {
+    cat(sprintf(" | Peak DBH = %.1f cm", resultado$peak_dbh))
+  }
+  cat("\n")
+  
+  return(resultado)
+}
+
+# ======================================================
+# 4. FUNCIÓN PARA GENERAR GRÁFICO DE PUNTOS CON MODELO
+# ======================================================
+
+graficar_modelo_genero <- function(datos, 
+                                   genus_name, 
+                                   modelo_resultado,
+                                   modelo_name,
+                                   output_dir = "resultados/graficos_finales") {
+  
+  # Crear carpeta si no existe
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  # 1. Preparar datos para la curva
+  dbh_range <- seq(from = max(0, min(datos$DAP) * 0.9),
+                   to = max(datos$DAP) * 1.05,
+                   length.out = 200)
+  
+  pred_data <- data.frame(DAP = dbh_range)
+  predicciones <- predict(modelo_resultado$fit, newdata = pred_data)
+  
+  # 2. Crear el gráfico
+  p <- ggplot(datos, aes(x = DAP, y = incremento_anual)) +
+    # Puntos por especie
+    geom_point(aes(color = specie), 
+               alpha = 0.5, 
+               size = 2) +
+    
+    # Curva del modelo
+    geom_line(data = data.frame(DAP = dbh_range, pred = predicciones),
+              aes(x = DAP, y = pred),
+              color = "red", 
+              size = 1.5) +
+    
+    # Línea del peak DBH
+    {if(!is.na(modelo_resultado$peak_dbh) && modelo_resultado$peak_dbh > 0)
+      geom_vline(xintercept = modelo_resultado$peak_dbh, 
+                 color = "blue", 
+                 linetype = "dashed", 
+                 size = 1)} +
+    
+    # Etiquetas
+    labs(
+      title = paste("Modelo de crecimiento -", genus_name),
+      subtitle = paste("Modelo:", modelo_name,
+                       "| R² =", round(modelo_resultado$r_squared, 3),
+                       ifelse(!is.na(modelo_resultado$peak_dbh) && modelo_resultado$peak_dbh > 0,
+                              paste("| Peak DBH =", round(modelo_resultado$peak_dbh, 1), "cm"),
+                              ""),
+                       "| n =", nrow(datos), "obs"),
+      x = "DAP (cm)",
+      y = "Incremento anual (cm/año)",
+      color = "Especie"
+    ) +
+    
+    # Tema
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(size = 11, hjust = 0.5, color = "gray40"),
+      axis.title = element_text(size = 12, face = "bold"),
+      axis.text = element_text(size = 10),
+      legend.position = "bottom",
+      legend.title = element_text(size = 10, face = "bold"),
+      legend.text = element_text(size = 9),
+      panel.grid.minor = element_blank()
+    ) +
+    
+    # Escalas
+    scale_color_brewer(palette = "Set1")
+  
+  # 3. Mostrar gráfico
+  print(p)
+  
+  # 4. Guardar gráfico
+  output_file <- file.path(output_dir, paste0(genus_name, "_modelo.png"))
+  ggsave(output_file, p, width = 10, height = 6, dpi = 300)
+  cat(sprintf("✓ Gráfico guardado: %s\n", output_file))
+  
+  return(p)
+}
+
+# ======================================================
+# 5. FUNCIÓN PARA GENERAR GRÁFICO CON ESPECIES POR SEPARADO
+# ======================================================
+
+graficar_por_especie <- function(datos, 
+                                 genus_name, 
+                                 modelo_resultado,
+                                 modelo_name,
+                                 output_dir = "resultados/graficos_finales") {
+  
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  # 1. Preparar datos para la curva
+  dbh_range <- seq(from = max(0, min(datos$DAP) * 0.9),
+                   to = max(datos$DAP) * 1.05,
+                   length.out = 200)
+  
+  pred_data <- data.frame(DAP = dbh_range)
+  predicciones <- predict(modelo_resultado$fit, newdata = pred_data)
+  
+  # 2. Crear gráfico con facetas por especie
+  p <- ggplot(datos, aes(x = DAP, y = incremento_anual)) +
+    # Puntos
+    geom_point(alpha = 0.5, size = 1.5, color = "gray40") +
+    
+    # Curva del modelo
+    geom_line(data = data.frame(DAP = dbh_range, pred = predicciones),
+              aes(x = DAP, y = pred),
+              color = "red", 
+              size = 1.2) +
+    
+    # Facetas por especie
+    facet_wrap(~specie, scales = "free", ncol = 2) +
+    
+    # Etiquetas
+    labs(
+      title = paste("Modelo de crecimiento por especie -", genus_name),
+      subtitle = paste("Modelo:", modelo_name, 
+                       "| R² =", round(modelo_resultado$r_squared, 3)),
+      x = "DAP (cm)",
+      y = "Incremento anual (cm/año)"
+    ) +
+    
+    # Tema
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(size = 11, hjust = 0.5, color = "gray40"),
+      axis.title = element_text(size = 11, face = "bold"),
+      strip.text = element_text(size = 10, face = "bold"),
+      panel.grid.minor = element_blank()
+    )
+  
+  # 3. Guardar gráfico
+  output_file <- file.path(output_dir, paste0(genus_name, "_por_especie.png"))
+  ggsave(output_file, p, width = 12, height = 8, dpi = 300)
+  cat(sprintf("✓ Gráfico por especie guardado: %s\n", output_file))
+  
+  print(p)
+  return(p)
+}
+
+# ======================================================
+# 6. GENERAR TODOS LOS GRÁFICOS
+# ======================================================
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 GENERANDO GRÁFICOS POR GÉNERO")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+# Crear carpeta para resultados finales
+if (!dir.exists("resultados/graficos_finales")) {
+  dir.create("resultados/graficos_finales", recursive = TRUE)
+}
+
+# Lista para guardar todos los modelos ajustados
+modelos_ajustados <- list()
+
+# Procesar cada género
+for (genus_name in names(config_generos)) {
+  
+  cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+  cat("\n", "📈 PROCESANDO:", genus_name)
+  cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+  
+  # Obtener configuración
+  config <- config_generos[[genus_name]]
+  especies <- config$especies
+  modelo_name <- config$modelo
+  
+  cat(sprintf("\n  Especies: %s", paste(especies, collapse = ", ")))
+  cat(sprintf("\n  Modelo: %s", modelo_name))
+  
+  # Extraer datos
+  datos <- extraer_datos_genero(resultados_todos, genus_name, especies)
+  
+  if (is.null(datos)) {
+    cat("\n  ❌ Saltando...\n")
+    next
+  }
+  
+  # Ajustar modelo
+  modelo_resultado <- ajustar_modelo_especifico(datos, genus_name, modelo_name)
+  
+  if (is.null(modelo_resultado)) {
+    cat("\n  ❌ Error en el modelo. Saltando...\n")
+    next
+  }
+  
+  # Guardar modelo ajustado
+  modelos_ajustados[[genus_name]] <- list(
+    datos = datos,
+    modelo = modelo_resultado,
+    modelo_name = modelo_name,
+    especies = especies
+  )
+  
+  # Generar gráficos
+  cat("\n  Generando gráficos...\n")
+  
+  # Gráfico principal (todos los puntos juntos)
+  graficar_modelo_genero(
+    datos = datos,
+    genus_name = genus_name,
+    modelo_resultado = modelo_resultado,
+    modelo_name = modelo_name,
+    output_dir = "resultados/graficos_finales"
+  )
+  
+  # Gráfico por especie (facetas)
+  graficar_por_especie(
+    datos = datos,
+    genus_name = genus_name,
+    modelo_resultado = modelo_resultado,
+    modelo_name = modelo_name,
+    output_dir = "resultados/graficos_finales"
+  )
+}
+
+# ======================================================
+# 7. TABLA RESUMEN DE MODELOS AJUSTADOS
+# ======================================================
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 TABLA RESUMEN DE MODELOS")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+tabla_resumen <- data.frame()
+
+for (genus_name in names(modelos_ajustados)) {
+  
+  info <- modelos_ajustados[[genus_name]]
+  
+  if (!is.null(info)) {
+    
+    modelo <- info$modelo
+    datos <- info$datos
+    
+    # Parámetros del modelo
+    params_text <- paste(names(modelo$params), 
+                         "=", 
+                         round(modelo$params, 3), 
+                         collapse = ", ")
+    
+    # Especies incluidas
+    especies_text <- paste(info$especies, collapse = ", ")
+    
+    # Agregar fila
+    tabla_resumen <- rbind(tabla_resumen, data.frame(
+      Genero = genus_name,
+      Modelo = info$modelo_name,
+      Especies = especies_text,
+      n_Obs = nrow(datos),
+      n_Arboles = n_distinct(datos$cod_tree),
+      R2 = round(modelo$r_squared, 3),
+      AIC = round(modelo$aic, 1),
+      Peak_DBH = ifelse(!is.na(modelo$peak_dbh) & modelo$peak_dbh > 0,
+                        round(modelo$peak_dbh, 1),
+                        "Sin pico"),
+      Parametros = params_text,
+      stringsAsFactors = FALSE
+    ))
+  }
+}
+
+# Guardar tabla
+if (nrow(tabla_resumen) > 0) {
+  write.csv(tabla_resumen, "resultados/graficos_finales/tabla_modelos_finales.csv", 
+            row.names = FALSE)
+  cat("\n✓ Tabla resumen guardada: resultados/graficos_finales/tabla_modelos_finales.csv")
+  
+  # Mostrar tabla
+  print(tabla_resumen)
+}
+
+# ======================================================
+# 8. RESUMEN FINAL
+# ======================================================
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "✅ ANÁLISIS COMPLETADO")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+cat("\n📁 Archivos generados en: resultados/graficos_finales/")
+cat("\n")
+for (genus_name in names(modelos_ajustados)) {
+  cat(sprintf("\n  📈 %s:", genus_name))
+  cat(sprintf("\n     - %s_modelo.png", genus_name))
+  cat(sprintf("\n     - %s_por_especie.png", genus_name))
+}
+cat(sprintf("\n\n  📊 tabla_modelos_finales.csv"))
+
+cat("\n\n📊 Resumen de modelos:")
+for (genus_name in names(modelos_ajustados)) {
+  info <- modelos_ajustados[[genus_name]]
+  if (!is.null(info)) {
+    cat(sprintf("\n  %s:", genus_name))
+    cat(sprintf("\n    - Modelo: %s", info$modelo_name))
+    cat(sprintf("\n    - R²: %.3f", info$modelo$r_squared))
+    cat(sprintf("\n    - Observaciones: %d", nrow(info$datos)))
+    cat(sprintf("\n    - Especies: %s", paste(info$especies, collapse = ", ")))
+  }
+}
+cat("\n")
+```
+
+## GRÁFICO COMBINADO POR CINTURÓN ELEVACIONAL (3×2)
+
+```{r}
+library(ggplot2)
+library(patchwork)
+
+# ======================================================
+# 1. FUNCIÓN PARA CREAR GRÁFICO INDIVIDUAL (SIN COLOR POR ESPECIE)
+# ======================================================
+
+crear_grafico_cinturon <- function(datos, 
+                                   genus_name, 
+                                   modelo_resultado,
+                                   modelo_name) {
+  
+  # Preparar datos para la curva
+  dbh_range <- seq(from = max(0, min(datos$DAP) * 0.9),
+                   to = max(datos$DAP) * 1.05,
+                   length.out = 200)
+  
+  pred_data <- data.frame(DAP = dbh_range)
+  predicciones <- predict(modelo_resultado$fit, newdata = pred_data)
+  
+  # Crear el gráfico - TODOS LOS PUNTOS DEL MISMO COLOR
+  p <- ggplot(datos, aes(x = DAP, y = incremento_anual)) +
+    # Puntos (todos grises, sin distinguir especies)
+    geom_point(color = "gray40", 
+               alpha = 0.5, 
+               size = 1.5) +
+    
+    # Curva del modelo
+    geom_line(data = data.frame(DAP = dbh_range, pred = predicciones),
+              aes(x = DAP, y = pred),
+              color = "red", 
+              size = 1.2) +
+    
+    # Línea de peak DBH
+    {if(!is.na(modelo_resultado$peak_dbh) && modelo_resultado$peak_dbh > 0)
+      geom_vline(xintercept = modelo_resultado$peak_dbh, 
+                 color = "blue", 
+                 linetype = "dashed", 
+                 size = 0.8)} +
+    
+    # Etiquetas
+    labs(
+      title = genus_name,
+      subtitle = paste("R² =", round(modelo_resultado$r_squared, 3),
+                       ifelse(!is.na(modelo_resultado$peak_dbh) && modelo_resultado$peak_dbh > 0,
+                              paste("| Peak =", round(modelo_resultado$peak_dbh, 1), "cm"),
+                              "")),
+      x = "DAP (cm)",
+      y = "Incremento (cm/año)"
+    ) +
+    
+    # Tema
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(size = 10, hjust = 0.5, color = "gray40"),
+      axis.title = element_text(size = 10, face = "bold"),
+      axis.text = element_text(size = 9),
+      panel.grid.minor = element_blank(),
+      plot.margin = margin(8, 8, 8, 8)
+    )
+  
+  return(p)
+}
+
+# ======================================================
+# 2. GENERAR GRÁFICOS INDIVIDUALES
+# ======================================================
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 GENERANDO GRÁFICOS POR CINTURÓN ELEVACIONAL")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+# Lista para guardar todos los gráficos
+graficos_todos <- list()
+
+# Generar gráficos para cada género
+for (genus_name in names(modelos_ajustados)) {
+  
+  if (is.null(modelos_ajustados[[genus_name]])) {
+    next
+  }
+  
+  info <- modelos_ajustados[[genus_name]]
+  
+  cat(sprintf("\n✓ %s: R² = %.3f", genus_name, info$modelo$r_squared))
+  
+  # Crear gráfico (todos los puntos grises)
+  p <- crear_grafico_cinturon(
+    datos = info$datos,
+    genus_name = genus_name,
+    modelo_resultado = info$modelo,
+    modelo_name = info$modelo_name
+  )
+  
+  # Guardar en la lista
+  graficos_todos[[genus_name]] <- p
+}
+
+# ======================================================
+# 3. COMBINAR GRÁFICOS EN 3×2 CON CINTURONES
+# ======================================================
+
+cat("\n\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 COMBINANDO GRÁFICOS EN 3×2")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+# Definir el orden de las filas
+orden_filas <- list(
+  fila1 = c("Weinmannia", "Clethra"),     # Cinturón Alto
+  fila2 = c("Alzatea", "Ocotea"),          # Cinturón Medio
+  fila3 = c("Pouteria", "Helicostylis")    # Cinturón Bajo
+)
+
+titulos_filas <- c("🏔️ Cinturón Alto", "🌿 Cinturón Medio", "🌳 Cinturón Bajo")
+
+# Construir filas
+filas <- list()
+
+for (i in 1:3) {
+  fila_generos <- orden_filas[[i]]
+  
+  # Obtener los gráficos de esta fila
+  p1 <- graficos_todos[[fila_generos[1]]]
+  p2 <- graficos_todos[[fila_generos[2]]]
+  
+  # Combinar en una fila
+  fila <- p1 + p2 +
+    plot_annotation(
+      title = titulos_filas[i],
+      theme = theme(
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5, color = "gray30")
+      )
+    )
+  
+  filas[[i]] <- fila
+}
+
+# Combinar todas las filas
+grafico_combinado_cinturones <- (filas[[1]] / filas[[2]] / filas[[3]]) +
+  plot_annotation(
+    title = "Modelos de crecimiento por cinturón elevacional",
+    subtitle = "Comparación de curvas de crecimiento en diferentes altitudes",
+    theme = theme(
+      plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(size = 13, hjust = 0.5, color = "gray40")
+    )
+  )
+
+# Mostrar el gráfico combinado
+print(grafico_combinado_cinturones)
+
+# ======================================================
+# 4. GUARDAR GRÁFICO PRINCIPAL
+# ======================================================
+
+if (!dir.exists("resultados/graficos_finales")) {
+  dir.create("resultados/graficos_finales", recursive = TRUE)
+}
+
+ggsave("resultados/graficos_finales/grafico_cinturones_elevacionales.png",
+       grafico_combinado_cinturones,
+       width = 14,
+       height = 12,
+       dpi = 300)
+
+cat("\n✓ Gráfico combinado guardado: resultados/graficos_finales/grafico_cinturones_elevacionales.png")
+
+# ======================================================
+# 5. GUARDAR GRÁFICOS INDIVIDUALES
+# ======================================================
+
+cat("\n\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📁 GUARDANDO GRÁFICOS INDIVIDUALES")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+for (genus_name in names(graficos_todos)) {
+  if (!is.null(graficos_todos[[genus_name]])) {
+    
+    output_file <- paste0("resultados/graficos_finales/", 
+                          genus_name, ".png")
+    
+    ggsave(output_file, 
+           graficos_todos[[genus_name]],
+           width = 6, 
+           height = 5, 
+           dpi = 300)
+    
+    cat(sprintf("✓ %s\n", output_file))
+  }
+}
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "✅ GRÁFICOS COMPLETADOS")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+```
+
+## **FUNCIÓN PARA ESTIMAR EDAD DE TODOS LOS GÉNEROS**
+
+```{r}
+# ======================================================
+# 1. FUNCIÓN AUXILIAR: ESTIMAR EDAD INDIVIDUAL (CORREGIDA)
+# ======================================================
+
+estimar_edad <- function(DAP_objetivo,
+                         modelo_info,  # ← Cambiado: ahora recibe toda la info del modelo
+                         dap_inicial = 9.5,
+                         max_edad = 500,
+                         verbose = FALSE) {
+  
+  # Verificar que el modelo existe
+  if (is.null(modelo_info)) {
+    stop("❌ El modelo no puede ser NULL")
+  }
+  
+  # Extraer el fit y los datos
+  fit <- modelo_info$modelo$fit  # El modelo ajustado
+  datos <- modelo_info$datos     # Los datos originales
+  
+  # Verificar que DAP_objetivo es válido
+  if (DAP_objetivo <= dap_inicial) {
+    warning("⚠️ DAP_objetivo debe ser mayor que dap_inicial")
+    return(0)
+  }
+  
+  # Obtener rango de DAP del modelo
+  min_dap_modelo <- min(datos$DAP, na.rm = TRUE)
+  max_dap_modelo <- max(datos$DAP, na.rm = TRUE)
+  
+  # Verificar que DAP_objetivo está dentro del rango
+  if (DAP_objetivo > max_dap_modelo) {
+    warning(sprintf("⚠️ DAP_objetivo (%.1f) > DAP máximo del modelo (%.1f)", 
+                    DAP_objetivo, max_dap_modelo))
+    DAP_objetivo <- max_dap_modelo
+  }
+  
+  # Inicializar variables
+  dap <- dap_inicial
+  edad <- 0
+  max_iter <- 2000  # Seguridad extra
+  
+  # Si dap_inicial ya es mayor que DAP_objetivo
+  if (dap >= DAP_objetivo) {
+    return(0)
+  }
+  
+  # Bucle de crecimiento
+  while (dap < DAP_objetivo && edad < max_edad && edad < max_iter) {
+    
+    # Predecir incremento usando la variable correcta
+    tryCatch({
+      incremento <- predict(
+        fit,
+        newdata = data.frame(DAP = dap)
+      )
+    }, error = function(e) {
+      # Si falla, usar el incremento promedio
+      incremento <- mean(datos$incremento_anual, na.rm = TRUE)
+      if (verbose) cat(sprintf("  Usando incremento promedio: %.3f\n", incremento))
+    })
+    
+    # Validar incremento
+    if (is.na(incremento) || !is.finite(incremento)) {
+      incremento <- mean(datos$incremento_anual, na.rm = TRUE)
+    }
+    
+    # Si el incremento es negativo, usar el mínimo observado
+    if (incremento < 0) {
+      incrementos_positivos <- datos$incremento_anual[datos$incremento_anual > 0]
+      if (length(incrementos_positivos) > 0) {
+        incremento <- min(incrementos_positivos, na.rm = TRUE)
+      } else {
+        incremento <- 0.001
+      }
+      if (verbose) cat(sprintf("  Incremento negativo, usando mínimo: %.3f\n", incremento))
+    }
+    
+    # Si el incremento es cero o muy pequeño
+    if (incremento < 0.0001) {
+      incrementos_positivos <- datos$incremento_anual[datos$incremento_anual > 0.01]
+      if (length(incrementos_positivos) > 0) {
+        incremento <- min(incrementos_positivos, na.rm = TRUE)
+      } else {
+        incremento <- 0.01  # Valor mínimo razonable
+      }
+      if (verbose) cat(sprintf("  Incremento muy pequeño, usando mínimo: %.3f\n", incremento))
+    }
+    
+    # Acumular crecimiento (1 año)
+    dap <- dap + incremento
+    edad <- edad + 1
+    
+    # Seguridad: si el DAP no aumenta significativamente
+    if (edad > 50 && dap <= dap_inicial + 1) {
+      warning("⚠️ El DAP no está aumentando, deteniendo bucle")
+      break
+    }
+  }
+  
+  # Resultados
+  if (edad >= max_edad || edad >= max_iter) {
+    warning(sprintf("⚠️ No se llegó a DAP=%.1f cm en %d años", DAP_objetivo, max_edad))
+    return(NA)
+  }
+  
+  # Redondear a años enteros
+  edad_redondeada <- round(edad)
+  
+  if (verbose) {
+    cat(sprintf("\n✅ Edad estimada: %d años\n", edad_redondeada))
+    cat(sprintf("   DAP inicial: %.1f cm → DAP final: %.1f cm\n", dap_inicial, dap))
+  }
+  
+  return(edad_redondeada)
+}
+
+# ======================================================
+# 2. FUNCIÓN PRINCIPAL: ESTIMAR EDAD DE TODOS LOS GÉNEROS (CORREGIDA)
+# ======================================================
+
+estimar_edad_todos <- function(modelos_ajustados,
+                               dap_inicial = 9.5,
+                               max_edad = 500) {
+  
+  # Crear carpeta para resultados
+  if (!dir.exists("resultados/edades")) {
+    dir.create("resultados/edades", recursive = TRUE)
+  }
+  
+  # Lista para guardar resultados
+  resultados_completos <- list()
+  
+  # Procesar cada género
+  for (genus_name in names(modelos_ajustados)) {
+    
+    if (is.null(modelos_ajustados[[genus_name]])) {
+      next
+    }
+    
+    cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+    cat("\n", "📊 PROCESANDO:", genus_name)
+    cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+    
+    # Extraer modelo y datos
+    modelo_info <- modelos_ajustados[[genus_name]]
+    
+    # Verificar que tiene la estructura correcta
+    if (is.null(modelo_info$modelo) || is.null(modelo_info$datos)) {
+      cat("⚠️ Estructura de modelo incorrecta para", genus_name, "\n")
+      next
+    }
+    
+    datos <- modelo_info$datos
+    
+    # Rango de DAP
+    min_dap <- min(datos$DAP, na.rm = TRUE)
+    max_dap <- max(datos$DAP, na.rm = TRUE)
+    
+    cat(sprintf("\n📋 Rango de DAP: %.1f - %.1f cm", min_dap, max_dap))
+    cat(sprintf("\n   DAP inicial: %.1f cm", dap_inicial))
+    cat(sprintf("\n   Número de observaciones: %d", nrow(datos)))
+    
+    # ==========================================
+    # 1. Estimar edades para rangos de DAP
+    # ==========================================
+    
+    # Crear secuencia de DAP desde dap_inicial hasta max_dap
+    daps <- seq(from = ceiling(dap_inicial + 2), 
+                to = floor(max_dap), 
+                length.out = 15)
+    daps <- unique(round(daps, 0))
+    
+    cat("\n\n📋 Estimando edades por DAP...\n")
+    
+    edades_estimadas <- data.frame(
+      DAP = daps,
+      edad_estimada = NA
+    )
+    
+    for (i in 1:nrow(edades_estimadas)) {
+      dap <- edades_estimadas$DAP[i]
+      
+      # Estimar edad usando la función auxiliar
+      edad <- estimar_edad(
+        DAP_objetivo = dap,
+        modelo_info = modelo_info,  # ← Pasamos toda la info
+        dap_inicial = dap_inicial,
+        max_edad = max_edad,
+        verbose = FALSE
+      )
+      
+      edades_estimadas$edad_estimada[i] <- edad
+      
+      # Mostrar progreso
+      if (!is.na(edad)) {
+        cat(sprintf("  DAP %3d cm → %3d años\n", dap, edad))
+      } else {
+        cat(sprintf("  DAP %3d cm → NA (no convergió)\n", dap))
+      }
+    }
+    
+    # ==========================================
+    # 2. Gráfico de relación DAP-Edad
+    # ==========================================
+    
+    # Filtrar NAs para el gráfico
+    edades_grafico <- edades_estimadas[!is.na(edades_estimadas$edad_estimada), ]
+    
+    if (nrow(edades_grafico) > 1) {
+      p <- ggplot(edades_grafico, aes(x = DAP, y = edad_estimada)) +
+        geom_line(color = "blue", size = 1.2) +
+        geom_point(size = 3, color = "red") +
+        labs(
+          title = paste("Relación DAP-Edad -", genus_name),
+          subtitle = paste("DAP inicial =", dap_inicial, "cm | Rango:", 
+                           round(min_dap, 1), "-", round(max_dap, 1), "cm"),
+          x = "DAP (cm)",
+          y = "Edad estimada (años)"
+        ) +
+        theme_minimal() +
+        theme(
+          plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+          plot.subtitle = element_text(size = 11, hjust = 0.5, color = "gray40"),
+          axis.title = element_text(size = 11, face = "bold")
+        )
+      
+      print(p)
+      
+      # Guardar gráfico PNG
+      ggsave(paste0("resultados/edades/", genus_name, "_relacion_dap_edad.png"),
+             p, width = 8, height = 6, dpi = 300)
+    } else {
+      cat("\n⚠️ No hay suficientes datos para generar gráfico\n")
+      p <- NULL
+    }
+    
+    # ==========================================
+    # 3. Guardar resultados del género
+    # ==========================================
+    
+    # Guardar tabla CSV
+    write.csv(edades_estimadas, 
+              paste0("resultados/edades/", genus_name, "_edades.csv"), 
+              row.names = FALSE)
+    
+    cat(sprintf("\n✓ %s: Guardado en resultados/edades/", genus_name))
+    
+    # Guardar en lista de resultados
+    resultados_completos[[genus_name]] <- list(
+      edades = edades_estimadas,
+      grafico = p,
+      rango_dap = c(min_dap, max_dap),
+      dap_inicial = dap_inicial
+    )
+  }
+  
+  # ==========================================
+  # 4. Resumen final de todos los géneros
+  # ==========================================
+  
+  cat("\n\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+  cat("\n", "📊 RESUMEN DE EDADES ESTIMADAS")
+  cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+  
+  # Crear tabla resumen
+  resumen_general <- data.frame()
+  
+  for (genus_name in names(resultados_completos)) {
+    if (!is.null(resultados_completos[[genus_name]])) {
+      
+      edades <- resultados_completos[[genus_name]]$edades
+      edades_validas <- edades[!is.na(edades$edad_estimada), ]
+      
+      if (nrow(edades_validas) > 0) {
+        # Calcular tiempo para alcanzar diferentes DAP
+        dap_20 <- tryCatch({
+          edades_validas$edad_estimada[which.min(abs(edades_validas$DAP - 20))]
+        }, error = function(e) NA)
+        
+        dap_40 <- tryCatch({
+          edades_validas$edad_estimada[which.min(abs(edades_validas$DAP - 40))]
+        }, error = function(e) NA)
+        
+        dap_60 <- tryCatch({
+          edades_validas$edad_estimada[which.min(abs(edades_validas$DAP - 60))]
+        }, error = function(e) NA)
+        
+        resumen_general <- rbind(resumen_general, data.frame(
+          Genero = genus_name,
+          DAP_inicial = dap_inicial,
+          DAP_maximo = max(edades_validas$DAP, na.rm = TRUE),
+          Edad_maxima = max(edades_validas$edad_estimada, na.rm = TRUE),
+          Tiempo_a_20cm = ifelse(!is.na(dap_20), dap_20, NA),
+          Tiempo_a_40cm = ifelse(!is.na(dap_40), dap_40, NA),
+          Tiempo_a_60cm = ifelse(!is.na(dap_60), dap_60, NA)
+        ))
+      }
+    }
+  }
+  
+  # Mostrar resumen
+  if (nrow(resumen_general) > 0) {
+    print(resumen_general)
+    
+    # Guardar resumen
+    write.csv(resumen_general, 
+              "resultados/edades/resumen_edades_todos_generos.csv", 
+              row.names = FALSE)
+    cat("\n✓ Resumen guardado: resultados/edades/resumen_edades_todos_generos.csv")
+  }
+  
+  # ==========================================
+  # 5. Gráfico comparativo de todos los géneros
+  # ==========================================
+  
+  # Combinar todos los datos de edades
+  todos_datos <- data.frame()
+  
+  for (genus_name in names(resultados_completos)) {
+    if (!is.null(resultados_completos[[genus_name]])) {
+      temp <- resultados_completos[[genus_name]]$edades
+      temp <- temp[!is.na(temp$edad_estimada), ]
+      if (nrow(temp) > 0) {
+        temp$Genero <- genus_name
+        todos_datos <- rbind(todos_datos, temp)
+      }
+    }
+  }
+  
+  if (nrow(todos_datos) > 0) {
+    p_comparativo <- ggplot(todos_datos, aes(x = DAP, y = edad_estimada, color = Genero)) +
+      geom_line(size = 1.2) +
+      geom_point(size = 2) +
+      labs(
+        title = "Comparación de relación DAP-Edad entre géneros",
+        x = "DAP (cm)",
+        y = "Edad estimada (años)",
+        color = "Género"
+      ) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        legend.position = "bottom"
+      )
+    
+    print(p_comparativo)
+    
+    ggsave("resultados/edades/comparacion_edades_todos_generos.png",
+           p_comparativo, width = 10, height = 7, dpi = 300)
+    
+    cat("\n✓ Gráfico comparativo guardado: resultados/edades/comparacion_edades_todos_generos.png")
+  }
+  
+  cat("\n\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+  cat("\n", "✅ ESTIMACIÓN DE EDADES COMPLETADA")
+  cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+  
+  return(resultados_completos)
+}
+
+# ======================================================
+# 3. EJECUTAR ESTIMACIÓN DE EDADES
+# ======================================================
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "🌳 INICIANDO ESTIMACIÓN DE EDADES")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+# Verificar que modelos_ajustados existe
+if (!exists("modelos_ajustados")) {
+  stop("❌ 'modelos_ajustados' no existe. Primero ejecuta el código que genera los modelos.")
+}
+
+# Verificar estructura
+cat("\n📋 Estructura de modelos_ajustados:")
+cat("\n  - Géneros:", paste(names(modelos_ajustados), collapse = ", "))
+
+for (gen in names(modelos_ajustados)) {
+  if (!is.null(modelos_ajustados[[gen]])) {
+    cat(sprintf("\n  - %s: contiene %s", gen, 
+                ifelse(!is.null(modelos_ajustados[[gen]]$modelo), "modelo ✓", "modelo ✗")))
+  }
+}
+
+# Ejecutar la función
+resultados_edades <- estimar_edad_todos(
+  modelos_ajustados = modelos_ajustados,
+  dap_inicial = 9.5,
+  max_edad = 500
+)
+
+# Ver resultados
+cat("\n\n📊 Resultados guardados en la carpeta: resultados/edades/")
+```
+
+## GRÁFICOS: EDAD DEL HOSPEDERO vs EPÍFITAS
+
+```{r}
+# ======================================================
+# ANÁLISIS COMPLETO: EDAD DEL HOSPEDERO vs EPÍFITAS
+# VERSIÓN FINAL - CORREGIDA
+# ======================================================
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(patchwork)
+library(readr)
+
+# ======================================================
+# 1. DEFINIR COLORES FIJOS POR GÉNERO
+# ======================================================
+
+colores_generos <- c(
+  "Weinmannia" = "#E41A1C",
+  "Clethra" = "#377EB8",
+  "Alzatea" = "#4DAF4A",
+  "Ocotea" = "#984EA3",
+  "Pouteria" = "#FF7F00",
+  "Helicostylis" = "#F781BF"
+)
+
+cat("\n🎨 COLORES ASIGNADOS POR GÉNERO:")
+for (genero in names(colores_generos)) {
+  cat(sprintf("\n  %s: %s", genero, colores_generos[genero]))
+}
+
+# ======================================================
+# 2. CARGAR DATOS DE EPÍFITAS
+# ======================================================
+
+cat("\n\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 CARGANDO DATOS DE EPÍFITAS")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+epi_data_grad <- read_delim("EPgFORsact.csv", 
+                            delim = ";",
+                            col_names = TRUE,
+                            show_col_types = FALSE,
+                            trim_ws = TRUE)
+
+names(epi_data_grad) <- trimws(names(epi_data_grad))
+
+cat("\n📋 Columnas disponibles:", paste(names(epi_data_grad), collapse = ", "))
+cat(sprintf("\n\n📋 Total de registros: %d", nrow(epi_data_grad)))
+
+# ======================================================
+# 3. CALCULAR RIQUEZA Y ABUNDANCIA POR ÁRBOL
+# ======================================================
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 CALCULANDO RIQUEZA Y ABUNDANCIA POR ÁRBOL")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+epifitas_por_arbol <- epi_data_grad %>%
+  group_by(FOROCOD) %>%
+  summarise(
+    riqueza = n_distinct(MORFOESPECIE),
+    abundancia = sum(INDIV, na.rm = TRUE),
+    ELEVATION = first(ELEVATION),
+    PLOT = first(PLOT),
+    TREECOD = first(TREECOD),
+    GENERUSFORO = first(GENERUSFORO),
+    DAP = first(DAP),
+    HEIGHT = first(HEIGHT),
+    n_registros = n()
+  ) %>%
+  ungroup()
+
+cat(sprintf("\n✓ %d árboles con epífitas", nrow(epifitas_por_arbol)))
+cat(sprintf("\n  - Riqueza promedio: %.1f especies/árbol", mean(epifitas_por_arbol$riqueza)))
+cat(sprintf("\n  - Abundancia promedio: %.1f individuos/árbol", mean(epifitas_por_arbol$abundancia)))
+
+# ======================================================
+# 4. ASIGNAR CINTURÓN ELEVACIONAL
+# ======================================================
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 ASIGNANDO CINTURONES ELEVACIONALES")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+epifitas_por_arbol <- epifitas_por_arbol %>%
+  mutate(
+    cinturon = case_when(
+      ELEVATION >= 3200 ~ "Alto",
+      ELEVATION >= 1500 & ELEVATION < 2000 ~ "Medio",
+      ELEVATION < 1200 ~ "Bajo",
+      TRUE ~ "Sin clasificar"
+    )
+  )
+
+cat("\n📋 Distribución por cinturón:")
+print(table(epifitas_por_arbol$cinturon, epifitas_por_arbol$GENERUSFORO))
+
+# ======================================================
+# 5. UNIR CON EDADES ESTIMADAS
+# ======================================================
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 UNIENDO CON EDADES ESTIMADAS")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+if (!exists("resultados_edades")) {
+  stop("❌ 'resultados_edades' no existe. Primero ejecuta el código de estimación de edades.")
+}
+
+asignar_edad <- function(dap, genero, resultados_edades) {
+  
+  if (!genero %in% names(resultados_edades)) {
+    return(NA)
+  }
+  
+  edades <- resultados_edades[[genero]]$edades
+  
+  if (is.null(edades) || nrow(edades) == 0) {
+    return(NA)
+  }
+  
+  edades_cercanas <- edades %>%
+    mutate(diff = abs(DAP - dap)) %>%
+    arrange(diff) %>%
+    slice(1:2)
+  
+  if (nrow(edades_cercanas) == 0) {
+    return(NA)
+  }
+  
+  if (nrow(edades_cercanas) == 1) {
+    return(edades_cercanas$edad_estimada[1])
+  }
+  
+  dap1 <- edades_cercanas$DAP[1]
+  dap2 <- edades_cercanas$DAP[2]
+  edad1 <- edades_cercanas$edad_estimada[1]
+  edad2 <- edades_cercanas$edad_estimada[2]
+  
+  if (dap2 == dap1 || is.na(edad1) || is.na(edad2)) {
+    return(edad1)
+  }
+  
+  edad_estimada <- edad1 + (edad2 - edad1) * (dap - dap1) / (dap2 - dap1)
+  return(round(edad_estimada))
+}
+
+epifitas_edad <- epifitas_por_arbol %>%
+  rowwise() %>%
+  mutate(
+    edad_estimada = asignar_edad(DAP, GENERUSFORO, resultados_edades)
+  ) %>%
+  ungroup() %>%
+  filter(!is.na(edad_estimada))
+
+cat(sprintf("\n✓ %d árboles con edad estimada", nrow(epifitas_edad)))
+
+cat("\n\n📋 Árboles por género y cinturón:")
+print(table(epifitas_edad$GENERUSFORO, epifitas_edad$cinturon))
+
+# ======================================================
+# 6. FUNCIÓN PARA CREAR GRÁFICOS (CORREGIDA - SIN ERROR)
+# ======================================================
+
+crear_grafico_epifitas <- function(datos, 
+                                   generos,
+                                   titulo,
+                                   variable_y,
+                                   y_label = NULL,
+                                   colores = colores_generos) {
+  
+  datos_filtrados <- datos %>%
+    filter(GENERUSFORO %in% generos)
+  
+  if (nrow(datos_filtrados) == 0) {
+    cat("⚠️ No hay datos para", titulo, "\n")
+    return(NULL)
+  }
+  
+  if (is.null(y_label)) {
+    y_label <- ifelse(variable_y == "riqueza", 
+                      "Riqueza de epífitas (n° especies)", 
+                      "Abundancia de epífitas (n° individuos)")
+  }
+  
+  p <- ggplot(datos_filtrados, aes(x = edad_estimada, 
+                                   y = !!sym(variable_y), 
+                                   color = GENERUSFORO,
+                                   fill = GENERUSFORO)) +
+    geom_point(alpha = 0.6, size = 3) +
+    geom_smooth(method = "lm", 
+                se = TRUE, 
+                alpha = 0.2,
+                formula = y ~ x) +
+    labs(
+      title = titulo,
+      subtitle = paste("Géneros:", paste(generos, collapse = " y ")),
+      x = "Edad estimada del hospedero (años)",
+      y = y_label,
+      color = "Género",
+      fill = "Género"
+    ) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(size = 11, hjust = 0.5, color = "gray40"),
+      axis.title = element_text(size = 11, face = "bold"),
+      axis.text = element_text(size = 10),
+      legend.position = "bottom",
+      legend.title = element_text(size = 10, face = "bold"),
+      panel.grid.minor = element_blank()
+    ) +
+    scale_color_manual(values = colores) +
+    scale_fill_manual(values = colores)
+  
+  return(p)
+}
+
+# ======================================================
+# 7. GENERAR GRÁFICOS POR CINTURÓN
+# ======================================================
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 GENERANDO GRÁFICOS")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+if (!dir.exists("resultados/epifitas")) {
+  dir.create("resultados/epifitas", recursive = TRUE)
+}
+
+cinturones <- list(
+  Alto = list(generos = c("Weinmannia", "Clethra")),
+  Medio = list(generos = c("Alzatea", "Ocotea")),
+  Bajo = list(generos = c("Pouteria", "Helicostylis"))
+)
+
+graficos_riqueza <- list()
+graficos_abundancia <- list()
+
+for (cinturon in names(cinturones)) {
+  generos <- cinturones[[cinturon]]$generos
+  
+  cat(sprintf("\n\n📌 Procesando cinturón: %s", cinturon))
+  cat(sprintf("\n   Géneros: %s", paste(generos, collapse = ", ")))
+  
+  # Gráfico de Riqueza
+  cat("\n   - Generando gráfico de riqueza...")
+  p_riqueza <- crear_grafico_epifitas(
+    datos = epifitas_edad,
+    generos = generos,
+    titulo = paste("Riqueza de epífitas - Cinturón", cinturon),
+    variable_y = "riqueza",
+    y_label = "Riqueza de epífitas (n° especies)",
+    colores = colores_generos
+  )
+  
+  if (!is.null(p_riqueza)) {
+    graficos_riqueza[[cinturon]] <- p_riqueza
+    ggsave(paste0("resultados/epifitas/riqueza_", cinturon, ".png"),
+           p_riqueza, width = 8, height = 6, dpi = 300)
+    cat(" ✓")
+  }
+  
+  # Gráfico de Abundancia
+  cat("\n   - Generando gráfico de abundancia...")
+  p_abundancia <- crear_grafico_epifitas(
+    datos = epifitas_edad,
+    generos = generos,
+    titulo = paste("Abundancia de epífitas - Cinturón", cinturon),
+    variable_y = "abundancia",
+    y_label = "Abundancia de epífitas (n° individuos)",
+    colores = colores_generos
+  )
+  
+  if (!is.null(p_abundancia)) {
+    graficos_abundancia[[cinturon]] <- p_abundancia
+    ggsave(paste0("resultados/epifitas/abundancia_", cinturon, ".png"),
+           p_abundancia, width = 8, height = 6, dpi = 300)
+    cat(" ✓")
+  }
+  
+  cat("\n")
+}
+
+# ======================================================
+# 8. COMBINAR GRÁFICOS EN PANELES
+# ======================================================
+
+cat("\n\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 COMBINANDO GRÁFICOS EN PANELES")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+if (length(graficos_riqueza) == 3) {
+  panel_riqueza <- (graficos_riqueza$Alto / graficos_riqueza$Medio / graficos_riqueza$Bajo) +
+    plot_annotation(
+      title = "Relación entre edad del hospedero y riqueza de epífitas",
+      subtitle = "Líneas de tendencia por género - Colores únicos por género",
+      theme = theme(
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray40")
+      )
+    )
+  
+  print(panel_riqueza)
+  ggsave("resultados/epifitas/panel_riqueza_epifitas.png", 
+         panel_riqueza, width = 10, height = 12, dpi = 300)
+  cat("\n✓ Panel de riqueza guardado: resultados/epifitas/panel_riqueza_epifitas.png")
+}
+
+if (length(graficos_abundancia) == 3) {
+  panel_abundancia <- (graficos_abundancia$Alto / graficos_abundancia$Medio / graficos_abundancia$Bajo) +
+    plot_annotation(
+      title = "Relación entre edad del hospedero y abundancia de epífitas",
+      subtitle = "Líneas de tendencia por género - Colores únicos por género",
+      theme = theme(
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray40")
+      )
+    )
+  
+  print(panel_abundancia)
+  ggsave("resultados/epifitas/panel_abundancia_epifitas.png", 
+         panel_abundancia, width = 10, height = 12, dpi = 300)
+  cat("\n✓ Panel de abundancia guardado: resultados/epifitas/panel_abundancia_epifitas.png")
+}
+
+# ======================================================
+# 9. GUARDAR DATOS Y RESUMEN
+# ======================================================
+
+cat("\n\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 GUARDANDO DATOS PROCESADOS")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+write.csv(epifitas_edad, 
+          "resultados/epifitas/datos_epifitas_con_edades.csv", 
+          row.names = FALSE)
+cat("\n✓ Datos guardados: resultados/epifitas/datos_epifitas_con_edades.csv")
+
+cat("\n\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 RESUMEN ESTADÍSTICO")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+resumen <- epifitas_edad %>%
+  group_by(GENERUSFORO, cinturon) %>%
+  summarise(
+    n_arboles = n(),
+    edad_promedio = mean(edad_estimada, na.rm = TRUE),
+    riqueza_promedio = mean(riqueza, na.rm = TRUE),
+    abundancia_promedio = mean(abundancia, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(cinturon, GENERUSFORO)
+
+print(resumen)
+write.csv(resumen, "resultados/epifitas/resumen_epifitas_por_genero.csv", row.names = FALSE)
+cat("\n✓ Resumen guardado: resultados/epifitas/resumen_epifitas_por_genero.csv")
+
+# ======================================================
+# 10. FINAL
+# ======================================================
+
+cat("\n\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "✅ ANÁLISIS COMPLETADO")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+cat("\n📁 Archivos generados en 'resultados/epifitas/':")
+cat("\n  - riqueza_Alto.png, riqueza_Medio.png, riqueza_Bajo.png")
+cat("\n  - abundancia_Alto.png, abundancia_Medio.png, abundancia_Bajo.png")
+cat("\n  - panel_riqueza_epifitas.png")
+cat("\n  - panel_abundancia_epifitas.png")
+cat("\n  - datos_epifitas_con_edades.csv")
+cat("\n  - resumen_epifitas_por_genero.csv")
+cat("\n")
+```
+
+## DAP
+
+```{r}
+# ======================================================
+# GRÁFICOS: DAP vs EPÍFITAS (Riqueza y Abundancia)
+# ORGANIZADOS POR CINTURÓN ELEVACIONAL
+# CON COLORES FIJOS POR GÉNERO Y LÍNEAS DE TENDENCIA
+# ======================================================
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(patchwork)
+
+# ======================================================
+# 1. USAR LOS MISMOS COLORES POR GÉNERO
+# ======================================================
+
+colores_generos <- c(
+  "Weinmannia" = "#E41A1C",
+  "Clethra" = "#377EB8",
+  "Alzatea" = "#4DAF4A",
+  "Ocotea" = "#984EA3",
+  "Pouteria" = "#FF7F00",
+  "Helicostylis" = "#F781BF"
+)
+
+cat("\n🎨 COLORES ASIGNADOS POR GÉNERO:")
+for (genero in names(colores_generos)) {
+  cat(sprintf("\n  %s: %s", genero, colores_generos[genero]))
+}
+
+# ======================================================
+# 2. FUNCIÓN PARA CREAR GRÁFICOS DAP vs EPÍFITAS
+# ======================================================
+
+crear_grafico_dap_epifitas <- function(datos, 
+                                       generos,
+                                       titulo,
+                                       variable_y,
+                                       y_label = NULL,
+                                       colores = colores_generos) {
+  
+  # Filtrar datos por género
+  datos_filtrados <- datos %>%
+    filter(GENERUSFORO %in% generos)
+  
+  # Verificar que hay datos
+  if (nrow(datos_filtrados) == 0) {
+    cat("⚠️ No hay datos para", titulo, "\n")
+    return(NULL)
+  }
+  
+  # Si no se especifica y_label
+  if (is.null(y_label)) {
+    y_label <- ifelse(variable_y == "riqueza", 
+                      "Riqueza de epífitas (n° especies)", 
+                      "Abundancia de epífitas (n° individuos)")
+  }
+  
+  # Crear gráfico con DAP en eje X
+  p <- ggplot(datos_filtrados, aes(x = DAP, 
+                                   y = !!sym(variable_y), 
+                                   color = GENERUSFORO,
+                                   fill = GENERUSFORO)) +
+    # Puntos
+    geom_point(alpha = 0.6, size = 3) +
+    
+    # Línea de tendencia POR GÉNERO
+    geom_smooth(method = "lm", 
+                se = TRUE, 
+                alpha = 0.2,
+                formula = y ~ x) +
+    
+    # Etiquetas
+    labs(
+      title = titulo,
+      subtitle = paste("Géneros:", paste(generos, collapse = " y ")),
+      x = "DAP (cm)",
+      y = y_label,
+      color = "Género",
+      fill = "Género"
+    ) +
+    
+    # Tema
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(size = 11, hjust = 0.5, color = "gray40"),
+      axis.title = element_text(size = 11, face = "bold"),
+      axis.text = element_text(size = 10),
+      legend.position = "bottom",
+      legend.title = element_text(size = 10, face = "bold"),
+      panel.grid.minor = element_blank()
+    ) +
+    
+    # Escalas de color FIJAS
+    scale_color_manual(values = colores) +
+    scale_fill_manual(values = colores)
+  
+  return(p)
+}
+
+# ======================================================
+# 3. GENERAR GRÁFICOS DAP vs EPÍFITAS POR CINTURÓN
+# ======================================================
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 GENERANDO GRÁFICOS DAP vs EPÍFITAS")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+# Crear carpeta para resultados
+if (!dir.exists("resultados/epifitas")) {
+  dir.create("resultados/epifitas", recursive = TRUE)
+}
+
+# Definir cinturones
+cinturones <- list(
+  Alto = list(generos = c("Weinmannia", "Clethra")),
+  Medio = list(generos = c("Alzatea", "Ocotea")),
+  Bajo = list(generos = c("Pouteria", "Helicostylis"))
+)
+
+# Listas para guardar gráficos
+graficos_dap_riqueza <- list()
+graficos_dap_abundancia <- list()
+
+for (cinturon in names(cinturones)) {
+  generos <- cinturones[[cinturon]]$generos
+  
+  cat(sprintf("\n\n📌 Procesando cinturón: %s", cinturon))
+  cat(sprintf("\n   Géneros: %s", paste(generos, collapse = ", ")))
+  
+  # Gráfico de Riqueza (DAP vs Riqueza)
+  cat("\n   - Generando gráfico DAP vs Riqueza...")
+  p_riqueza <- crear_grafico_dap_epifitas(
+    datos = epifitas_edad,
+    generos = generos,
+    titulo = paste("Riqueza de epífitas vs DAP - Cinturón", cinturon),
+    variable_y = "riqueza",
+    y_label = "Riqueza de epífitas (n° especies)",
+    colores = colores_generos
+  )
+  
+  if (!is.null(p_riqueza)) {
+    graficos_dap_riqueza[[cinturon]] <- p_riqueza
+    ggsave(paste0("resultados/epifitas/dap_riqueza_", cinturon, ".png"),
+           p_riqueza, width = 8, height = 6, dpi = 300)
+    cat(" ✓")
+  }
+  
+  # Gráfico de Abundancia (DAP vs Abundancia)
+  cat("\n   - Generando gráfico DAP vs Abundancia...")
+  p_abundancia <- crear_grafico_dap_epifitas(
+    datos = epifitas_edad,
+    generos = generos,
+    titulo = paste("Abundancia de epífitas vs DAP - Cinturón", cinturon),
+    variable_y = "abundancia",
+    y_label = "Abundancia de epífitas (n° individuos)",
+    colores = colores_generos
+  )
+  
+  if (!is.null(p_abundancia)) {
+    graficos_dap_abundancia[[cinturon]] <- p_abundancia
+    ggsave(paste0("resultados/epifitas/dap_abundancia_", cinturon, ".png"),
+           p_abundancia, width = 8, height = 6, dpi = 300)
+    cat(" ✓")
+  }
+  
+  cat("\n")
+}
+
+# ======================================================
+# 4. COMBINAR GRÁFICOS EN PANELES 3×1 (DAP)
+# ======================================================
+
+cat("\n\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 COMBINANDO GRÁFICOS DAP EN PANELES")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+# Panel de Riqueza (DAP)
+if (length(graficos_dap_riqueza) == 3) {
+  panel_dap_riqueza <- (graficos_dap_riqueza$Alto / graficos_dap_riqueza$Medio / graficos_dap_riqueza$Bajo) +
+    plot_annotation(
+      title = "Relación entre DAP y riqueza de epífitas",
+      subtitle = "Líneas de tendencia por género - Colores únicos por género",
+      theme = theme(
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray40")
+      )
+    )
+  
+  print(panel_dap_riqueza)
+  ggsave("resultados/epifitas/panel_dap_riqueza_epifitas.png", 
+         panel_dap_riqueza, width = 10, height = 12, dpi = 300)
+  cat("\n✓ Panel DAP vs Riqueza guardado: resultados/epifitas/panel_dap_riqueza_epifitas.png")
+}
+
+# Panel de Abundancia (DAP)
+if (length(graficos_dap_abundancia) == 3) {
+  panel_dap_abundancia <- (graficos_dap_abundancia$Alto / graficos_dap_abundancia$Medio / graficos_dap_abundancia$Bajo) +
+    plot_annotation(
+      title = "Relación entre DAP y abundancia de epífitas",
+      subtitle = "Líneas de tendencia por género - Colores únicos por género",
+      theme = theme(
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray40")
+      )
+    )
+  
+  print(panel_dap_abundancia)
+  ggsave("resultados/epifitas/panel_dap_abundancia_epifitas.png", 
+         panel_dap_abundancia, width = 10, height = 12, dpi = 300)
+  cat("\n✓ Panel DAP vs Abundancia guardado: resultados/epifitas/panel_dap_abundancia_epifitas.png")
+}
+
+# ======================================================
+# 5. FINAL
+# ======================================================
+
+cat("\n\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "✅ GRÁFICOS DAP vs EPÍFITAS COMPLETADOS")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+cat("\n📁 Archivos adicionales generados en 'resultados/epifitas/':")
+cat("\n  - dap_riqueza_Alto.png, dap_riqueza_Medio.png, dap_riqueza_Bajo.png")
+cat("\n  - dap_abundancia_Alto.png, dap_abundancia_Medio.png, dap_abundancia_Bajo.png")
+cat("\n  - panel_dap_riqueza_epifitas.png")
+cat("\n  - panel_dap_abundancia_epifitas.png")
+cat("\n")
+```
+
+## grafico edad estimada con RIQ y ABUN
+
+```{r}
+# ======================================================
+# GRÁFICO 2×3 COMPLETO CON REASIGNACIÓN DE CINTURONES
+# ======================================================
+
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+
+# ======================================================
+# 1. REASIGNAR CINTURONES SEGÚN EL GÉNERO
+# ======================================================
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "🔧 REASIGNANDO CINTURONES POR GÉNERO")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+# Asignación correcta
+cinturon_correcto <- c(
+  "Weinmannia" = "Alto",
+  "Clethra" = "Alto",
+  "Alzatea" = "Medio",
+  "Ocotea" = "Medio",
+  "Pouteria" = "Bajo",
+  "Helicostylis" = "Bajo"
+)
+
+# Reasignar
+epifitas_edad <- epifitas_edad %>%
+  mutate(
+    cinturon_original = cinturon,
+    cinturon = cinturon_correcto[GENERUSFORO]
+  )
+
+# Verificar
+cat("\n📋 Estado CORREGIDO:")
+print(table(epifitas_edad$cinturon, epifitas_edad$GENERUSFORO))
+
+# ======================================================
+# 2. COLORES FIJOS POR GÉNERO
+# ======================================================
+
+colores_generos <- c(
+  "Weinmannia" = "#E41A1C",
+  "Clethra" = "#377EB8",
+  "Alzatea" = "#4DAF4A",
+  "Ocotea" = "#984EA3",
+  "Pouteria" = "#FF7F00",
+  "Helicostylis" = "#F781BF"
+)
+
+# ======================================================
+# 3. DEFINIR GÉNEROS CORRECTOS POR CINTURÓN
+# ======================================================
+
+generos_por_cinturon <- list(
+  Alto = c("Weinmannia", "Clethra"),
+  Medio = c("Alzatea", "Ocotea"),
+  Bajo = c("Pouteria", "Helicostylis")
+)
+
+# ======================================================
+# 4. FUNCIÓN PARA CREAR GRÁFICO INDIVIDUAL
+# ======================================================
+
+crear_grafico_cinturon <- function(datos, 
+                                   cinturon, 
+                                   generos_correctos,
+                                   variable_y,
+                                   y_label,
+                                   colores = colores_generos) {
+  
+  datos_filtrados <- datos %>%
+    filter(cinturon == !!cinturon,
+           GENERUSFORO %in% generos_correctos)
+  
+  if (nrow(datos_filtrados) == 0) {
+    cat(sprintf("⚠️ No hay datos para %s\n", cinturon))
+    return(NULL)
+  }
+  
+  generos_presentes <- unique(datos_filtrados$GENERUSFORO)
+  
+  p <- ggplot(datos_filtrados, aes(x = edad_estimada, 
+                                   y = !!sym(variable_y), 
+                                   color = GENERUSFORO,
+                                   fill = GENERUSFORO)) +
+    geom_point(alpha = 0.6, size = 2.5) +
+    geom_smooth(method = "lm", se = TRUE, alpha = 0.2, formula = y ~ x) +
+    labs(
+      title = paste("Cinturón", cinturon),
+      subtitle = paste("Géneros:", paste(generos_correctos, collapse = " y ")),
+      x = "Edad estimada (años)",
+      y = y_label,
+      color = "Género",
+      fill = "Género"
+    ) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(size = 10, hjust = 0.5, color = "gray40"),
+      axis.title = element_text(size = 10, face = "bold"),
+      axis.text = element_text(size = 9),
+      legend.position = "bottom",
+      legend.title = element_text(size = 9, face = "bold"),
+      legend.text = element_text(size = 8),
+      panel.grid.minor = element_blank()
+    ) +
+    scale_color_manual(values = colores) +
+    scale_fill_manual(values = colores)
+  
+  return(p)
+}
+
+# ======================================================
+# 5. GENERAR GRÁFICOS
+# ======================================================
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 GENERANDO GRÁFICOS 2×3")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+# Crear carpeta
+if (!dir.exists("resultados/epifitas")) {
+  dir.create("resultados/epifitas", recursive = TRUE)
+}
+
+cinturones <- c("Alto", "Medio", "Bajo")
+
+# RIQUEZA
+cat("\n📌 Generando gráficos de RIQUEZA...")
+graficos_riqueza <- list()
+
+for (cinturon in cinturones) {
+  generos_correctos <- generos_por_cinturon[[cinturon]]
+  
+  cat(sprintf("\n  - Cinturón %s (géneros: %s)...", 
+              cinturon, paste(generos_correctos, collapse = ", ")))
+  
+  p <- crear_grafico_cinturon(
+    datos = epifitas_edad,
+    cinturon = cinturon,
+    generos_correctos = generos_correctos,
+    variable_y = "riqueza",
+    y_label = "Riqueza (n° especies)",
+    colores = colores_generos
+  )
+  
+  if (!is.null(p)) {
+    graficos_riqueza[[cinturon]] <- p
+    cat(" ✓")
+  }
+}
+
+# ABUNDANCIA
+cat("\n\n📌 Generando gráficos de ABUNDANCIA...")
+graficos_abundancia <- list()
+
+for (cinturon in cinturones) {
+  generos_correctos <- generos_por_cinturon[[cinturon]]
+  
+  cat(sprintf("\n  - Cinturón %s (géneros: %s)...", 
+              cinturon, paste(generos_correctos, collapse = ", ")))
+  
+  p <- crear_grafico_cinturon(
+    datos = epifitas_edad,
+    cinturon = cinturon,
+    generos_correctos = generos_correctos,
+    variable_y = "abundancia",
+    y_label = "Abundancia (n° individuos)",
+    colores = colores_generos
+  )
+  
+  if (!is.null(p)) {
+    graficos_abundancia[[cinturon]] <- p
+    cat(" ✓")
+  }
+}
+
+cat("\n")
+
+# ======================================================
+# 6. COMBINAR EN 2×3
+# ======================================================
+
+cat("\n\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 COMBINANDO GRÁFICOS EN 2×3")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+if (length(graficos_riqueza) == 3 && length(graficos_abundancia) == 3) {
+  
+  fila1 <- graficos_riqueza$Alto | graficos_abundancia$Alto
+  fila2 <- graficos_riqueza$Medio | graficos_abundancia$Medio
+  fila3 <- graficos_riqueza$Bajo | graficos_abundancia$Bajo
+  
+  panel_final <- (fila1 / fila2 / fila3) +
+    plot_annotation(
+      title = "Relación entre edad del hospedero y epífitas",
+      subtitle = "Comparación de Riqueza y Abundancia por cinturón elevacional",
+      theme = theme(
+        plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 13, hjust = 0.5, color = "gray40")
+      )
+    )
+  
+  print(panel_final)
+  
+  ggsave("resultados/epifitas/panel_2x3_riqueza_abundancia_final.png",
+         panel_final, width = 16, height = 16, dpi = 300)
+  cat("\n✓ Panel guardado: resultados/epifitas/panel_2x3_riqueza_abundancia_final.png")
+  
+} else {
+  cat(sprintf("\n⚠️ No se generaron todos los gráficos"))
+  cat(sprintf("\n  Riqueza: %d/3", length(graficos_riqueza)))
+  cat(sprintf("\n  Abundancia: %d/3", length(graficos_abundancia)))
+}
+
+# ======================================================
+# 7. VERIFICAR
+# ======================================================
+
+cat("\n\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "✅ PROCESO COMPLETADO")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+archivo <- "panel_2x3_riqueza_abundancia_final.png"
+ruta <- file.path("resultados/epifitas", archivo)
+if (file.exists(ruta)) {
+  cat(sprintf("\n✓ %s generado", archivo))
+} else {
+  cat(sprintf("\n✗ %s NO generado", archivo))
+}
+cat("\n")
+```
+
+tabla de resultados de riqueza/abundancia con la edad del hospedero
+
+```{r}
+# Ver estructura de los resultados
+str(estadisticos_riqueza_genero)
+print(names(estadisticos_riqueza_genero))
+
+# ======================================================
+# ESTADÍSTICOS DE RELACIÓN: EDAD vs RIQUEZA/ABUNDANCIA
+# (VERSIÓN CORREGIDA - SIN select() PROBLEMÁTICO)
+# ======================================================
+
+library(dplyr)
+
+# ======================================================
+# 1. CALCULAR ESTADÍSTICOS
+# ======================================================
+
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 CALCULANDO ESTADÍSTICOS")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+# Función para calcular estadísticos
+calcular_estadisticos <- function(datos, variable_y, grupo1, grupo2 = NULL) {
+  
+  formula <- as.formula(paste(variable_y, "~ edad_estimada"))
+  
+  if (is.null(grupo2)) {
+    resultados <- datos %>%
+      group_by(!!sym(grupo1)) %>%
+      summarise(
+        r.squared = summary(lm(formula, data = cur_data()))$r.squared,
+        p.value = summary(lm(formula, data = cur_data()))$coefficients[2, 4],
+        nobs = n(),
+        .groups = "drop"
+      )
+  } else {
+    resultados <- datos %>%
+      group_by(!!sym(grupo1), !!sym(grupo2)) %>%
+      summarise(
+        r.squared = summary(lm(formula, data = cur_data()))$r.squared,
+        p.value = summary(lm(formula, data = cur_data()))$coefficients[2, 4],
+        nobs = n(),
+        .groups = "drop"
+      )
+  }
+  
+  return(resultados)
+}
+
+# RIQUEZA por cinturón y género
+estadisticos_riqueza_genero <- calcular_estadisticos(
+  datos = epifitas_edad,
+  variable_y = "riqueza",
+  grupo1 = "cinturon",
+  grupo2 = "GENERUSFORO"
+)
+
+# ABUNDANCIA por cinturón y género
+estadisticos_abundancia_genero <- calcular_estadisticos(
+  datos = epifitas_edad,
+  variable_y = "abundancia",
+  grupo1 = "cinturon",
+  grupo2 = "GENERUSFORO"
+)
+
+# ======================================================
+# 2. CREAR TABLA DE RIQUEZA
+# ======================================================
+
+cat("\n📋 RIQUEZA vs EDAD por cinturón y género:")
+
+tabla_riqueza <- estadisticos_riqueza_genero %>%
+  mutate(
+    R2 = round(r.squared, 3),
+    p_valor = round(p.value, 4),
+    Significancia = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01 ~ "**",
+      p.value < 0.05 ~ "*",
+      TRUE ~ "ns"
+    ),
+    n = nobs
+  )
+
+# Renombrar columnas de forma segura
+names(tabla_riqueza)[names(tabla_riqueza) == "cinturon"] <- "Cinturon"
+names(tabla_riqueza)[names(tabla_riqueza) == "GENERUSFORO"] <- "Genero"
+names(tabla_riqueza)[names(tabla_riqueza) == "p_valor"] <- "p-valor"
+
+# Seleccionar columnas
+tabla_riqueza <- tabla_riqueza[, c("Cinturon", "Genero", "R2", "p-valor", "Significancia", "n")]
+
+print(tabla_riqueza)
+
+# ======================================================
+# 3. CREAR TABLA DE ABUNDANCIA
+# ======================================================
+
+cat("\n\n📋 ABUNDANCIA vs EDAD por cinturón y género:")
+
+tabla_abundancia <- estadisticos_abundancia_genero %>%
+  mutate(
+    R2 = round(r.squared, 3),
+    p_valor = round(p.value, 4),
+    Significancia = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01 ~ "**",
+      p.value < 0.05 ~ "*",
+      TRUE ~ "ns"
+    ),
+    n = nobs
+  )
+
+names(tabla_abundancia)[names(tabla_abundancia) == "cinturon"] <- "Cinturon"
+names(tabla_abundancia)[names(tabla_abundancia) == "GENERUSFORO"] <- "Genero"
+names(tabla_abundancia)[names(tabla_abundancia) == "p_valor"] <- "p-valor"
+
+tabla_abundancia <- tabla_abundancia[, c("Cinturon", "Genero", "R2", "p-valor", "Significancia", "n")]
+
+print(tabla_abundancia)
+
+# ======================================================
+# 4. TABLA COMBINADA
+# ======================================================
+
+cat("\n\n📋 TABLA COMPLETA (RIQUEZA + ABUNDANCIA):")
+
+# Crear tabla combinada manualmente
+tabla_completa <- data.frame(
+  Cinturon = tabla_riqueza$Cinturon,
+  Genero = tabla_riqueza$Genero,
+  `R2 Riqueza` = tabla_riqueza$R2,
+  `p Riqueza` = tabla_riqueza$`p-valor`,
+  `Sig Riqueza` = tabla_riqueza$Significancia,
+  `n Riqueza` = tabla_riqueza$n,
+  `R2 Abundancia` = tabla_abundancia$R2,
+  `p Abundancia` = tabla_abundancia$`p-valor`,
+  `Sig Abundancia` = tabla_abundancia$Significancia,
+  `n Abundancia` = tabla_abundancia$n
+)
+
+print(tabla_completa)
+
+# ======================================================
+# 5. ESTADÍSTICOS POR CINTURÓN (TODOS LOS GÉNEROS JUNTOS)
+# ======================================================
+
+cat("\n\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 ESTADÍSTICOS POR CINTURÓN")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+# RIQUEZA por cinturón
+estadisticos_riqueza_cinturon <- calcular_estadisticos(
+  datos = epifitas_edad,
+  variable_y = "riqueza",
+  grupo1 = "cinturon"
+)
+
+tabla_riqueza_cinturon <- estadisticos_riqueza_cinturon %>%
+  mutate(
+    R2 = round(r.squared, 3),
+    p_valor = round(p.value, 4),
+    Significancia = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01 ~ "**",
+      p.value < 0.05 ~ "*",
+      TRUE ~ "ns"
+    ),
+    n = nobs
+  )
+
+names(tabla_riqueza_cinturon)[names(tabla_riqueza_cinturon) == "cinturon"] <- "Cinturon"
+names(tabla_riqueza_cinturon)[names(tabla_riqueza_cinturon) == "p_valor"] <- "p-valor"
+
+tabla_riqueza_cinturon <- tabla_riqueza_cinturon[, c("Cinturon", "R2", "p-valor", "Significancia", "n")]
+
+cat("\n📋 RIQUEZA vs EDAD por cinturón:")
+print(tabla_riqueza_cinturon)
+
+# ABUNDANCIA por cinturón
+estadisticos_abundancia_cinturon <- calcular_estadisticos(
+  datos = epifitas_edad,
+  variable_y = "abundancia",
+  grupo1 = "cinturon"
+)
+
+tabla_abundancia_cinturon <- estadisticos_abundancia_cinturon %>%
+  mutate(
+    R2 = round(r.squared, 3),
+    p_valor = round(p.value, 4),
+    Significancia = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01 ~ "**",
+      p.value < 0.05 ~ "*",
+      TRUE ~ "ns"
+    ),
+    n = nobs
+  )
+
+names(tabla_abundancia_cinturon)[names(tabla_abundancia_cinturon) == "cinturon"] <- "Cinturon"
+names(tabla_abundancia_cinturon)[names(tabla_abundancia_cinturon) == "p_valor"] <- "p-valor"
+
+tabla_abundancia_cinturon <- tabla_abundancia_cinturon[, c("Cinturon", "R2", "p-valor", "Significancia", "n")]
+
+cat("\n\n📋 ABUNDANCIA vs EDAD por cinturón:")
+print(tabla_abundancia_cinturon)
+
+# ======================================================
+# 6. ESTADÍSTICOS GLOBALES
+# ======================================================
+
+cat("\n\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "📊 ESTADÍSTICOS GLOBALES")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+# RIQUEZA global
+modelo_riqueza <- lm(riqueza ~ edad_estimada, data = epifitas_edad)
+summary_riqueza <- summary(modelo_riqueza)
+
+cat("\n📋 RIQUEZA vs EDAD (global):")
+cat(sprintf("\n  R² = %.3f", summary_riqueza$r.squared))
+cat(sprintf("\n  p-valor = %.4f", summary_riqueza$coefficients[2, 4]))
+cat(sprintf("\n  n = %d", nrow(epifitas_edad)))
+
+# ABUNDANCIA global
+modelo_abundancia <- lm(abundancia ~ edad_estimada, data = epifitas_edad)
+summary_abundancia <- summary(modelo_abundancia)
+
+cat("\n\n📋 ABUNDANCIA vs EDAD (global):")
+cat(sprintf("\n  R² = %.3f", summary_abundancia$r.squared))
+cat(sprintf("\n  p-valor = %.4f", summary_abundancia$coefficients[2, 4]))
+cat(sprintf("\n  n = %d", nrow(epifitas_edad)))
+
+# ======================================================
+# 7. GUARDAR TABLAS
+# ======================================================
+
+if (!dir.exists("resultados/epifitas")) {
+  dir.create("resultados/epifitas", recursive = TRUE)
+}
+
+write.csv(tabla_completa, 
+          "resultados/epifitas/estadisticos_edad_epifitas.csv", 
+          row.names = FALSE)
+
+write.csv(tabla_riqueza, 
+          "resultados/epifitas/estadisticos_riqueza_edad.csv", 
+          row.names = FALSE)
+
+write.csv(tabla_abundancia, 
+          "resultados/epifitas/estadisticos_abundancia_edad.csv", 
+          row.names = FALSE)
+
+write.csv(tabla_riqueza_cinturon, 
+          "resultados/epifitas/estadisticos_riqueza_por_cinturon.csv", 
+          row.names = FALSE)
+
+write.csv(tabla_abundancia_cinturon, 
+          "resultados/epifitas/estadisticos_abundancia_por_cinturon.csv", 
+          row.names = FALSE)
+
+cat("\n\n✓ Tablas guardadas en 'resultados/epifitas/':")
+cat("\n  - estadisticos_edad_epifitas.csv")
+cat("\n  - estadisticos_riqueza_edad.csv")
+cat("\n  - estadisticos_abundancia_edad.csv")
+cat("\n  - estadisticos_riqueza_por_cinturon.csv")
+cat("\n  - estadisticos_abundancia_por_cinturon.csv")
+
+# ======================================================
+# 8. FINAL
+# ======================================================
+
+cat("\n\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=")
+cat("\n", "✅ ESTADÍSTICOS COMPLETADOS")
+cat("\n", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "=", "\n")
+
+cat("\n📊 INTERPRETACIÓN DE R²:")
+cat("\n  R² > 0.5  → Relación fuerte")
+cat("\n  R² 0.3-0.5 → Relación moderada")
+cat("\n  R² < 0.3  → Relación débil")
+cat("\n")
+```
+
+aqui se trabajo hasta la relacion que tennian con epifitas osea esto es lo ultimo que entregue en la version de la tesis julio 2026

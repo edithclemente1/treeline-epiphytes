@@ -207,9 +207,6 @@ lines(lowess(growth_clean$DAP, growth_clean$incremento_anual, f = 0.3),
       col = "red", lwd = 2)
 ```
 
-
-
-
 ```{r}
 
 
@@ -776,20 +773,6 @@ export_results <- function(results, output_dir = "growth_model_results") {
 
 
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 Ajustar el modelo tipo Wagner & Zotz Incremento=a(e−bDAP−e−cDAP)
 
@@ -2661,3 +2644,5 @@ ggplot(edad_growth,
   theme_bw()
 
 ```
+
+version primigenia del la evaluacion de edad antes de mostrar a Glenda

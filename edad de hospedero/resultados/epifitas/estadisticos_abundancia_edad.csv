@@ -1,0 +1,7 @@
+"Cinturon","Genero","R2","p-valor","Significancia","n"
+"Alto","Clethra",0.337,0.1314,"ns",8
+"Alto","Weinmannia",0.64,0.0054,"**",10
+"Bajo","Helicostylis",0.261,0.1311,"ns",10
+"Bajo","Pouteria",0.526,0.0176,"*",10
+"Medio","Alzatea",0.15,0.268,"ns",10
+"Medio","Ocotea",0.399,0.05,"*",10

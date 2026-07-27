@@ -1,0 +1,7 @@
+"Genero","Modelo","Especies","n_Obs","n_Arboles","R2","AIC","Peak_DBH","Parametros"
+"Weinmannia","quadratic_constrained","microphylla, fagaroides, bangii",735,193,0.035,-2921,"36.4","a = 0.074, b = 0.008, d = 0"
+"Alzatea","wagner_zotz","verticillata",314,82,0.012,-1236.2,"Sin pico","a = 0.238, b = 0.006, c = 0.1"
+"Clethra","quadratic_constrained","cuneata, WFR584",528,131,0.022,-1926.4,"37.2","a = 0.122, b = 0.008, d = 0"
+"Ocotea","quadratic_constrained","WFR1174, longifolia, sp10(1193KGC)",77,15,0.032,-263.2,"17.8","a = 0, b = 0.029, d = 0.001"
+"Pouteria","wagner_zotz","bilocularis, cuspidata, sp9",67,13,0.058,-274.2,"Sin pico","a = 0.349, b = 0.014, c = 0.1"
+"Helicostylis","wagner_zotz","tomentosa",84,23,0.055,-245.7,"Sin pico","a = 0.743, b = 0.028, c = 0.1"
