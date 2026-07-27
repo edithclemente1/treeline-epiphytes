@@ -1221,7 +1221,7 @@ mod <- capscale(
 anova(mod)
 anova(mod, by = "term")
 summary(mod)
-
+RsquareAdj(mod)
 
 # ==============================================
 # 5. COORDENADAS DE LOS SITIOS
