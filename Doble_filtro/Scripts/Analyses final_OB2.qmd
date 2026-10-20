@@ -43,7 +43,7 @@ setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphy
 #----------------------------------------------------
 
 data <- read.csv(
-  "estrucPOBa.csv",
+  "./Doble_filtro/DATA/estrucPOBa.csv",
   header = TRUE,
   sep = ";",
   stringsAsFactors = FALSE
@@ -86,7 +86,7 @@ hospepi <- data %>%
 #----------------------------------------------------
 
 trees <- read.csv(
-  "treealtu.csv",
+  "./Doble_filtro/DATA/treealtu.csv",
   header = TRUE,
   sep = ";",
   stringsAsFactors = FALSE
@@ -102,7 +102,7 @@ trees <- read.csv(
 
 tree <- trees %>%
   dplyr::select(
-    plot,
+    ï..plot,
     elevation,
     tagtree,
     family,
@@ -111,7 +111,7 @@ tree <- trees %>%
     DBH,
     H
   )
-
+ colnames(tree)[1]<-"plot"
 #----------------------------------------------------
 # RENOMBRAR VARIABLES DE ARBOLES
 #----------------------------------------------------
@@ -150,6 +150,8 @@ arboles <- tree2 %>%
     riqueza = ifelse(is.na(riqueza), 0, riqueza),
     abundancia_total = ifelse(is.na(abundancia_total), 0, abundancia_total)
   )
+
+
 
 #----------------------------------------------------
 # VERIFICAR
@@ -1214,6 +1216,15 @@ mod <- capscale(
   data = env,
   distance = "chao"
 )
+
+
+mod_full <- capscale(
+  comm ~ dap + height + genera_tree + Condition(subplot),
+  data = env,
+  distance = "chao"
+)
+
+
 # ==============================================
 # 4. SIGNIFICANCIA
 # ==============================================
@@ -1222,6 +1233,12 @@ anova(mod)
 anova(mod, by = "term")
 summary(mod)
 RsquareAdj(mod)
+
+
+anova(mod_full)
+anova(mod_full, by = "term")
+summary(mod_full)
+RsquareAdj(mod_full)
 
 # ==============================================
 # 5. COORDENADAS DE LOS SITIOS
@@ -1233,11 +1250,27 @@ coords <- as.data.frame(
 
 coords$plot <- env$plot
 
+
+coords_full <- as.data.frame(
+  scores(mod_full, display = "sites")
+)
+
+coords_full$plot <- env$plot
+
 # ==============================================
 # 6. CENTROIDES
 # ==============================================
 
 centroides <- coords %>%
+  group_by(plot) %>%
+  summarise(
+    CAP1 = mean(CAP1),
+    CAP2 = mean(CAP2),
+    .groups = "drop"
+  )
+
+
+centroides_full <- coords_full %>%
   group_by(plot) %>%
   summarise(
     CAP1 = mean(CAP1),
@@ -1255,11 +1288,23 @@ fit <- envfit(
   permutations = 999
 )
 
+
+fit_full <- envfit(
+  mod_full,
+  env[, c("dap", "height", "genera_tree")],
+  permutations = 999
+)
+
+
 # Direcciones de las flechas
 ar <- fit$vectors$arrows
 
+ar_full <- fit_full$vectors$arrows
+
 # Fuerza de correlación
 r <- sqrt(fit$vectors$r)
+
+r_full <- sqrt(fit_full$vectors$r)
 
 # Flechas escaladas según la correlación
 ar_df <- data.frame(
@@ -1277,6 +1322,25 @@ ar_df <- ar_df %>%
       height = "Height"
     )
   )
+
+
+# Flechas escaladas según la correlación
+ar_df_full <- data.frame(
+  var  = rownames(ar_full),
+  xend = ar[,1] * r * 3,
+  yend = ar[,2] * r * 3
+)
+
+# Cambiar nombres
+ar_df_full <- ar_df_full %>%
+  mutate(
+    var = dplyr::recode(
+      var,
+      dap = "DBH",
+      height = "Height",
+      genera_tree = "Genera"
+    )
+  )
 # =====================================================
 # 8. RENOMBRAR LOCALIDADES
 # =====================================================
@@ -1291,6 +1355,10 @@ plot_names <- c(
 coords$plot_new <- plot_names[coords$plot]
 centroides$plot_new <- plot_names[centroides$plot]
 
+
+coords_full$plot_new <- plot_names[coords_full$plot]
+centroides_full$plot_new <- plot_names[centroides_full$plot]
+
 # =====================================================
 # 9. COLORES
 # =====================================================
@@ -1300,6 +1368,33 @@ colores_localidad <- c(
   "TLINE-3400" = "#A2CD5A",
   "TLINE-3500" = "#DAA520",
   "TLINE-3600" = "#8B4513"
+)
+
+
+
+# Flechas de las variables numéricas del modelo full
+ar_full <- fit_full$vectors$arrows
+r_full  <- sqrt(fit_full$vectors$r)
+
+ar_df_full <- data.frame(
+  var  = rownames(ar_full),
+  xend = ar_full[, 1] * r_full * 3,
+  yend = ar_full[, 2] * r_full * 3
+)
+
+ar_df_full$var <- dplyr::recode(
+  ar_df_full$var,
+  dap = "DBH",
+  height = "Height"
+)
+
+# Centroides de los géneros
+centros_generos <- fit_full$factors$centroids
+
+generos_df <- data.frame(
+  genero = sub("^genera_tree", "", rownames(centros_generos)),
+  CAP1 = centros_generos[, 1],
+  CAP2 = centros_generos[, 2]
 )
 
 # ==============================================
@@ -1401,6 +1496,67 @@ dbRDA_plot2 <- dbRDA_plot +##PARA hacerlo cuadrado
   )
 
 dbRDA_plot2
+# ==============================================
+# 11. EXPORTAR FIGURA
+# ==============================================
+
+ggsave(
+  "dbRDA_epifitas3.png",
+  plot = dbRDA_plot,
+  width = 7,
+  height = 7,
+  units = "in",
+  dpi = 300
+)
+
+summary(mod)
+all(rownames(matriz_forof) == metadata$forof)
+
+
+
+
+
+
+
+
+# =========================================
+# 10. FIGURA FINAL full/genera
+# ========================================
+dbRDA_plot_full <- dbRDA_plot_full +
+  geom_point(
+    data = generos_df,
+    aes(x = CAP1, y = CAP2),
+    shape = 4,
+    size = 3,
+    stroke = 1,
+    color = "#244C99"
+  ) +
+  ggrepel::geom_text_repel(
+    data = generos_df,
+    aes(x = CAP1, y = CAP2, label = genero),
+    color = "#244C99",
+    fontface = "italic",
+    size = 3.5,
+    box.padding = 0.5,
+    point.padding = 0.3,
+    max.overlaps = Inf,
+    seed = 123
+  )
+
+# Mostrar explícitamente, también si ejecutas el código con source()
+print(dbRDA_plot_full)
+
+# Exportar la versión full
+ggsave(
+  filename = "dbRDA_epifitas_full.png",
+  plot = dbRDA_plot_full,
+  width = 9,
+  height = 9,
+  units = "in",
+  dpi = 300
+)
+
+
 # ==============================================
 # 11. EXPORTAR FIGURA
 # ==============================================
