@@ -30,13 +30,14 @@ library(ggpubr)
 library(geosphere)
 library(stringr)
 library(glmmTMB)
+library(ggplot2)
 
 ```
 
 base de datos
 
 ```{r}
-setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/DATA")
+#setwd("C:/Users/edith clemente arena/Desktop/EPIFITAS -GRADIENTE/treeline-epiphytes/treeline-epiphytes/Doble_filtro/DATA")
 
 #----------------------------------------------------
 # FOROFITOS CON EPIFITAS
@@ -1173,7 +1174,7 @@ mod_host_simple <- capscale(
 )
 anova(mod_host_simple)
 anova(mod_host_simple, by = "term")
-RsquareAdj(mod_host_simple)
+librRsquareAdj(mod_host_simple)
 
 # Question answered:
 # Are DAP and height associated with epiphyte composition overall?
@@ -1474,11 +1475,11 @@ geom_text(
   theme_minimal(base_size = 14) +
 
   theme(
-    panel.border = element_rect(
-      colour = "black",
-      fill = NA,
-      linewidth = 1
-    ),
+    #panel.border = element_rect(
+     # colour = "black",
+      #fill = NA,
+      #linewidth = 1
+    #),
     legend.position = "right",
     panel.grid.minor = element_line(
       colour = "grey85",
@@ -1522,7 +1523,56 @@ all(rownames(matriz_forof) == metadata$forof)
 # =========================================
 # 10. FIGURA FINAL full/genera
 # ========================================
-dbRDA_plot_full <- dbRDA_plot_full +
+dbRDA_plot_full <- ggplot() +
+
+  geom_hline(
+    yintercept = 0,
+    linetype = "dotted",
+    color = "grey50"
+  ) +
+
+  geom_vline(
+    xintercept = 0,
+    linetype = "dotted",
+    color = "grey50"
+  ) +
+
+  geom_point(
+    data = coords_full,
+    aes(x = CAP1, y = CAP2, fill = plot_new),
+    shape = 21,
+    color = "black",
+    size = 3
+  ) +
+
+  geom_text_repel(
+    data = centroides_full,
+    aes(x = CAP1, y = CAP2, label = plot_new),
+    fontface = "bold",
+    size = 5,
+    segment.color = NA,
+    box.padding = 0.4,
+    point.padding = 0.3,
+    max.overlaps = Inf,
+    seed = 123
+  ) +
+
+  geom_segment(
+    data = ar_df_full,
+    aes(x = 0, y = 0, xend = xend, yend = yend),
+    arrow = grid::arrow(length = grid::unit(0.3, "cm")),
+    linewidth = 1.2,
+    color = "red"
+  ) +
+
+  geom_text(
+    data = ar_df_full,
+    aes(x = xend * 1.10, y = yend * 1.10, label = var),
+    color = "red",
+    fontface = "bold",
+    size = 5
+  ) +
+
   geom_point(
     data = generos_df,
     aes(x = CAP1, y = CAP2),
@@ -1531,7 +1581,8 @@ dbRDA_plot_full <- dbRDA_plot_full +
     stroke = 1,
     color = "#244C99"
   ) +
-  ggrepel::geom_text_repel(
+
+  geom_text_repel(
     data = generos_df,
     aes(x = CAP1, y = CAP2, label = genero),
     color = "#244C99",
@@ -1541,21 +1592,62 @@ dbRDA_plot_full <- dbRDA_plot_full +
     point.padding = 0.3,
     max.overlaps = Inf,
     seed = 123
-  )
+  ) +
 
-# Mostrar explícitamente, también si ejecutas el código con source()
+  scale_fill_manual(values = colores_localidad) +
+
+  labs(
+    x = "CAP1",
+    y = "CAP2",
+    fill = "Locality"
+  ) +
+
+  coord_equal() +
+
+  theme_minimal(base_size = 14) +
+
+    theme(
+    panel.border = element_rect(
+      colour = "black",
+      fill = NA,
+      size = 1
+    ),
+    legend.position = "right",
+    panel.grid.minor = element_line(
+      colour = "grey85",
+      size = 0.3
+    )
+  )
+# 5. Mostrar el gráfico
 print(dbRDA_plot_full)
 
-# Exportar la versión full
+
+# Aumentar las etiquetas de texto
+for (i in seq_along(plot_prueba$layers)) {
+  if (inherits(plot_prueba$layers[[i]]$geom, "GeomText")) {
+    plot_prueba$layers[[i]]$aes_params$size <- 5
+  }
+}
+
+# Aumentar los textos de los ejes y la leyenda
+plot_prueba <- plot_prueba +
+  theme(
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 14),
+    legend.title = element_text(size = 18),
+    legend.text = element_text(size = 14)
+  )
+
+print(plot_prueba)
+
 ggsave(
-  filename = "dbRDA_epifitas_full.png",
-  plot = dbRDA_plot_full,
-  width = 9,
+  "dbRDA_epifitas_full_texto_grande.png",
+  plot = plot_prueba,
+  width = 10,
   height = 9,
   units = "in",
   dpi = 300
 )
-
 
 # ==============================================
 # 11. EXPORTAR FIGURA
@@ -1572,6 +1664,11 @@ ggsave(
 
 summary(mod)
 all(rownames(matriz_forof) == metadata$forof)
+
+
+library(vegan)
+vegan::anova.cca(mod_full, by = "terms", permutations = 999)
+
 ```
 
 The dbRDA model was significant (F = 11.60, p = 0.001).
@@ -1600,3 +1697,629 @@ Resultados cambiaron esta tabla me sugiere colocar en anexos
 | p         | 0.013  |
 | R²        | 0.0148 |
 | R² adj    | 0.0043 |
+
+
+
+Adding climate:
+
+```{r}
+
+
+library(dplyr)
+library(tidyr)
+library(vegan)
+library(permute)
+
+# ============================================================
+# 1. CLIMA: seleccionar puntos_interes_clima_30m.dbf
+# ============================================================
+
+clima <- foreign::read.dbf(file.choose(), as.is = TRUE)
+
+bio_vars <- paste0("bio", 1:19)
+
+equivalencias <- data.frame(
+  plot = c("TRU-02", "TRU-01", "ACJ-01", "APK-01"),
+  nombre = c(
+    "FORST-3200", "TLINE-3400",
+    "TLINE-3500", "TLINE-3600"
+  ),
+  stringsAsFactors = FALSE
+)
+
+stopifnot(
+  all(c("nombre", bio_vars) %in% names(clima)),
+  !anyDuplicated(clima$nombre)
+)
+
+clima_plot <- equivalencias %>%
+  dplyr::left_join(clima, by = "nombre") %>%
+  dplyr::select(plot, nombre, dplyr::all_of(bio_vars))
+
+stopifnot(
+  all(vapply(clima_plot[bio_vars], is.numeric, logical(1))),
+  all(is.finite(as.matrix(clima_plot[bio_vars])))
+)
+
+# ============================================================
+# 2. IDENTIFICAR CADA SUBPARCELA
+# ============================================================
+
+stopifnot(
+  !anyNA(data[, c("plot", "subplot", "forof", "morphospe")])
+)
+
+datos <- data %>%
+  mutate(
+    plot = as.character(plot),
+    subplot_id = paste(plot, subplot, sep = "_")
+  )
+
+# Número de árboles y registros disponibles por subparcela
+esfuerzo <- datos %>%
+  group_by(plot, subplot, subplot_id) %>%
+  summarise(
+    n_arboles = n_distinct(forof),
+    n_registros = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(plot, subplot)
+
+print(esfuerzo)
+
+# Comprobar cuatro localidades, con dos subparcelas cada una
+stopifnot(
+  nrow(esfuerzo) == 8L,
+  n_distinct(esfuerzo$plot) == 4L,
+  all(table(esfuerzo$plot) == 2L)
+)
+
+# ============================================================
+# 3. MATRIZ: SUBPARCELAS × ESPECIES
+#    Mantiene tu definición de abundancia: número de registros
+# ============================================================
+
+abund_subplot <- datos %>%
+  count(subplot_id, morphospe, name = "abundancia")
+
+matriz_subplot <- abund_subplot %>%
+  pivot_wider(
+    names_from = morphospe,
+    values_from = abundancia,
+    values_fill = 0
+  ) %>%
+  as.data.frame()
+
+rownames(matriz_subplot) <- matriz_subplot$subplot_id
+matriz_subplot$subplot_id <- NULL
+
+# Metadatos y clima de cada subparcela
+env_subplot <- esfuerzo %>%
+  left_join(clima_plot, by = "plot") %>%
+  arrange(plot, subplot) %>%
+  mutate(plot = factor(plot))
+
+# Alinear exactamente las filas
+comm_subplot <- as.matrix(
+  matriz_subplot[env_subplot$subplot_id, , drop = FALSE]
+)
+
+storage.mode(comm_subplot) <- "numeric"
+
+stopifnot(
+  identical(rownames(comm_subplot), env_subplot$subplot_id),
+  all(rowSums(comm_subplot) > 0),
+  all(is.finite(as.matrix(env_subplot[bio_vars])))
+)
+
+dim(comm_subplot)
+View(comm_subplot)
+View(env_subplot)
+
+# ============================================================
+# 4. PERMUTACIONES ENTRE LOCALIDADES
+#    Cada pareja de subparcelas se mueve como un bloque.
+#    No se permutan las subparcelas dentro de cada pareja.
+# ============================================================
+
+control <- how(
+  within = Within(type = "none"),
+  plots = Plots(
+    strata = env_subplot$plot,
+    type = "free"
+  ),
+  complete = TRUE,
+  maxperm = 999
+)
+
+permutaciones <- as.matrix(
+  allPerms(nrow(env_subplot), control = control)
+)
+
+# Eliminar la identidad si estuviera incluida
+identidad <- seq_len(nrow(env_subplot))
+
+permutaciones <- permutaciones[
+  apply(permutaciones, 1, function(x) any(x != identidad)),
+  ,
+  drop = FALSE
+]
+
+# Deben quedar 23 ordenamientos distintos del observado
+print(nrow(permutaciones))
+stopifnot(nrow(permutaciones) == 23L)
+
+# ============================================================
+# 5. DISTANCIA CHAO ENTRE SUBPARCELAS
+# ============================================================
+
+dist_subplot <- vegdist(comm_subplot, method = "chao")
+
+stopifnot(all(is.finite(dist_subplot)))
+
+# ============================================================
+# 6. UN CAPScale POR VARIABLE CLIMÁTICA
+# ============================================================
+
+modelos_clima <- setNames(
+  vector("list", length(bio_vars)),
+  bio_vars
+)
+
+resultados_lista <- vector("list", length(bio_vars))
+
+for (i in seq_along(bio_vars)) {
+
+  variable <- bio_vars[i]
+  x <- env_subplot[[variable]]
+
+  # Una variable constante no se puede evaluar
+  if (length(unique(x)) < 2L) {
+    resultados_lista[[i]] <- data.frame(
+      variable = variable,
+      R2 = NA_real_,
+      F = NA_real_,
+      p = NA_real_
+    )
+    next
+  }
+
+  formula_clima <- reformulate(
+    variable,
+    response = "dist_subplot"
+  )
+
+  modelo <- capscale(
+    formula_clima,
+    data = env_subplot,
+    add = TRUE
+  )
+
+  prueba <- anova(
+    modelo,
+    permutations = permutaciones
+  )
+
+  modelos_clima[[variable]] <- modelo
+
+  resultados_lista[[i]] <- data.frame(
+    variable = variable,
+    R2 = unname(RsquareAdj(modelo)$r.squared),
+    F = prueba[1, "F"],
+    p = prueba[1, "Pr(>F)"]
+  )
+}
+
+# Ordenar por asociación con la composición
+resultados_clima <- dplyr::bind_rows(resultados_lista) %>%
+  dplyr::mutate(
+    porcentaje_explicado = 100 * R2,
+    p_Holm = p.adjust(p, method = "holm")
+  ) %>%
+  dplyr::arrange(desc(R2)) %>%
+  dplyr::select(variable, porcentaje_explicado, R2, F, p, p_Holm)
+
+print(as.data.frame(resultados_clima), row.names = FALSE)
+View(resultados_clima)
+
+# ============================================================
+# 7. GRÁFICO: VARIABLES ORDENADAS POR VARIACIÓN EXPLICADA
+# ============================================================
+
+grafico <- resultados_clima %>%
+  filter(!is.na(R2)) %>%
+  arrange(R2)
+
+op <- par(mar = c(5, 6, 3, 1))
+
+barplot(
+  grafico$porcentaje_explicado,
+  names.arg = grafico$variable,
+  horiz = TRUE,
+  las = 1,
+  col = "#387D78",
+  border = NA,
+  xlab = "Variación en composición explicada (%)",
+  main = "Asociación individual de las variables climáticas"
+)
+
+par(op)
+
+# ============================================================
+# 8. CORRELACIONES CLIMÁTICAS
+#    Calcular sobre las cuatro localidades, sin duplicarlas.
+# ============================================================
+
+cor_clima <- cor(
+  as.matrix(clima_plot[, bio_vars]),
+  method = "pearson"
+)
+
+View(round(cor_clima, 2))
+
+# Correlaciones entre las cinco variables mejor clasificadas
+top5 <- head(
+  resultados_clima$variable[!is.na(resultados_clima$R2)],
+  5
+)
+
+print(round(cor_clima[top5, top5, drop = FALSE], 2))
+
+# ============================================================
+# 9. INSPECCIONAR EL MODELO CON MAYOR R²
+# ============================================================
+
+mejor_variable <- resultados_clima$variable[
+  which.max(resultados_clima$R2)
+]
+
+mejor_modelo <- modelos_clima[[mejor_variable]]
+
+cat("\nVariable con mayor asociación:", mejor_variable, "\n")
+
+summary(mejor_modelo)
+
+anova(
+  mejor_modelo,
+  permutations = permutaciones
+)
+
+```
+
+
+
+
+
+```{r}
+
+resultados_clima %>%
+  dplyr::filter(variable == "bio6") %>%
+  print()
+
+
+# Coordenadas de las subparcelas
+sitios <- scores(
+  mejor_modelo,
+  display = "sites",
+  choices = 1:2,
+  scaling = 2
+)
+
+# Alinear los metadatos con las coordenadas
+meta <- env_subplot[
+  match(rownames(sitios), env_subplot$subplot_id),
+  ,
+  drop = FALSE
+]
+
+colores <- c(
+  "TRU-02" = "#006400",
+  "TRU-01" = "#A2CD5A",
+  "ACJ-01" = "#DAA520",
+  "APK-01" = "#8B4513"
+)
+
+# Gráfico de ordenación
+plot(
+  mejor_modelo,
+  display = "sites",
+  choices = 1:2,
+  scaling = 2,
+  type = "n",
+  xlab = "CAP1 — asociado con BIO6 (49,39 %)",
+  ylab = "MDS1 — variación residual (15,83 %)",
+  main = "Composición de epífitas y BIO6"
+)
+
+abline(h = 0, v = 0, lty = 3, col = "grey80")
+
+# Unir las dos subparcelas de cada localidad
+for (p in unique(as.character(meta$plot))) {
+  idx <- which(as.character(meta$plot) == p)
+
+  lines(
+    sitios[idx, 1],
+    sitios[idx, 2],
+    col = colores[p],
+    lwd = 2
+  )
+}
+
+points(
+  sitios,
+  pch = 21,
+  bg = colores[as.character(meta$plot)],
+  col = "black",
+  cex = 1.7
+)
+
+text(
+  sitios,
+  labels = rownames(sitios),
+  pos = 3,
+  cex = 0.75
+)
+
+# Flecha del predictor climático
+text(
+  mejor_modelo,
+  display = "bp",
+  choices = 1:2,
+  scaling = 2,
+  col = "red",
+  cex = 1.1
+)
+
+legend(
+  "topleft",
+  legend = c(
+    "FORST-3200", "TLINE-3400",
+    "TLINE-3500", "TLINE-3600"
+  ),
+  pt.bg = colores[c("TRU-02", "TRU-01", "ACJ-01", "APK-01")],
+  pch = 21,
+  bty = "n",
+  cex = 0.8
+)
+
+
+
+
+
+# Coordenadas
+sitios <- scores(
+  mejor_modelo,
+  display = "sites",
+  choices = 1:2,
+  scaling = 2
+)
+
+meta <- env_subplot[
+  match(rownames(sitios), env_subplot$subplot_id),
+  ,
+  drop = FALSE
+]
+
+colores <- c(
+  "TRU-02" = "#006400",
+  "TRU-01" = "#A2CD5A",
+  "ACJ-01" = "#DAA520",
+  "APK-01" = "#8B4513"
+)
+
+# Gráfico nuevo con márgenes para las etiquetas
+plot(
+  sitios[, 1], sitios[, 2],
+  type = "n",
+  xlim = extendrange(sitios[, 1], f = 0.20),
+  ylim = extendrange(sitios[, 2], f = 0.18),
+  xlab = "CAP1 (49,39 %)",
+  ylab = "MDS1 (15,83 %)",
+  main = "",
+  asp = 1
+)
+
+abline(h = 0, v = 0, lty = 3, col = "grey80")
+
+for (p in unique(as.character(meta$plot))) {
+  idx <- which(as.character(meta$plot) == p)
+
+  lines(
+    sitios[idx, 1], sitios[idx, 2],
+    col = colores[p],
+    lwd = 1.5
+  )
+}
+
+points(
+  sitios[, 1], sitios[, 2],
+  pch = 21,
+  bg = colores[as.character(meta$plot)],
+  col = "black",
+  cex = 1.5
+)
+
+text(
+  sitios[, 1], sitios[, 2],
+  labels = rownames(sitios),
+  pos = 3,
+  cex = 0.8
+)
+
+# Flecha BIO6: longitud gráfica contenida dentro del panel
+bp <- scores(
+  mejor_modelo,
+  display = "bp",
+  choices = 1:2,
+  scaling = 2
+)
+
+lim <- par("usr")
+direccion <- sign(bp["bio6", 1])
+punta <- 0.55 * if (direccion > 0) lim[2] else lim[1]
+
+arrows(
+  x0 = 0, y0 = 0,
+  x1 = punta, y1 = 0,
+  length = 0.15,
+  angle = 25,
+  lwd = 2,
+  col = "red",
+  xpd = FALSE
+)
+
+text(
+  x = punta,
+  y = 0.06 * diff(lim[3:4]),
+  labels = "BIO6",
+  col = "red",
+  font = 2
+)
+
+
+```
+
+
+Betapart (tunover and nestedness)
+
+```{r}
+
+# ============================================================
+# 8. PRUEBA WITHIN VS ACROSS
+#    Unidad de reasignación: plot completo
+# ============================================================
+
+# Identificadores de los ocho plots de muestreo
+plots_test <- meta_beta %>%
+  dplyr::distinct(parcela, plot) %>%
+  dplyr::arrange(parcela)
+
+stopifnot(
+  nrow(plots_test) == 8L,
+  !anyDuplicated(plots_test$parcela),
+  length(unique(plots_test$plot)) == 4L,
+  all(table(plots_test$plot) == 2L)
+)
+
+# Las 28 combinaciones de ocho plots tomados de dos en dos
+comparaciones <- resumen_plots %>%
+  dplyr::filter(parcela_a != parcela_b) %>%
+  dplyr::mutate(
+    i = match(parcela_a, plots_test$parcela),
+    j = match(parcela_b, plots_test$parcela)
+  )
+
+componentes <- c("beta_total", "turnover", "nestedness")
+
+stopifnot(
+  nrow(comparaciones) == choose(8, 2),
+  !anyNA(comparaciones[, c("i", "j")]),
+  !anyDuplicated(paste(
+    pmin(comparaciones$i, comparaciones$j),
+    pmax(comparaciones$i, comparaciones$j)
+  )),
+  all(is.finite(as.matrix(comparaciones[, componentes])))
+)
+
+# Grupos observados: las cuatro localidades
+grupo_observado <- as.character(plots_test$plot)
+
+# Diferencia de medias, dando igual peso a cada pareja de plots
+calcular_delta <- function(grupos, valores) {
+
+  within <- grupos[comparaciones$i] ==
+            grupos[comparaciones$j]
+
+  mean(valores[!within]) - mean(valores[within])
+}
+
+# ============================================================
+# 9. GENERAR LAS 105 AGRUPACIONES EN CUATRO PAREJAS
+# ============================================================
+
+generar_parejas <- function(ids) {
+
+  if (length(ids) == 0L) {
+    return(list(matrix(integer(0), ncol = 2)))
+  }
+
+  primero <- ids[1]
+  resultado <- list()
+
+  for (segundo in ids[-1]) {
+
+    restantes <- ids[!ids %in% c(primero, segundo)]
+    colas <- generar_parejas(restantes)
+
+    for (cola in colas) {
+      resultado[[length(resultado) + 1L]] <-
+        rbind(c(primero, segundo), cola)
+    }
+  }
+
+  resultado
+}
+
+agrupaciones <- generar_parejas(seq_len(nrow(plots_test)))
+
+stopifnot(length(agrupaciones) == 105L)
+
+# Convertir cada agrupación en un vector de cuatro grupos
+grupos_nulos <- lapply(agrupaciones, function(parejas) {
+
+  grupos <- integer(nrow(plots_test))
+
+  for (k in seq_len(nrow(parejas))) {
+    grupos[parejas[k, ]] <- k
+  }
+
+  grupos
+})
+
+# ============================================================
+# 10. PRUEBA EXACTA PARA CADA COMPONENTE
+#     Alternativa unilateral: across > within
+# ============================================================
+
+resultados_test <- lapply(componentes, function(componente) {
+
+  valores <- comparaciones[[componente]]
+
+  within_obs <- grupo_observado[comparaciones$i] ==
+                grupo_observado[comparaciones$j]
+
+  delta_obs <- calcular_delta(grupo_observado, valores)
+
+  delta_nulo <- vapply(
+    grupos_nulos,
+    function(g) calcular_delta(g, valores),
+    numeric(1)
+  )
+
+  # Enumeración completa, incluida la agrupación observada:
+  # no se añade +1 porque ya está incluida.
+  p_exacto <- mean(delta_nulo >= delta_obs - 1e-12)
+
+  data.frame(
+    componente = componente,
+    media_within = mean(valores[within_obs]),
+    media_across = mean(valores[!within_obs]),
+    delta = delta_obs,
+    p = p_exacto,
+    n_agrupaciones = length(delta_nulo)
+  )
+})
+
+test_within_across <- dplyr::bind_rows(resultados_test) %>%
+  dplyr::mutate(
+    p_Holm = p.adjust(p, method = "holm")
+  )
+
+print(as.data.frame(test_within_across), row.names = FALSE)
+View(test_within_across)
+
+```
+
+
+
+
